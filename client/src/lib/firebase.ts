@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAxrnXWRqwvmT2i3eRM60ZkUlxJoDOYAVI",
-  authDomain: "carbondocs.firebaseapp.com",
-  projectId: "carbondocs",
-  storageBucket: "carbondocs.firebasestorage.app",
-  messagingSenderId: "204832558744",
-  appId: "1:204832558744:web:38a6b5d7887160fdc64aed",
+  apiKey: "AIzaSyBP1H4V8oAZucSKWDuYRT1EpeoeC9IyQHU",
+  authDomain: "ai-canva-e9dff.firebaseapp.com",
+  projectId: "ai-canva-e9dff",
+  storageBucket: "ai-canva-e9dff.firebasestorage.app",
+  messagingSenderId: "515518523006",
+  appId: "1:515518523006:web:687b983976e0ed9bd65a2f"
 };
 
 const app = initializeApp(firebaseConfig);
