@@ -5,8 +5,16 @@ export interface GenerateRequest {
   userPrompt: string;
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface GenerateResponse {
   content: string;
+  model?: string;
+  usage?: TokenUsage;
   error?: string;
 }
 
@@ -68,12 +76,22 @@ export interface StitchResponse {
   error?: string;
 }
 
+interface StitchJobResponse {
+  jobId?: string;
+  status: "queued" | "running" | "done" | "error";
+  html?: string | null;
+  imageUrl?: string | null;
+  error?: string | null;
+}
+
 /**
- * Calls Google Stitch to generate a UI screen from a prompt.
+ * Starts an asynchronous Stitch UI generation job.
+ *
+ * Stitch generation is slow (40s+), so the server returns immediately with a
+ * job id and runs the work in the background. Callers then poll
+ * `pollStitchJob` until it reports "done" or "error".
  */
-export async function generateStitchUI(
-  prompt: string
-): Promise<StitchResponse> {
+export async function startStitchJob(prompt: string): Promise<string> {
   const res = await fetch(`${API_BASE}/stitch-generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -83,7 +101,59 @@ export async function generateStitchUI(
     const err = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
+  const data = (await res.json()) as StitchJobResponse;
+  if (!data.jobId) {
+    throw new Error("Stitch did not return a job id.");
+  }
+  return data.jobId;
+}
+
+/**
+ * Polls a Stitch job until it completes (done) or fails (error), returning the
+ * generated HTML and screenshot URL. Throws on error or timeout.
+ *
+ * @param jobId - The job id returned by `startStitchJob`.
+ * @param opts - Optional poll interval ms and max wait ms.
+ */
+export async function pollStitchJob(
+  jobId: string,
+  opts: { intervalMs?: number; maxWaitMs?: number } = {}
+): Promise<StitchResponse> {
+  const intervalMs = opts.intervalMs ?? 2000;
+  const maxWaitMs = opts.maxWaitMs ?? 10 * 60 * 1000; // 10 min safety ceiling
+  const deadline = Date.now() + maxWaitMs;
+
+  for (;;) {
+    const status = await readStitchJob(jobId);
+    if (status.status === "done") {
+      if (!status.html) throw new Error("Stitch finished but returned no HTML.");
+      return { html: status.html, imageUrl: status.imageUrl || "" };
+    }
+    if (status.status === "error") {
+      throw new Error(status.error || "Stitch UI generation failed.");
+    }
+    if (Date.now() > deadline) {
+      throw new Error("Stitch UI generation timed out.");
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+}
+
+async function readStitchJob(jobId: string): Promise<StitchJobResponse> {
+  const res = await fetch(`${API_BASE}/stitch-status/${encodeURIComponent(jobId)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Request failed" }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
   return res.json();
+}
+
+/** Backwards-compatible single call: start a job and wait for it to finish. */
+export async function generateStitchUI(
+  prompt: string
+): Promise<StitchResponse> {
+  const jobId = await startStitchJob(prompt);
+  return pollStitchJob(jobId);
 }
 
 export async function checkHealth(): Promise<{

@@ -35,4 +35,22 @@ export default defineConfig(({ command }) => ({
       ? { proxy: { "/api": `http://localhost:${getServerPort()}` } }
       : {}),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the large vendors into stable, separately-cached chunks so the
+        // initial board UI (react + xyflow) is served before firebase/markdown
+        // load. Also avoids a single ~1.3MB main chunk.
+        manualChunks: {
+          // React itself is not chunked — it is imported by the entry point and
+          // must be present at first paint, so Rollup inlines it (an explicit
+          // chunk would come out empty). Splitting the heavy SDKs below is what
+          // actually shrinks the initial parse/render path.
+          reactflow: ["@xyflow/react", "zustand"],
+          firebase: ["firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage"],
+          markdown: ["react-markdown"],
+        },
+      },
+    },
+  },
 }));

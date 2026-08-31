@@ -11,8 +11,11 @@ export default function Cursors() {
   const activeUsers = useBoardStore((s) => s.activeUsers);
   const currentUser = useAuthStore((s) => s.user);
 
-  // Filter out self
-  const otherUsers = activeUsers.filter((u) => u.userId !== currentUser?.uid);
+  // Filter out self, and users who are online (presence heartbeat) but have
+  // never moved their cursor — without this they'd render a cursor at (0, 0).
+  const otherUsers = activeUsers.filter(
+    (u) => u.userId !== currentUser?.uid && u.hasCursor !== false
+  );
 
   if (otherUsers.length === 0) return null;
 

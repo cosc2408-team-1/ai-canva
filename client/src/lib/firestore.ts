@@ -8,14 +8,18 @@ import {
   deleteDoc,
   query,
   where,
+  orderBy,
   limit,
   onSnapshot,
   arrayUnion,
   arrayRemove,
   updateDoc,
+  addDoc,
+  increment,
   setDoc as setDocPresence,
 } from "firebase/firestore";
 import type { PresenceUser } from "../types.js";
+import type { CustomBoxDef } from "./customBoxes.js";
 
 export interface BoardDoc {
   id: string;
@@ -23,6 +27,12 @@ export interface BoardDoc {
   ownerId: string;
   ownerEmail: string;
   collaborators: string[];
+  /** Facilitator template boards — excluded from the regular board list. */
+  isTemplate?: boolean;
+  /** Set on team boards created from a template (back-reference). */
+  teamId?: string;
+  /** Guest (code-based) members with access, by uid — team boards. */
+  memberUids?: string[];
   nodes: unknown[];
   edges: unknown[];
   boxData: Record<string, unknown>;
@@ -39,6 +49,9 @@ function parseBoard(id: string, data: Record<string, any>): BoardDoc {
     ownerId: data.ownerId || "",
     ownerEmail: data.ownerEmail || "",
     collaborators: data.collaborators || [],
+    isTemplate: data.isTemplate || false,
+    teamId: data.teamId || "",
+    memberUids: data.memberUids || [],
     nodes: data.nodes || [],
     edges: data.edges || [],
     boxData: data.boxData || {},
@@ -60,6 +73,9 @@ export async function saveBoard(board: BoardDoc): Promise<void> {
       nodes: board.nodes,
       edges: board.edges,
       boxData: board.boxData,
+      isTemplate: board.isTemplate || false,
+      teamId: board.teamId || "",
+      memberUids: board.memberUids || [],
       createdAt: board.createdAt,
       updatedAt: board.updatedAt,
     },
@@ -84,19 +100,78 @@ export async function listBoards(userId: string): Promise<BoardDoc[]> {
   );
   const snap = await getDocs(q);
   const boards = snap.docs.map((d) => parseBoard(d.id, d.data() as Record<string, any>));
-  return boards.sort((a, b) => b.updatedAt - a.updatedAt);
+  return boards
+    .filter((b) => !b.isTemplate) // templates are managed in the Facilitator Dashboard
+    .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-/** Lists boards shared with a user by email, newest first. */
-export async function listSharedBoards(userEmail: string): Promise<BoardDoc[]> {
+/** Lists a facilitator's template boards (workshop assets). */
+export async function listTemplateBoards(userId: string): Promise<BoardDoc[]> {
   const q = query(
     collection(db, BOARDS_COLLECTION),
-    where("collaborators", "array-contains", userEmail),
+    where("ownerId", "==", userId),
+    where("isTemplate", "==", true),
     limit(50)
   );
   const snap = await getDocs(q);
-  const boards = snap.docs.map((d) => parseBoard(d.id, d.data() as Record<string, any>));
-  return boards.sort((a, b) => b.updatedAt - a.updatedAt);
+  return snap.docs
+    .map((d) => parseBoard(d.id, d.data() as Record<string, any>))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/**
+ * Lists boards shared with a user — either by email (the classic share flow)
+ * or by uid membership (workshop team boards carry memberUids for guests).
+ * Either key may be empty; results are merged and deduped, newest first.
+ */
+export async function listSharedBoards(userEmail: string, uid?: string): Promise<BoardDoc[]> {
+  const queries: Promise<BoardDoc[]>[] = [];
+  if (userEmail) {
+    queries.push(
+      getDocs(
+        query(
+          collection(db, BOARDS_COLLECTION),
+          where("collaborators", "array-contains", userEmail),
+          limit(50)
+        )
+      ).then((snap) => snap.docs.map((d) => parseBoard(d.id, d.data() as Record<string, any>)))
+    );
+  }
+  if (uid) {
+    queries.push(
+      getDocs(
+        query(
+          collection(db, BOARDS_COLLECTION),
+          where("memberUids", "array-contains", uid),
+          limit(50)
+        )
+      ).then((snap) => snap.docs.map((d) => parseBoard(d.id, d.data() as Record<string, any>)))
+    );
+  }
+  const results = await Promise.all(queries);
+  const seen = new Set<string>();
+  const merged: BoardDoc[] = [];
+  for (const list of results) {
+    for (const b of list) {
+      if (seen.has(b.id)) continue;
+      seen.add(b.id);
+      merged.push(b);
+    }
+  }
+  return merged.sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+/** Adds a guest as a member of a board (uid always; email when provided). */
+export async function addBoardMember(
+  boardId: string,
+  uid: string,
+  email?: string
+): Promise<void> {
+  const ref = doc(db, BOARDS_COLLECTION, boardId);
+  await updateDoc(ref, {
+    memberUids: arrayUnion(uid),
+    ...(email ? { collaborators: arrayUnion(email) } : {}),
+  });
 }
 
 /** Deletes a board by ID. */
@@ -168,6 +243,7 @@ export function subscribeToPresence(
           color: data.color || "#94a3b8",
           cursorX: data.cursorX ?? 0,
           cursorY: data.cursorY ?? 0,
+          hasCursor: data.cursorX !== undefined,
         });
       }
     });
@@ -210,3 +286,88 @@ export async function unshareBoard(boardId: string, email: string): Promise<void
   const ref = doc(db, BOARDS_COLLECTION, boardId);
   await updateDoc(ref, { collaborators: arrayRemove(email) });
 }
+
+// === Token usage ===
+
+/**
+ * Records one LLM call's token usage. Writes a detailed `tokenUsage/{autoId}`
+ * doc for history/aggregation and atomically bumps the user's rolling totals
+ * in `usageTotals/{uid}` (via Firestore increment, so concurrent calls don't
+ * lose updates). Best-effort: failures are swallowed so a usage-write hiccup
+ * never fails the user's generation.
+ */
+export async function recordTokenUsage(
+  userId: string,
+  boardId: string,
+  boxId: string,
+  boxType: string,
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number },
+  model?: string
+): Promise<void> {
+  try {
+    await Promise.all([
+      addDoc(collection(db, "tokenUsage"), {
+        userId,
+        boardId,
+        boxId,
+        boxType,
+        model: model || "",
+        promptTokens: usage.promptTokens,
+        completionTokens: usage.completionTokens,
+        totalTokens: usage.totalTokens,
+        createdAt: new Date(),
+      }),
+      setDoc(
+        doc(db, "usageTotals", userId),
+        {
+          promptTokens: increment(usage.promptTokens),
+          completionTokens: increment(usage.completionTokens),
+          totalTokens: increment(usage.totalTokens),
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      ),
+    ]);
+  } catch (err) {
+    console.warn("[tokenUsage] Could not record usage:", err);
+  }
+}
+
+/** Returns the given user's cumulative token total (0 if never used). */
+export async function fetchUserTokenTotal(userId: string): Promise<number> {
+  try {
+    const snap = await getDoc(doc(db, "usageTotals", userId));
+    if (snap.exists()) return Number(snap.data().totalTokens || 0);
+    return 0;
+  } catch (err) {
+    console.warn("[tokenUsage] Could not fetch total:", err);
+    return 0;
+  }
+}
+
+// === Custom box templates (users/{uid}/boxes/{boxId}) ===
+
+/** Lists the signed-in user's saved custom box definitions. */
+export async function listUserBoxes(userId: string): Promise<CustomBoxDef[]> {
+  const q = query(
+    collection(db, "users", userId, "boxes"),
+    orderBy("createdAt", "asc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CustomBoxDef, "id">) }));
+}
+
+/** Saves (creates) a custom box definition in the user's profile. */
+export async function saveUserBox(
+  userId: string,
+  def: Omit<CustomBoxDef, "id">
+): Promise<string> {
+  const ref = await addDoc(collection(db, "users", userId, "boxes"), def);
+  return ref.id;
+}
+
+/** Deletes a saved custom box definition (existing board boxes are unaffected). */
+export async function deleteUserBox(userId: string, boxId: string): Promise<void> {
+  await deleteDoc(doc(db, "users", userId, "boxes", boxId));
+}
+

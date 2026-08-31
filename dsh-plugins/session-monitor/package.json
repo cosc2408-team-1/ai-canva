@@ -1,0 +1,32 @@
+{
+  "name": "dsh-plugin-session-monitor",
+  "description": "Web client plugin: a floating Sessions Monitor window over the shell.overlay slot — live list of open sessions with working/attention animations and completion/attention sounds",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-runtime"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "README.md"
+  ],
+  "license": "MIT",
+  "private": true
+}

@@ -14,5 +14,89 @@ service cloud.firestore {
         allow delete: if request.auth != null && request.auth.uid == userId;
       }
     }
+
+    // User profiles — each user manages their own doc (used for admin stats).
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // Custom box templates — reusable AI box definitions saved per user.
+      // (The doc rule above does not cover subcollections, hence this block.)
+      match /boxes/{boxId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Admin designation — a user can read their own admin doc to check status.
+    // Actual stats are served by the admin Cloud Function (Admin SDK), which
+    // bypasses these rules, so no broad read access is granted here.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Facilitator role — same pattern as admins: self-read so the client can
+    // show the Facilitator Dashboard button; grant/revoke goes through the
+    // admin Cloud Function (Admin SDK), never direct writes.
+    match /facilitators/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Workshops — created/managed by their facilitator (or admins via the
+    // Admin SDK). Any signed-in user (guests included) can read workshop
+    // metadata for the boards they participate in.
+    match /workshops/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.facilitatorUid == request.auth.uid
+        && exists(/databases/$(database)/documents/facilitators/$(request.auth.uid));
+      allow update, delete: if request.auth != null
+        && resource.data.facilitatorUid == request.auth.uid;
+    }
+
+    // Teams — created by the facilitator from a template board. Guests are
+    // added to the board's memberUids, not here, so teams stay
+    // facilitator-managed.
+    match /teams/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.facilitatorUid == request.auth.uid
+        && exists(/databases/$(database)/documents/facilitators/$(request.auth.uid));
+      allow update, delete: if request.auth != null
+        && resource.data.facilitatorUid == request.auth.uid;
+    }
+
+    // Seat codes — secret credentials at the top level (codes/{code}) so the
+    // join endpoint can fetch them by id with no query/index. Guests never
+    // read codes (the join endpoint uses the Admin SDK and bypasses rules);
+    // facilitators list their own team's codes (queries are always filtered
+    // by teamId, which this rule verifies via the parent team).
+    match /codes/{code} {
+      allow get, list: if request.auth != null
+        && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
+        && get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.facilitatorUid == request.auth.uid;
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/facilitators/$(request.auth.uid));
+      allow update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/teams/$(resource.data.teamId))
+        && get(/databases/$(database)/documents/teams/$(resource.data.teamId)).data.facilitatorUid == request.auth.uid;
+    }
+
+    // Token usage — a user can only create/read their own call records.
+    // Per-user rolling totals use Firestore increment, which is a write to
+    // the user's own doc.
+    match /tokenUsage/{id} {
+      allow read: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /usageTotals/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Async Stitch UI jobs — accessed only server-side through the Admin SDK
+    // via POST /api/stitch-generate and GET /api/stitch-status/:id. Clients
+    // must never read/write these docs directly.
+    match /stitchJobs/{jobId} {
+      allow read, write: if false;
+    }
   }
 }
