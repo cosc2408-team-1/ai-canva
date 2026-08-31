@@ -1,64 +1,88 @@
 import { useState } from "react";
 
+/**
+ * Canvas help card ("How to use") — bottom-left, dismissible to a "?" pill.
+ * Note: the E2E suite locates this card by finding a `rounded-xl` div whose
+ * text includes "How to use" — keep both markers when restyling.
+ */
 export default function Toolbar() {
   const [open, setOpen] = useState(true);
 
   return (
     <div className="absolute bottom-4 left-4 z-10">
       {open ? (
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-4 max-w-xs">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-bold text-slate-700">How to use</h2>
+        <div className="rounded-xl bg-white/95 backdrop-blur border border-slate-200 shadow-xl shadow-slate-900/10 p-4 w-[300px]">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[13px] font-semibold text-slate-700">How to use</h2>
             <button
               onClick={() => setOpen(false)}
-              className="text-slate-400 hover:text-slate-600 text-sm"
+              className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              title="Hide help"
             >
               ✕
             </button>
           </div>
-          <ul className="text-xs text-slate-600 space-y-1.5">
-            <li>
-              <strong>1.</strong> Add boxes from the panel on the right (toggle with + Add in the top bar).
-            </li>
-            <li>
-              <strong>2.</strong> Type your idea in an <span className="text-amber-600 font-semibold">💡 Idea Box</span>, or upload an image in an <span className="text-emerald-600 font-semibold">🖼️ Image Box</span>.
-            </li>
-            <li>
-              <strong>3.</strong> Drag from a box right edge ● to connect to another box left edge ●.
-            </li>
-            <li>
-              <strong>4.</strong> Click <strong>▶ Run</strong> on any AI box (Research, PRD, Summarize, Cartoon, Slides, Code) to generate output.
-            </li>
-            <li>
-              <strong>5.</strong> Click <strong>⚙</strong> to edit the AI prompt template.
-            </li>
-            <li>
-              <strong>6.</strong> Use {"{{input_1}}"}, {"{{input_2}}"} in prompts to reference connected inputs.
-            </li>
-            <li className="pt-1 border-t border-slate-100 mt-2">
-              <span className="text-pink-600 font-semibold">🎨 Cartoon Profile</span>: Connect an Image box for image-to-image, or an Idea box for text-to-image.
-            </li>
-            <li>
-              <span className="text-orange-500 font-semibold">📊 Slides</span>: Connect Research boxes to generate a visual pitch deck with prev/next navigation.
-            </li>
-            <li>
-              <span className="text-cyan-500 font-semibold">💻 Code</span>: Connect a PRD or Research box to generate a React prototype with live preview.
-            </li>
-            <li>
-              <span className="text-indigo-400 font-semibold">📄 PRD</span>: Connect Research boxes to generate a structured Product Requirements Document — then feed it into a Code box for better prototypes.
-            </li>
-            <li>
-              <strong>Resize:</strong> Click a box, then drag the corner/edge handles to resize it.
-            </li>
-          </ul>
-          <div className="mt-3 pt-2 border-t border-slate-100 text-xs text-slate-400">
-            Your board auto-saves to the browser.
+
+          <ol className="space-y-2.5">
+            {[
+              <>
+                Add boxes from the panel on the right (toggle with{" "}
+                <span className="font-medium text-slate-700">+ Add Box</span>).
+              </>,
+              <>
+                Type your idea in an{" "}
+                <span className="font-medium text-amber-600">💡 Idea</span> box, or upload an image
+                in an <span className="font-medium text-emerald-600">🖼️ Image</span> box.
+              </>,
+              <>
+                Drag from a box's right edge <span className="text-slate-400">●</span> to another
+                box's left edge <span className="text-slate-400">●</span> to connect them.
+              </>,
+              <>
+                Click <span className="font-medium text-slate-700">▶ Run</span> on any AI box
+                (Research, PRD, Summarize, Cartoon, Slides, Code) to generate output.
+              </>,
+              <>
+                Click <span className="font-medium text-slate-700">⚙</span> to edit the AI prompt —
+                reference connected inputs with <code className="text-[10px] bg-slate-100 px-1 py-0.5 rounded font-mono">{"{{input_1}}"}</code>,{" "}
+                <code className="text-[10px] bg-slate-100 px-1 py-0.5 rounded font-mono">{"{{inputs}}"}</code>.
+              </>,
+              <>
+                Click a box, then drag the corner handles to resize it.
+              </>,
+            ].map((step, i) => (
+              <li key={i} className="flex gap-2.5 text-xs text-slate-600 leading-relaxed">
+                <span className="w-4 h-4 mt-0.5 rounded-full bg-slate-100 text-slate-500 text-[9px] font-semibold flex items-center justify-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5">
+            <p className="text-[11px] text-slate-500 leading-snug">
+              <span className="font-semibold text-pink-600">🎨 Cartoon</span> — connect an Image box
+              to cartoonify it, or an Idea box for text-to-image.
+            </p>
+            <p className="text-[11px] text-slate-500 leading-snug">
+              <span className="font-semibold text-orange-500">📊 Slides</span> — connect Research
+              boxes to generate a navigable pitch deck.
+            </p>
+            <p className="text-[11px] text-slate-500 leading-snug">
+              <span className="font-semibold text-cyan-600">💻 Code</span> — connect a PRD or
+              Research box for a live React prototype.
+            </p>
+          </div>
+
+          <div className="mt-3 pt-2.5 border-t border-slate-100 text-[10px] text-slate-400">
+            Boards auto-save — to the browser when signed out, to the cloud when signed in.
           </div>
         </div>
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="bg-white rounded-full shadow-lg border border-slate-200 w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-700"
+          className="rounded-full bg-white shadow-lg border border-slate-200 w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:border-slate-300 transition"
           title="Show help"
         >
           ?

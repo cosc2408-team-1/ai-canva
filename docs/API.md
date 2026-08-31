@@ -42,8 +42,16 @@ PRD, Dev Plan, Slides, Code, UI Design).
 **Response** — `200`
 
 ```json
-{ "content": "string" }
+{
+  "content": "string",
+  "model": "deepseek-v4-flash",
+  "usage": { "promptTokens": 120, "completionTokens": 450, "totalTokens": 570 }
+}
 ```
+
+`usage` reports the model's **token usage** for this call (`promptTokens` = input, `completionTokens`
+= output) from Ollama's `prompt_eval_count` / `eval_count`. The client displays this per box and
+persists it to Firestore (see "Token usage" below).
 
 **Errors**
 
@@ -55,6 +63,20 @@ PRD, Dev Plan, Slides, Code, UI Design).
 The model defaults to `deepseek-v4-flash` and can be overridden with `OLLAMA_MODEL`. Requests go to
 `{OLLAMA_HOST}/api/chat` (default `https://ollama.com` for Ollama Cloud) authenticated with
 `OLLAMA_API_KEY`.
+
+### Token usage persistence
+
+Token usage is recorded **client-side** (the client already knows the authenticated user), in two
+places in Firestore:
+
+- `tokenUsage/{autoId}` — one doc per call with `userId`, `boardId`, `boxId`, `boxType`, `model`,
+  `promptTokens`, `completionTokens`, `totalTokens`, `createdAt`. Detailed history / aggregation.
+- `usageTotals/{uid}` — per-user **rolling totals** (`promptTokens`, `completionTokens`,
+  `totalTokens`, `updatedAt`) updated atomically via Firestore `increment`, so concurrent calls
+  don't lose updates. The header's ⚡ count reads this.
+
+Rules: a user can create/read their own `tokenUsage` docs and read/write their own `usageTotals`
+doc. The admin function reads aggregate totals via the Admin SDK (bypasses rules).
 
 ### `POST /api/generate-image`
 
@@ -85,7 +107,12 @@ Generates a cartoon profile image with fal.ai. Used by the **Cartoon Profile** b
 
 ### `POST /api/stitch-generate`
 
-Generates a UI screen with Google Stitch. Used by the **Stitch UI** box.
+Starts an asynchronous Google Stitch UI-generation job. Used by the **Stitch UI** box.
+
+Stitch generation is slow (40s+), which previously exceeded the ~60s timeout Firebase Hosting
+applies when rewriting `/api/**` to the Cloud Function. To avoid that, this endpoint does **not**
+block on generation — it creates a job, kicks off the work asynchronously, and returns a `jobId`
+immediately. The client polls [`GET /api/stitch-status/:jobId`](#get-apistitch-statusjobid).
 
 **Request body**
 
@@ -97,15 +124,148 @@ Generates a UI screen with Google Stitch. Used by the **Stitch UI** box.
 
 ```json
 {
-  "html": "string",
-  "imageUrl": "string"
+  "jobId": "string",
+  "status": "queued"
 }
 ```
 
 **Errors**
 
 | `400` | `prompt` missing or not a string |
-| `500` | Stitch call failed (e.g. missing `STITCH_API_KEY`) |
+| `500` | Failed to start the job (e.g. missing `STITCH_API_KEY`) |
+
+### `GET /api/stitch-status/:jobId`
+
+Returns the state of an asynchronous Stitch job. The client polls this until status is `"done"` or
+`"error"`.
+
+**Response** — `200`
+
+```json
+{
+  "status": "queued" | "running" | "done" | "error",
+  "html": "string | null",
+  "imageUrl": "string | null",
+  "error": "string | null"
+}
+```
+
+On the local server the job store is an in-memory map (dev-only). In production it is backed by
+Firestore (`stitchJobs/{jobId}`) and the generation runs on a Cloud Task worker
+(`processStitchJob`).
+
+**Errors**
+
+| `404` | Unknown `jobId` |
+| `500` | Failed to read the job |
+
+### `GET /api/admin/stats`
+
+Admin-only. Returns system-wide usage stats (users, boards, storage). Requires the caller to be
+an admin (a doc must exist at `admins/{uid}`) and to send a Firebase ID token.
+
+**Auth**
+
+```
+Authorization: Bearer <Firebase ID token>
+```
+
+**Response** — `200`
+
+```json
+{
+  "generatedAt": 1234567890,
+  "users": { "total": 42, "activeLast5m": 3, "newLast7d": 5 },
+  "boards": { "total": 12, "newLast7d": 2 },
+  "storage": { "bytes": 123456, "files": 8 },
+  "tokens": { "promptTokens": 1000, "completionTokens": 4500, "totalTokens": 5500 }
+}
+```
+
+**Errors**
+
+| Status | When |
+|--------|------|
+| `401` | Missing or invalid ID token |
+| `403` | Caller is not an admin |
+| `500` | Stats computation failed |
+| `501` | Local dev server (admin stats are production-only) |
+
+> **Note:** This endpoint is only implemented in the **Cloud Function** (`functions/`), which uses
+> the Firebase Admin SDK. The local dev server (`server/`) returns `501` because it has no service
+> account. Stats are computed server-side so sensitive aggregates are never exposed to client
+> Firestore rules.
+>
+> **User counts:** `total` and `newLast7d` are counted from **Firebase Auth** (`listUsers`), the
+> authoritative source of registered users. `activeLast5m` counts users whose `lastActive`
+> heartbeat (written by the client to the `users` collection) is within the last 5 minutes.
+
+### `GET /api/admin/users?pageToken=...`
+
+Admin-only. Lists registered users from Firebase Auth (paginated, up to 200 per page).
+
+**Auth**
+
+```
+Authorization: Bearer <Firebase ID token>
+```
+
+**Response** — `200`
+
+```json
+{
+  "users": [
+    {
+      "uid": "abc123",
+      "email": "user@example.com",
+      "displayName": "Jane Doe",
+      "photoURL": "https://...",
+      "disabled": false,
+      "createdAt": "2024-01-01T12:00:00.000Z",
+      "lastSignIn": "2024-05-01T12:00:00.000Z",
+      "tokens": { "promptTokens": 500, "completionTokens": 2000, "totalTokens": 2500 }
+    }
+  ],
+  "nextPageToken": "token-or-null"
+}
+```
+
+Pass `nextPageToken` in `?pageToken=` to fetch the next page.
+
+`tokens` is each user's **cumulative token usage** — `promptTokens` is tokens **up** (input) and
+`completionTokens` is tokens **down** (output), which cost differently. Admins see this per user in
+the Admin Board's Users tab.
+
+**Errors:** `401` missing/invalid token, `403` not an admin, `500` failure.
+
+### `POST /api/admin/users/:uid/status`
+
+Admin-only. Blocks (`{ "disabled": true }`) or unblocks (`{ "disabled": false }`) a user's account
+via `auth.updateUser`. An admin cannot block their own account.
+
+**Auth:** same `Authorization: Bearer <Firebase ID token>`.
+
+**Request body**
+
+```json
+{ "disabled": true }
+```
+
+**Response** — `200`
+
+```json
+{ "uid": "abc123", "disabled": true }
+```
+
+**Errors**
+
+| Status | When |
+|--------|------|
+| `400` | Trying to block your own account |
+| `401` | Missing/invalid token |
+| `403` | Not an admin |
+| `404` | User not found |
+| `500` | Update failed |
 
 ---
 
@@ -122,3 +282,23 @@ Generates a UI screen with Google Stitch. Used by the **Stitch UI** box.
 
 Copy the templates from `server/.env.example` / `functions/.env.example` into `.env` and fill in
 real values.
+
+## Workshops (facilitator & guests)
+
+### `POST /api/workshop/join` — `{ code }`
+
+Redeems a workshop seat code for a guest — **no login required**. The first redemption creates a
+dedicated guest auth user and binds it to the code; every later redemption returns a fresh Firebase
+custom token for the SAME uid, so guests keep their identity and boards on any device. Codes are
+8 characters (A–Z, 2–9). Capacity (max 5 per team) is enforced server-side.
+
+- **Response:** `{ token, isNew, teamId, workshopId, teamName, workshopName, boardId }`
+- **Errors:** `400` invalid code format · `404` unknown code / team gone · `409` team full (5/5)
+- **Only in the Cloud Function** — the local dev server proxies this endpoint to the deployed
+  function (custom-token minting needs the Admin SDK).
+
+### `POST /api/admin/roles` — `{ uid, role: "facilitator", grant }`
+
+Admin-only (Bearer ID token + `admins/{uid}`). Grants or revokes the facilitator role by
+writing/deleting `facilitators/{uid}`. Cloud Function only (501 locally).
+

@@ -18,6 +18,7 @@ A collaborative, AI-powered whiteboard where you compose visual pipelines of AI 
 | [Box Types](docs/BOX_TYPES.md) | Every box and how to add a new one |
 | [API](docs/API.md) | The backend endpoints and environment variables |
 | [Deployment](docs/DEPLOYMENT.md) | Ship it to Firebase Hosting + Functions |
+| [Testing](docs/TESTING.md) | Running and writing Vitest unit tests for server + client |
 | [Open-Source Readiness](docs/OSS_READINESS.md) | Pre-launch security and project checks |
 
 ### 📘 Course guides

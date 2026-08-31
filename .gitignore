@@ -7,3 +7,4 @@ dist/
 .firebase/
 test-stitch*
 .idea/
+*.tsbuildinfo

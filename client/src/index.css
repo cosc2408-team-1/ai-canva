@@ -11,19 +11,194 @@ body,
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Box node styling */
+/* Box node styling — quiet enterprise card:
+   1px colored border (set inline per box type), layered soft shadow,
+   and an indigo selection ring instead of a heavier shadow. */
 .box-node {
-  @apply bg-white rounded-xl shadow-lg border-2;
+  @apply bg-white rounded-xl border;
   width: 100%;
   height: 100%;
   font-size: 14px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 8px 20px -6px rgba(15, 23, 42, 0.12);
+  transition: box-shadow 0.15s ease;
 }
 
 .box-node.selected {
-  @apply shadow-2xl;
+  box-shadow:
+    0 0 0 1.5px #4f46e5,
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 14px 30px -8px rgba(79, 70, 229, 0.28);
+}
+
+/* ===== App chrome (header / tools) ===== */
+
+.app-bar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Brand mark — the single gradient in the chrome. */
+.logo-tile {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  box-shadow:
+    0 1px 3px rgba(79, 70, 229, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Board save-status indicator (dot + label in the header). */
+.save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.save-dot.save-idle { background: #cbd5e1; }
+.save-dot.save-saving {
+  background: #60a5fa;
+  animation: savePulse 1.4s ease-in-out infinite;
+}
+.save-dot.save-saved { background: #34d399; }
+.save-dot.save-error { background: #f87171; }
+@keyframes savePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* React Flow controls + minimap — matched to the chrome. */
+.react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12);
+}
+.react-flow__controls-button {
+  background: #fff;
+  border-bottom: 1px solid #eef2f7;
+  color: #475569;
+  width: 26px;
+  height: 26px;
+}
+.react-flow__controls-button:last-child { border-bottom: none; }
+.react-flow__controls-button:hover { background: #f8fafc; }
+.react-flow__controls-button svg { fill: currentColor; }
+
+.react-flow__minimap {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12);
+}
+
+/* Quiet, thin scrollbars everywhere. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ===== Collaboration annotations (visually NOT pipeline boxes) ===== */
+
+/* Note: a post-it paper — no card chrome, no header/footer */
+.note-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fef9c3 0%, #fde68a 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: rotate(-0.75deg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.note-node.selected {
+  outline: 2px solid #f59e0b;
+  outline-offset: 3px;
+}
+.note-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 12px 14px 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #422006;
+}
+.note-textarea::placeholder {
+  color: rgba(120, 53, 15, 0.45);
+}
+.note-author {
+  padding: 0 14px 10px;
+  margin: 0;
+  font-size: 10px;
+  color: rgba(120, 53, 15, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Label: a floating text chip — no card frame at all */
+.label-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.label-row {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+.label-pill {
+  @apply rounded-full px-4 py-1.5 text-[13px] font-bold text-slate-700 shadow-md border border-black/5;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.label-node.selected .label-pill {
+  outline: 2px solid #64748b;
+  outline-offset: 2px;
+}
+
+/* Hover/selected delete buttons for both annotations */
+.note-delete,
+.label-delete {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  @apply w-5 h-5 flex items-center justify-center rounded-full text-xs bg-white/80 text-slate-500 hover:text-red-500 shadow;
+}
+.note-node:hover .note-delete,
+.note-node.selected .note-delete,
+.label-row:hover .label-delete,
+.label-node.selected .label-delete {
+  opacity: 1;
 }
 
 /* NodeResizer handle styling */
@@ -102,21 +277,22 @@ body,
 }
 
 /* === Landing page === */
+html {
+  scroll-behavior: smooth;
+}
 .landing-bg {
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 100%);
+  background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 45%, #0f172a 100%);
   position: relative;
-  overflow: hidden;
+  isolation: isolate;
 }
 .landing-bg::before {
   content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-              radial-gradient(circle at 70% 80%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
-              radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.08) 0%, transparent 60%);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 20% 8%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+              radial-gradient(circle at 82% 28%, rgba(168, 85, 247, 0.14) 0%, transparent 45%),
+              radial-gradient(circle at 50% 92%, rgba(34, 211, 238, 0.1) 0%, transparent 50%);
   pointer-events: none;
 }
 .glass-card {
@@ -150,4 +326,28 @@ body,
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* Scroll-triggered section reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Hero pipeline arrow flow */
+.pipeline-arrow {
+  animation: arrowFlow 1.6s ease-in-out infinite;
+}
+@keyframes arrowFlow {
+  0%, 100% { opacity: 0.35; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(3px); }
+}\n
+/* Area drawing tool: crosshair over the canvas while active */
+.area-tool-active .react-flow__pane {
+  cursor: crosshair;
 }
