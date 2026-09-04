@@ -9,11 +9,95 @@ Security Requirements Elicitor -> NIST CSF 2.0 Gap Checker -> Security Advisor
 
 ## Security Requirements Elicitor - Manthan
 
-- What the box should help with:
-- Source 1:
-- Source 2:
-- Source 3:
-- Notes / ideas:
+**What the box should help with:** converting an unstructured project or architecture
+description into a structured, traceable `RequirementsPackage` of testable `SHALL`
+requirements, with CIA objectives attached and missing facts raised as questions rather than
+invented. It is the entry point of the pipeline and the sole producer of `REQ-*` and
+`EVID-*` identifiers that every downstream box depends on.
+
+### Sources
+
+1. **Mead, N. R., Hough, E. D., & Stehney, T. R. (2005). _Security Quality Requirements Engineering (SQUARE) Methodology_ (CMU/SEI-2005-TR-009). Software Engineering Institute, Carnegie Mellon University.** https://www.sei.cmu.edu/documents/751/2005_005_001_14594.pdf
+
+   - **Finding:** Security requirements are routinely under-prioritised during requirements engineering, and retrofitting them later in the lifecycle costs more than planning for them upfront. SQUARE responds with a nine-step process that elicits, categorises, prioritises and validates security requirements early, before design work begins.
+   - **Design-use note:** SQUARE determines the box's position and its internal structure. Elicitation sits upstream of assessment, which is why this box produces the `RequirementsPackage` that the NIST CSF Checker consumes unchanged. SQUARE's separation of elicitation from categorisation and prioritisation maps onto the package fields: each `REQ-*` carries `cia_objectives`, `priority` and `acceptance_criteria` rather than arriving as an undifferentiated list. Consistent with the team's framework table, the MVP implements a SQUARE-*informed* subset: steps requiring live stakeholder negotiation are surfaced as `open_questions` and a `clarification_required` status instead of being automated away.
+
+2. **OWASP Foundation. (2025). _Application Security Verification Standard (ASVS) v5.0.0_.** https://owasp.org/www-project-application-security-verification-standard/
+
+   - **Finding:** ASVS v5.0.0, released May 2025, defines approximately 350 requirements across 17 chapters. It fills a gap left by organisation-level standards such as ISO/IEC 27001 by providing requirement-level guidance usable directly in code review, testing and procurement. Requirements are identified as `<chapter>.<section>.<requirement>`, and OWASP recommends citing them with a version prefix (for example `v5.0.0-1.2.5`) because identifiers change between releases. Three cumulative verification levels calibrate depth to risk.
+   - **Design-use note:** ASVS supplies phrasing discipline and a *conditional* reference set, not the primary framework — per the team's framework table it applies only to in-scope web applications and APIs, and citing it does not establish ASVS compliance. Two concrete effects on the box: each `shall_statement` is written as a single testable assertion in ASVS style so acceptance criteria are checkable; and every ASVS reference must carry the version prefix, which makes a fabricated identifier cheaply falsifiable against the published standard. Where a requirement is not web-app scoped, the box records `asvs_applicability: not_applicable` with a rationale rather than forcing a mapping.
+
+3. **_Collaborative and AI-Supported Requirements Elicitation: An Empirical Study_ (2026). arXiv:2606.24060.** https://arxiv.org/pdf/2606.24060
+
+   - **Finding:** A mixed-method controlled experiment compared four elicitation approaches — collaborative elicitation without AI, collaborative elicitation with AI support, direct LLM generation, and LLM generation from collaborative discussion transcripts. Artifacts were scored against quality criteria drawn from ISO/IEC/IEEE 29148. Approaches combining stakeholder collaboration with AI-supported synthesis scored highest and were perceived as clearer and easier to execute than traditional collaborative elicitation alone.
+   - **Design-use note:** This is the evidence base for the box's interaction model and the argument against the obvious alternative design, a one-shot "generate my requirements" button. Three effects: the box is positioned as a synthesis aid over human-authored material rather than an autonomous requirement author; every `REQ-*` carries `source_refs` into the `EVID-*` register so an ungrounded requirement is visible rather than hidden in fluent prose; and `clarification_required` is a first-class outcome, since the study's AI-alone conditions underperformed precisely where human input was needed and absent.
+
+### Security Requirements Elicitor Brief
+
+**Intended user**
+
+A senior technology or cybersecurity practitioner — security engineer, architect, analyst, consultant or senior IT professional — who has an unstructured project or architecture description and needs traceable, testable requirements before a production decision. Per the team's assumptions, the user has enough domain knowledge to challenge incorrect output, but is not required to pre-classify CIA objectives, write `SHALL` statements, choose framework mappings, or supply a completed schema. Those are the box's work.
+
+**Input**
+
+- An unstructured or lightly structured natural-language project or architecture description.
+- Optional: business objectives, launch constraints, and the decision being made.
+- Optional: named services, data flows, identities, trust boundaries, current practices, and user-described weaknesses.
+- Optional sanitized diagrams, configuration snippets, policy statements, scan summaries, or answers to previous clarification questions.
+
+Supplied via `{{inputs}}`. Sanitized or fictional data only.
+
+**Output**
+
+A `RequirementsPackage` artifact per the team schema (v0.3), in one of two states.
+
+When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state.
+
+When essential information is resolved, `status: complete` — the confirmed assessment boundary; an `AST-*` asset inventory with relationships, trust boundaries and CIA impact classifications; `REQ-*` requirements each carrying a testable `SHALL` statement, source type (`stated` / `derived` / `obligation_based`), `cia_objectives`, `elicitation_basis`, priority, confidence, `acceptance_criteria` and `source_refs`; an `EVID-*` register recording provenance, artifact location, date or version, verification state and confidence; conditional ASVS references with version and applicability rationale; confirmed, rejected and unresolved assumptions; remaining non-essential unknowns; and a limitations statement.
+
+**Guardrails**
+
+- Do not invent framework identifiers. ASVS references use the version-prefixed form; where applicability is uncertain, record `not_applicable` with a rationale rather than guessing.
+- Do not silently infer. Anything assumed rather than read becomes an explicit assumption or an `open_question`, never an unmarked fact.
+- Every requirement traces to evidence. A `REQ-*` without `source_refs` into the `EVID-*` register is a defect, not an output.
+- Missing values are recorded as `unknown`. They are never omitted and never converted into negative findings.
+- Evidence provenance is honest. The box may assign `user_reported` or `documented`; it cannot assign `human_verified` without a named qualified reviewer.
+- Stay inside the responsibility boundary. The box asks clarification questions and derives requirements and acceptance criteria. It does not calculate NIST coverage, assign `GAP-*` findings, recommend a next box, or produce remediation advice.
+- Do not claim compliance, certification, security or legal sufficiency. Output is a draft for expert review.
+- Do not request secrets, credentials, production logs or unnecessary personal data.
+
+**Limits**
+
+- The box cannot verify anything about the real system. It reads a description and produces requirements consistent with that description; if the description is wrong or incomplete, so is the output, and the box cannot tell the difference.
+- Framework references are the weakest part of the output. LLMs produce plausible control identifiers, and plausible is not correct. The version-prefixed format makes checking cheap, but the checking still has to happen — this is a human review task, not an automated one.
+- Completeness is unverifiable. The box cannot report what it failed to consider, and the absence of a requirement is not evidence that none is needed.
+- SQUARE steps requiring stakeholder negotiation are not automated and are not claimed to be.
+
+**Draft system prompt**
+
+```text
+You are a security requirements engineer running a SQUARE-informed elicitation. You convert an unstructured project description into a structured RequirementsPackage. Treat all supplied information as unverified user-reported evidence. Write each requirement as a single testable SHALL statement with acceptance criteria that could be checked against a real system. Attach CIA objectives to every requirement. Reference OWASP ASVS 5.0.0 only for in-scope web applications and APIs, only in the version-prefixed form v5.0.0-chapter.section.requirement, and record not_applicable with a rationale when the requirement is out of ASVS scope. Never invent control identifiers, facts, or evidence. Every requirement must carry source_refs into the evidence register. Record missing values as unknown; never omit them and never treat missing information as proof that a control is absent. If essential information is missing, return status clarification_required with targeted questions instead of guessing. Do not calculate NIST coverage, assign gap findings, recommend a next box, or give remediation advice — those belong to downstream boxes. Do not claim compliance, certification, security, or legal sufficiency. Output valid YAML matching the RequirementsPackage schema.
+```
+
+**Draft user prompt**
+
+```text
+Elicit structured security requirements from the project description below.
+
+Project description and any supplied evidence:
+{{inputs}}
+
+Produce a RequirementsPackage in YAML with:
+1. status: complete or clarification_required, and the confirmed assessment boundary (included and excluded).
+2. An AST-* asset inventory with trust boundaries and CIA impact classifications.
+3. REQ-* requirements, each with: shall_statement, cia_objectives, elicitation_basis, asvs_applicability or asvs_references, priority, confidence, acceptance_criteria, source_refs.
+4. An EVID-* evidence register with provenance and verification_state for every source.
+5. Assumptions (confirmed, rejected, unresolved) and remaining unknowns.
+6. open_questions: essential clarifications, each with why the answer matters.
+7. limitations.
+
+If essential information is missing, return status clarification_required with a partial profile and the questions needed. Do not guess.
+```
 
 ## NIST CSF 2.0 Gap Checker - Jiong
 
