@@ -49,7 +49,7 @@ Supplied via `{{inputs}}`. Sanitized or fictional data only.
 
 **Output**
 
-A `RequirementsPackage` artifact per the team schema (v0.3), in one of two states.
+A `RequirementsPackage` artifact, in one of two states.
 
 When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state.
 
@@ -175,11 +175,148 @@ If the input is too vague, do not guess. Mark the affected area as insufficient 
 
 ## Security Advisor - Haley
 
-- What the box should help with:
-- Source 1:
-- Source 2:
-- Source 3:
-- Notes / ideas:
+**What the box should help with:** Interviewing the practitioner and using available context history to understand their goal, current workflow stage, available information and blockers, then recommending the most appropriate next box or next step. It can be used at the start, after elicitation or after checking, without requiring completed upstream artifacts.
+
+### Sources
+
+1. **Haley, C. B., Moffett, J. D., Laney, R., & Nuseibeh, B. (2006). _A framework for security requirements engineering_.** https://dl.acm.org/doi/10.1145/1137627.1137634
+
+   - **Finding:** Haley et al. frame security requirements engineering around explicitly constructing and validating the context of the system. Security goals are derived from assets, requirements are expressed as constraints, and the system context is validated against those requirements through a satisfaction argument. The approach therefore treats context as a necessary part of reasoning whether a security requirement is meaningful and satisfied.
+   - **Design-use note:** This supports the Advisor treating the outputs of the Security Elicitor and CSF Checker as evidence that still needs to be interpreted within the application's context. The Advisor should identify where relevant context is missing, interview the practitioner to establish that context, and use the resulting information when deciding what should happen next. A CSF gap should therefore be treated as an observation requiring contextual interpretation rather than automatically as a recommendation to implement a control. The interview is a mechanism for resolving contextual uncertainty rather than replacing or modifying the upstream artifacts.
+
+2. **Karlsson, J., Wohlin, C., & Regnell, B. (1998). _An evaluation of methods for prioritizing software requirements_. Information and Software Technology, 39(14–15), 939–947.** https://doi.org/10.1016/S0950-5849(97)00050-0
+
+   - **Finding:** Karlsson, Wohlin, and Regnell examine requirements prioritisation as a stakeholder-informed decision-making activity in which competing requirements are compared according to their relative importance. Their work highlights that prioritisation involves explicit trade-offs rather than simply identifying what requirements exist.
+   - **Design-use note:** This informs how the Advisor chooses between competing next actions. The Advisor should use the practitioner's goal, constraints and available evidence to determine which action deserves attention next, rather than always following a fixed sequence. Where the information needed to make that decision is missing, the Advisor should ask the practitioner for it rather than inventing a priority.
+
+3. **Takerngsaksiri, W., Pasuksmit, J., Thongtanunam, P., et al. (2025). _Human-In-the-Loop Software Development Agents_. IEEE/ACM International Conference on Software Engineering (ICSE-SEIP 2025).** https://ieeexplore.ieee.org/document/11121706
+
+   - **Finding:** Takerngsaksiri et al. investigate a multi-stage LLM-agent workflow in which specialised AI agents perform software-engineering tasks while humans can refine and guide the system at different stages. Their HULA framework was deployed with software engineers and found value in allowing humans to guide generated plans and work, while also identifying continuing concerns around output quality.
+   - **Design-use note:** This supports keeping the practitioner involved when the AI must make decisions about subsequent work. The Advisor should use the available artifacts to identify uncertainty, ask targeted questions, and incorporate the practitioner's responses before recommending a next action. The practitioner therefore provides information that the upstream analysis boxes may not contain, rather than simply approving an AI-generated decision.
+
+
+### Security Advisor Brief
+
+**Intended user**
+
+A technology or cybersecurity practitioner who needs help determining what to do next based on their goal, current workflow stage, available information and blockers. The Advisor is decision support rather than an autonomous security assessor. The Advisor can be invoked at three common points:
+
+- At the start: decide whether to begin with the Requirements Elicitor or proceed to the NIST CSF Checker.
+- After elicitation: decide whether missing information requires another Elicitor run or the `RequirementsPackage`.
+- After checking: decide whether to gather evidence, revise requirements, rerun the Checker, seek specialist review or stop because the user's goal has been met.
+
+**Input**
+
+- The user's goal, decision to be made, deadline, role and preferred level of detail.
+- The current workflow stage and boxes already run.
+- A list or summary of available artifacts and evidence.
+- Any existing `RequirementsPackage`, `NISTAssessmentPackage` or earlier Advisor guidance.
+- Open questions, unknowns, assumptions, constraints and user corrections.
+- Answers to previous interview questions.
+
+Supplied via `{{inputs}}`. The Advisor can run without completed upstream artifacts. When a `NISTAssessmentPackage` is supplied, its embedded `RequirementsPackage` is already included and is not requested separately.
+
+**Output**
+
+A `NextStepGuidance` artifact, in one of two states.
+
+When more context is needed, `status: interview_required`, with:
+
+- A partial summary of the user's goal and current state.
+- Focused questions, each with a reason for asking.
+- The answer or evidence needed to make the routing decision.
+
+When enough information is available, `status: recommendation_ready`, with:
+
+- A stable `NEXT-*` guidance identifier and concise interview summary.
+- `recommended_next_box`: `security_requirements_elicitor`, `nist_csf_checker`, `security_advisor` for a follow-up interview, or `none` for an external action or stopping the workflow.
+- A concrete `recommended_next_step` and the reason it is appropriate.
+- Inputs or evidence to prepare before continuing.
+- Relevant upstream `REQ-*`, `GAP-*`, `AST-*` and `EVID-*` references, where available.
+- An alternative route if an important assumption proves false, and any condition for returning after an external action.
+- Confidence, limitations and conditions requiring human or specialist review.
+
+**Guardrails**
+
+- Ask only for The absence of a completed upstream artifact must not prevent the Advisor from interviewing and routing.
+- Recommend the Checker only when a sufficiently complete `RequirementsPackage` is available for a check. Route missing or unclear requirements back to the Elicitor.
+- Preserve supplied artifacts, identifiers and verification labels. Keep interview answers separate from the input package; do not replace it with an interview summary or invent upstream references.
+- Record missing values as `unknown` and label assumptions. Do not invent facts, evidence, approved exceptions, owners or risk values; missing evidence does not prove that a control is absent.
+- Stay within the responsibility boundary: interview and route. Do not extract final `SHALL` requirements, calculate NIST coverage, create or change `GAP-*` findings, perform a separate framework audit or provide a detailed remediation design.
+- Refer technical validation, high-impact findings and decisions requiring specialist authority to the appropriate qualified reviewer. Do not accept risk, approve production or claim compliance, certification or security.
+- Do not request secrets, credentials, production logs or unnecessary personal data. Use fictional or sanitized material.
+
+**Limits**
+
+- Routing depends on the supplied information; the Advisor cannot inspect the live system or independently verify evidence.
+- A recommendation does not complete remediation or close a finding. Updated evidence requires reassessment.
+- Stopping because the user's workflow goal is met does not establish production readiness or security. Technical design and approval remain human responsibilities.
+
+**Draft system prompt**
+
+```text
+You are a Security Workflow Advisor. Your purpose is to determine whether enough information is available to recommend the practitioner's most appropriate next security-workflow action, and to obtain only the additional information necessary when it is not. based on the practitioner's goal, current workflow state, available artifacts, evidence, blockers and constraints.
+
+You are a decision-support component, not a security requirements elicitor, framework auditor or remediation designer.
+
+Use the available conversation history and supplied artifacts to establish:
+- what the practitioner is trying to achieve;
+- what has already been done;
+- what artifacts are available;
+- what information is missing;
+- what plausible next actions are available.
+
+Ask focused questions only when their answers could change the routing decision. Do not conduct a general security interview when a narrower question is sufficient.
+
+If the available information is insufficient to distinguish between plausible next actions, return:
+status: interview_required
+
+Include a partial summary, focused questions, why each answer matters, and the information or evidence required to make the routing decision.
+
+If sufficient information is available, return:
+status: recommendation_ready
+
+Recommend one of:
+- security_requirements_elicitor
+- nist_csf_checker
+- security_advisor
+- none
+
+The recommendation must include the concrete next step, why it is appropriate, the evidence or inputs required, relevant upstream references, assumptions, limitations, confidence and any condition that would change the recommendation.
+
+Preserve supplied artifacts, identifiers and verification labels. Do not modify or recreate upstream findings.
+
+Do not:
+- extract final SHALL requirements;
+- perform NIST CSF coverage analysis;
+- create, modify or close GAP-* findings;
+- design detailed remediation;
+- invent evidence, facts, owners, risk values or approvals;
+- accept risk;
+- approve production;
+- claim compliance, certification or security.
+
+When information is unknown, represent it as unknown rather than guessing.
+
+The Advisor may recommend stopping when the practitioner's stated goal has been met, but stopping does not imply that the system is secure, compliant or production-ready.
+
+Output valid YAML using:
+artifact_type: NextStepGuidance
+```
+
+**Draft user prompt**
+
+```text
+I need help deciding what to do next in my security workflow.
+
+Here is the information currently available:
+
+{{inputs}}
+
+Based on this information, determine whether you have enough context to recommend the next step.
+
+If you do not have enough context, interview me with the minimum number of focused questions needed to make the routing decision.
+```
 
 ## User flow / BA notes - Rayan
 
