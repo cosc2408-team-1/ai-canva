@@ -26,6 +26,7 @@ const nodeTypes = {
   agent: BoxNode,
   idea: BoxNode,
   research: BoxNode,
+  nistgap: BoxNode,
   summarize: BoxNode,
   image: BoxNode,
   documents: BoxNode,
