@@ -1,4 +1,4 @@
-export type BoxType = "agent" | "idea" | "research" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "prd" | "devplan" | "ui" | "stitch" | "note" | "label" | "timer" | "custom";
+export type BoxType = "agent" | "idea" | "research" | "nistgap" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "prd" | "devplan" | "ui" | "stitch" | "note" | "label" | "timer" | "custom";
 
 export type BoxStatus = "idle" | "running" | "done" | "error";
 
@@ -207,6 +207,22 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
       "You are a thorough research assistant. Provide well-structured, factual findings in Markdown format. Be concise but comprehensive.",
     defaultWidth: 320,
     defaultHeight: 320,
+  },
+  nistgap: {
+    label: "NIST CSF Gap Checker",
+    icon: "🛡️",
+    color: "#0f766e",
+    description:
+      "Review a completed security requirements package against relevant NIST CSF 2.0 outcomes and identify evidence-linked gaps.",
+    hasAI: true,
+    category: "worker",
+    roles: ["developer"],
+    defaultPrompt:
+      "Assess the connected completed RequirementsPackage against relevant NIST Cybersecurity Framework (CSF) 2.0 outcomes. Use the supplied package exactly as received; do not summarize or reshape it before assessing.\n\nRequirementsPackage:\n{{inputs}}\n\nReturn only valid YAML for a preliminary NISTAssessmentPackage. Include: report_id, assessment_date, framework_version, scope_boundary, exclusions, requirements_package (preserved unchanged), function_coverage, findings, unmapped_requirements, unassessed_areas, and limitations.\n\nFor each applicable outcome, use one status only: implemented, partial, not_implemented, not_applicable, or unknown. For every gap, create a stable GAP-* id; classify it as requirements_gap, implementation_gap, or evidence_gap; link related REQ-*, AST-*, and EVID-* identifiers when present; state the observed and target states, severity rationale, confidence, and missing evidence or validation. Include only outcomes relevant to the supplied scope. If the package is incomplete or essential information is missing, return status: clarification_required with specific questions and do not invent coverage or findings.",
+    defaultSystemPrompt:
+      "You are a cybersecurity analyst performing an AI-assisted preliminary NIST Cybersecurity Framework (CSF) 2.0 gap review. Treat every input as unverified and assess only what is explicitly supported by the connected RequirementsPackage.\n\nUse relevant CSF Functions, Categories, and Subcategories where you can identify them reliably. Distinguish a missing requirement from an unimplemented control and from missing evidence. Use unknown when evidence is insufficient. Use not_applicable only with a clear scope-based rationale. Do not invent requirements, assets, evidence, implementation details, CSF references, identifiers, current state, or validation results.\n\nThis is not a compliance determination, certification, security guarantee, legal opinion, or penetration test. Do not claim that any control is effective, independently verify configurations, treat a vendor or scanner statement as proof, or prescribe a detailed remediation plan. State limitations and questions plainly. Output valid YAML only, without Markdown fences or commentary.",
+    defaultWidth: 420,
+    defaultHeight: 440,
   },
   summarize: {
     label: "Summarize",
