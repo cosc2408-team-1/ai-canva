@@ -36,3 +36,22 @@ describe("Security Requirements Elicitor box", () => {
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
   });
 });
+
+describe("Security Advisor box", () => {
+  it("is a worker that routes the practitioner without making assurance claims", () => {
+    const box = BOX_TYPES.securityadvisor;
+
+    expect(box).toMatchObject({
+      label: "Security Advisor",
+      category: "worker",
+      hasAI: true,
+      roles: ["developer"],
+    });
+    expect(box.defaultPrompt).toContain("{{inputs}}");
+    expect(box.defaultPrompt).toContain("NextStepGuidance");
+    expect(box.defaultPrompt).toContain("interview_required");
+    expect(box.defaultSystemPrompt).toContain("recommended_next_box");
+    expect(box.defaultSystemPrompt).toContain("Do not claim compliance");
+    expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
+  });
+});
