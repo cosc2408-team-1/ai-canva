@@ -1,4 +1,4 @@
-export type BoxType = "agent" | "idea" | "research" | "nistgap" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "prd" | "devplan" | "ui" | "stitch" | "note" | "label" | "timer" | "custom";
+export type BoxType = "agent" | "idea" | "reqelicitor" |"research" | "nistgap" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "prd" | "devplan" | "ui" | "stitch" | "note" | "label" | "timer" | "custom";
 
 export type BoxStatus = "idle" | "running" | "done" | "error";
 
@@ -207,6 +207,22 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
       "You are a thorough research assistant. Provide well-structured, factual findings in Markdown format. Be concise but comprehensive.",
     defaultWidth: 320,
     defaultHeight: 320,
+  },
+  reqelicitor: {
+    label: "Security Requirements Elicitor",
+    icon: "📋",
+    color: "#f59e0b",
+    description:
+      "Convert an unstructured project description into a traceable RequirementsPackage of testable SHALL requirements.",
+    hasAI: true,
+    category: "worker",
+    roles: ["developer"],
+    defaultPrompt:
+      "Elicit structured security requirements from the connected project description. Use only what is supplied; do not add facts.\n\nProject description and supplied evidence:\n{{inputs}}\n\nReturn only valid YAML for a RequirementsPackage. Include: artifact_type, schema_version, case_id, status, assessment_boundary (included and excluded), assets, requirements, evidence_register, assumptions, open_questions, and limitations.\n\nGive every asset a stable AST-* id with CIA impact classification, every evidence item a stable EVID-* id with provenance and verification_state, and every requirement a stable REQ-* id with: shall_statement, cia_objectives, elicitation_basis, priority, confidence, acceptance_criteria, and source_refs into the evidence register. Set asvs_applicability to not_applicable with a rationale unless the requirement concerns an in-scope web application or API. If essential information is missing, return status: clarification_required with a partial profile and specific questions, and do not invent the missing detail.",
+    defaultSystemPrompt:
+      "You are a security requirements engineer running a SQUARE-informed elicitation. You convert an unstructured project description into a structured RequirementsPackage. Treat every input as unverified, user-reported evidence.\n\nWrite each requirement as a single testable SHALL statement with acceptance criteria that could be checked against a real system, and attach CIA objectives to each one. Every requirement must trace to the evidence register through source_refs. Record missing values as unknown; never omit them and never treat missing information as proof that a control is absent. Reference OWASP ASVS 5.0.0 only for in-scope web applications and APIs, and only in the version-prefixed form v5.0.0-chapter.section.requirement.\n\nDo not invent control identifiers, assets, evidence, or facts. Do not calculate NIST coverage, assign GAP-* findings, recommend a next box, or give remediation advice — those belong to downstream boxes. This is not a compliance determination, certification, security guarantee, or legal opinion. Output valid YAML only, without Markdown fences or commentary.",
+    defaultWidth: 420,
+    defaultHeight: 440,
   },
   nistgap: {
     label: "NIST CSF Gap Checker",
