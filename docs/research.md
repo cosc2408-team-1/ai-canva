@@ -51,7 +51,7 @@ Supplied via `{{inputs}}`. Sanitized or fictional data only.
 
 A `RequirementsPackage` artifact, in one of two states.
 
-When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state.
+When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state, unless the user has bypassed. (The current MVP does not enforce this. This should be enforced in future sprints.)
 
 When essential information is resolved, `status: complete` — the confirmed assessment boundary; an `AST-*` asset inventory with relationships, trust boundaries and CIA impact classifications; `REQ-*` requirements each carrying a testable `SHALL` statement, source type (`stated` / `derived` / `obligation_based`), `cia_objectives`, `elicitation_basis`, priority, confidence, `acceptance_criteria` and `source_refs`; an `EVID-*` register recording provenance, artifact location, date or version, verification state and confidence; conditional ASVS references with version and applicability rationale; confirmed, rejected and unresolved assumptions; remaining non-essential unknowns; and a limitations statement.
 
@@ -346,7 +346,7 @@ The research will consider five qualities:
 10. The Security Advisor recommends and prioritizes next steps but cannot approve risk, certify compliance, or guarantee security.
 11. Sensitive production data, credentials, secrets, and unnecessary personal data will not be entered into prompts. The demo will use fictional or sanitized information.
 12. High-impact findings and framework mappings will be validated against primary evidence and peer-reviewed before they influence a real decision.
-13. The three boxes exchange structured data so that important fields are not lost when content moves through the canvas pipeline.
+13. The three boxes exchange model output as labeled text through {{inputs}}. The prompts define the structured artifact each box should produce (RequirementsPackage, NISTAssessmentPackage, NextStepGuidance).
 
 
 ### User Scenario
@@ -428,9 +428,9 @@ Unstructured Azure description
 
 The Security Requirements Elicitor receives unstructured or lightly structured user information and converts it into a structured RequirementsPackage.
 
-The NIST CSF Checker receives that exact RequirementsPackage unchanged. It returns a NISTAssessmentPackage containing the original RequirementsPackage plus NIST CSF coverage and gap findings.
+The NIST CSF Checker receives the complete Elicitor output as text, labeled by source box. It returns a NISTAssessmentPackage containing the original RequirementsPackage plus NIST CSF coverage and gap findings
 
-The Security Advisor receives the exact NISTAssessmentPackage unchanged. Because the RequirementsPackage is already contained inside it, the Advisor does not require a separate copy. It interviews the user and returns NextStepGuidance identifying the appropriate next box or next step.
+The Security Advisor receives the complete NIST Checker output as text. Because the RequirementsPackage is already contained inside it, the Advisor does not require a separate copy.
 
 #### 1. Requirements Elicitor
 
@@ -456,7 +456,7 @@ If essential information is missing or ambiguous, the box returns:
 - Missing evidence and suggested evidence sources or owners
 - Explicit assumptions awaiting confirmation
 
-Non-essential unknowns may remain visible in a completed package. If essential information is unavailable, the package remains `clarification_required`, and the NIST CSF Checker must not run.
+Non-essential unknowns may remain visible in a completed package. If essential information is unavailable, the package remains `clarification_required`, the user has the option to force the next step if they do not have the required details.
 
 After essential information is resolved, the box returns:
 
@@ -559,7 +559,7 @@ The complete output of the Security Requirements Elicitor (including boundary, e
 
 **Receives:**
 
-The exact completed `RequirementsPackage` returned by the Security Requirements Elicitor. It includes the assessment boundary, requirements, evidence, assumptions, unknowns, and limitations. The package is not manually summarized or reshaped.
+The complete text output of the Security Requirements Elicitor, including the assessment boundary, requirements, evidence, assumptions, unknowns, and limitations. The text is passed through in full; the application does not manually summarize, reshape, or parse it before forwarding.
 
 **Returns:**
 
@@ -736,6 +736,13 @@ limitation: >
   A qualified Azure security practitioner must select and validate the technical design.
 ```
 
+## Sprint 1 Validation
+
+The boxes pass YAML-like model outputs as text through {{inputs}}, matching the brief's intended MVP handoff. The one outstanding behavioral gap is that the application does not yet block the NIST Checker from running on a clarification_required package (nor does it yet support the user-bypass option described in the brief). Other structural checks (YAML validity, identifier correctness) are not currently needed since nothing downstream reads those fields programmatically.
+
+For more detail, see: docs/sprint1-validation.md
+
 ## Team decisions / questions
 
-- 
+- How to test AI performance? Evals? AI Judges?
+- Which Backend API should we use? 
