@@ -29,6 +29,19 @@ current state).
 
 ---
 
+## 2026-09-15 — RMIT VAL text provider through `/api/generate`
+
+- **Done:** Added `AI_PROVIDER` routing (`ollama` remains the default; `val` uses RMIT VAL) in both
+  `server/` and `functions/`. VAL calls `POST https://val.rmit.edu.au/api/chat/completions` with
+  `VAL_API_KEY`, defaults to `openai-gpt-4.1`, and normalizes its result into the existing generate
+  response. Missing key, 401, 400/model, 405, timeout, and network failures now return safe,
+  actionable errors. Added mocked VAL provider and route integration tests, provider comparison,
+  environment templates, and setup/deployment/API documentation.
+- **In flight:** Uncommitted on `feature/val-generate-provider` pending review. A real VAL smoke
+  request remains blocked because `server/.env` does not currently contain `VAL_API_KEY`.
+- **Next steps:** Add the RMIT-issued key locally, set `AI_PROVIDER=val`, run the curl check in
+  `docs/AI_PROVIDERS.md`, then review and commit the branch. Do not commit keys or `.env` files.
+
 ## 2026-08-30 — Agent box: a real task-driven agent on the board
 
 - **Done:** Added the 🤖 **Agent** box (16th box type, first in Workers): the user types a task and

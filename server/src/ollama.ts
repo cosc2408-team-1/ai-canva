@@ -9,6 +9,8 @@
 // load). ES module imports are hoisted, so this file would otherwise execute
 // before dotenv.config() runs in index.ts.
 
+import type { GenerateResult } from "./ai.js";
+
 interface ChatMessage {
   role: string;
   content: string;
@@ -24,14 +26,7 @@ interface ChatResponse {
   eval_count?: number;
 }
 
-/** Structured result of a text generation call, including token usage. */
-export interface GenerateResult {
-  content: string;
-  model: string;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
+export type { GenerateResult } from "./ai.js";
 
 /**
  * Calls an Ollama model with a system + user prompt and returns the text reply

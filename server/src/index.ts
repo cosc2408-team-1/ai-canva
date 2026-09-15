@@ -31,9 +31,9 @@ findPort(PREFERRED_PORT).then((actualPort) => {
     }
     console.log(`[server] Running on http://localhost:${actualPort}`);
 
-    if (!process.env.OLLAMA_API_KEY) {
+    if (process.env.AI_PROVIDER?.toLowerCase() === "val" && !process.env.VAL_API_KEY) {
       console.warn(
-        "[server] OLLAMA_API_KEY not set — AI generation will fail. Add it to server/.env"
+        "[server] VAL_API_KEY not set — RMIT VAL generation will fail. Add it to server/.env"
       );
     }
   });

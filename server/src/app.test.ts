@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
+import { AIProviderError } from "./ai.js";
 import { createApp } from "./app.js";
 
 /**
- * The local server delegates AI generation to ./ollama, ./fal and ./stitch.
+ * The local server delegates AI generation to ./provider, ./fal and ./stitch.
  * We mock those so API tests assert routing/validation/response shaping
  * without making real network calls.
  */
-vi.mock("./ollama.js", () => ({
+vi.mock("./provider.js", () => ({
   generateContent: vi.fn(async (systemPrompt: string, userPrompt: string) => ({
     content: `response for: ${userPrompt}`,
     model: "mock-model",
@@ -38,7 +39,9 @@ afterEach(() => {
 
 describe("GET /api/health", () => {
   it("reports ok with missing keys by default", async () => {
+    delete process.env.AI_PROVIDER;
     delete process.env.OLLAMA_API_KEY;
+    delete process.env.VAL_API_KEY;
     delete process.env.FAL_KEY;
     delete process.env.STITCH_API_KEY;
 
@@ -46,7 +49,9 @@ describe("GET /api/health", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
       status: "ok",
+      aiProvider: "ollama",
       ollamaKey: "missing",
+      valKey: "missing",
       falKey: "missing",
       stitchKey: "missing",
     });
@@ -72,6 +77,21 @@ describe("POST /api/generate", () => {
       model: "mock-model",
       usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
     });
+  });
+
+  it("returns the expected provider error status", async () => {
+    const { generateContent } = await import("./provider.js");
+    const providerMock = generateContent as ReturnType<typeof vi.fn>;
+    providerMock.mockRejectedValueOnce(
+      new AIProviderError(401, "RMIT VAL rejected VAL_API_KEY."),
+    );
+
+    const res = await request(createApp())
+      .post("/api/generate")
+      .send({ userPrompt: "hello" });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toContain("VAL_API_KEY");
   });
 });
 

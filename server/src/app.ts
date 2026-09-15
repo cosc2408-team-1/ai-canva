@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import { randomUUID } from "crypto";
-import { generateContent } from "./ollama.js";
+import { AIProviderError } from "./ai.js";
+import { generateContent } from "./provider.js";
 import { generateCartoonImage } from "./fal.js";
 import { generateStitchUI } from "./stitch.js";
 
@@ -84,7 +85,7 @@ export function createApp(): express.Express {
       });
     } catch (err: any) {
       console.error("[/api/generate] Error:", err.message);
-      res.status(500).json({
+      res.status(err instanceof AIProviderError ? err.status : 500).json({
         error: err.message || "Failed to generate content",
       });
     }
@@ -164,7 +165,9 @@ export function createApp(): express.Express {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
+      aiProvider: process.env.AI_PROVIDER || "ollama",
       ollamaKey: process.env.OLLAMA_API_KEY ? "configured" : "missing",
+      valKey: process.env.VAL_API_KEY ? "configured" : "missing",
       falKey: process.env.FAL_KEY ? "configured" : "missing",
       stitchKey: process.env.STITCH_API_KEY ? "configured" : "missing",
     });

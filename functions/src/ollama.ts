@@ -5,6 +5,8 @@
 // the native /api/chat endpoint (non-streaming), so it also works against a
 // local Ollama daemon by setting OLLAMA_HOST.
 
+import type { GenerateResult } from "./ai.js";
+
 interface ChatMessage {
   role: string;
   content: string;
@@ -20,14 +22,7 @@ interface ChatResponse {
   eval_count?: number;
 }
 
-/** Structured result of a text generation call, including token usage. */
-export interface GenerateResult {
-  content: string;
-  model: string;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
+export type { GenerateResult } from "./ai.js";
 
 /**
  * Calls an Ollama model with a system + user prompt and returns the text reply

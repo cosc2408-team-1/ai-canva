@@ -74,15 +74,25 @@ The app needs an AI model for its text boxes. Copy the template file, then edit 
 cp server/.env.example server/.env
 ```
 
-Open `server/.env` and set at least one text provider:
+Open `server/.env` and choose one text provider:
 
-**Option A — Ollama Cloud (simplest, uses your own API key):**
+**Option A — RMIT VAL (course provider):**
 ```
+AI_PROVIDER=val
+VAL_API_KEY=your-rmit-val-api-key
+VAL_MODEL=openai-gpt-4.1
+```
+RMIT VAL uses `POST https://val.rmit.edu.au/api/chat/completions`, not `/v1`. Keep the key only in
+`server/.env`; it must never be committed or added to client code.
+
+**Option B — Ollama Cloud (uses your own API key):**
+```
+AI_PROVIDER=ollama
 OLLAMA_API_KEY=your-ollama-api-key
 # get a key at https://ollama.com/settings/keys
 ```
 
-**Option B — Ollama locally (free, no key needed):** see [Step 6](#step-6--run-ai-free-locally-recommended-for-students).
+**Option C — Ollama locally (free, no key needed):** see [Step 6](#step-6--run-ai-free-locally-recommended-for-students).
 
 Optional keys for the image/UI boxes (`FAL_KEY`, `STITCH_API_KEY`) — you can leave these blank
 and skip those boxes until you're ready.
@@ -143,6 +153,7 @@ This is the **recommended path for students** — it uses a local model on your 
    ```
    OLLAMA_HOST=http://localhost:11434
    OLLAMA_MODEL=llama3.2
+   AI_PROVIDER=ollama
    ```
    (Leave `OLLAMA_API_KEY` blank — no key is sent to a local host.)
 4. Keep the Ollama daemon running (it usually runs in the background after install) and
@@ -182,7 +193,8 @@ is also a great learning exercise.
 |---------|-----------|
 | `node: command not found` | Install Node.js from https://nodejs.org and reopen the terminal. |
 | `npm` install errors | Ensure you ran `npm run install:all` (both `server/` and `client/` need deps). |
-| `OLLAMA_API_KEY is not configured` / no AI output | Set `OLLAMA_API_KEY` (cloud) or `OLLAMA_HOST=http://localhost:11434` (local) in `server/.env`, then restart `npm run dev`. |
+| VAL says it is not configured / no AI output | Set `AI_PROVIDER=val` and a valid `VAL_API_KEY` in `server/.env`, then restart `npm run dev`. |
+| Ollama has no AI output | Set `AI_PROVIDER=ollama` plus `OLLAMA_API_KEY` (cloud) or `OLLAMA_HOST=http://localhost:11434` (local), then restart `npm run dev`. |
 | Server says a port was "switched" | That's expected; the client auto-adapts via `.server-port`. |
 | Sign-in button does nothing | Firebase isn't configured / auth not enabled — see Step 7. |
 | "Could not parse slides" | A Slides box got malformed JSON from the model; re-run or use a stronger model. |
@@ -210,7 +222,7 @@ Once it runs, try these to build confidence:
 ```bash
 git clone <your-repo-url> ai-canva && cd ai-canva
 npm install && npm run install:all
-cp server/.env.example server/.env   # then edit: OLLAMA_API_KEY or OLLAMA_HOST
+cp server/.env.example server/.env   # then choose VAL_API_KEY or Ollama settings
 npm run dev                          # open http://localhost:5173
 ```
 
