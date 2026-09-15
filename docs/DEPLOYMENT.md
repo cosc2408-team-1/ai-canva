@@ -9,7 +9,7 @@ You can run AI Canva two ways:
 This guide covers the Firebase deployment path, plus notes for self-hosting the server yourself.
 
 > **Quick path:** run `bash scripts/deploy.sh` (or `npm run deploy`) for a one-command deploy that
-> builds the client, clean-builds the Functions, syncs `OLLAMA_API_KEY` into `functions/.env`,
+> builds the client, clean-builds the Functions, syncs configured provider environment into `functions/.env`,
 > and deploys Hosting + Functions + rules. An AI agent can follow the same steps via the
 > **`ai-canva-deploy`** skill (`.dsh/skills/ai-canva-deploy/SKILL.md`). The rest of this page
 > documents what the script does manually.
@@ -24,7 +24,7 @@ This guide covers the Firebase deployment path, plus notes for self-hosting the 
   npm install -g firebase-tools
   firebase login
   ```
-- Real API keys (Ollama, and optionally fal.ai + Google Stitch).
+- A text-provider key (RMIT VAL or Ollama, depending on `AI_PROVIDER`), and optionally fal.ai + Google Stitch.
 
 ## 2. Enable Firebase services
 
@@ -69,6 +69,10 @@ Create `functions/.env` from `functions/.env.example` and set your real keys:
 cp functions/.env.example functions/.env
 # OLLAMA_API_KEY=your-ollama-api-key
 # OLLAMA_MODEL=deepseek-v4-flash
+# Or use RMIT VAL:
+# AI_PROVIDER=val
+# VAL_API_KEY=your-rmit-val-api-key
+# VAL_MODEL=openai-gpt-4.1
 # FAL_KEY=...
 # STITCH_API_KEY=...
 ```
@@ -122,7 +126,8 @@ configure your reverse proxy / CDN to forward `/api` to the server.
 
 | Problem | Check |
 |---------|-------|
-| `OLLAMA_API_KEY is not configured` / request fails | The key is missing from `functions/.env` or `server/.env`. |
+| VAL says it is not configured / request fails | Set `AI_PROVIDER=val` and `VAL_API_KEY` in `functions/.env` (or `server/.env` locally), then redeploy/restart. |
+| Ollama request fails | Set `AI_PROVIDER=ollama` and the required Ollama settings in `functions/.env` or `server/.env`. |
 | Boards don't sync | Auth is enabled + rules permit access; the user is signed in. |
 | `404` on `/api/*` in prod | Cloud Function named `api` exists and hosting rewrites are in `firebase.json`. |
 | Deploy fails on rules | Replace the placeholder rules with the strict ones from OSS_READINESS. |

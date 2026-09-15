@@ -27,8 +27,9 @@ Lightweight health check. Returns which API keys are configured.
 
 ### `POST /api/generate`
 
-Generate text via the **Ollama** backend. Used by all text-based AI boxes (Research, Summarize,
-PRD, Dev Plan, Slides, Code, UI Design).
+Generate text via the configured text provider. `AI_PROVIDER=ollama` is the default; set
+`AI_PROVIDER=val` to use RMIT VAL. This endpoint is used by all text-based AI boxes (Research,
+Summarize, PRD, Dev Plan, Slides, Code, UI Design).
 
 **Request body**
 
@@ -49,20 +50,27 @@ PRD, Dev Plan, Slides, Code, UI Design).
 }
 ```
 
-`usage` reports the model's **token usage** for this call (`promptTokens` = input, `completionTokens`
-= output) from Ollama's `prompt_eval_count` / `eval_count`. The client displays this per box and
-persists it to Firestore (see "Token usage" below).
+`usage` reports model token usage when the provider supplies it. Ollama maps `prompt_eval_count` /
+`eval_count`; VAL maps `usage.prompt_tokens` / `completion_tokens`. The client displays this per box
+and persists it to Firestore (see "Token usage" below).
 
 **Errors**
 
 | Status | When |
 |--------|------|
-| `400` | `userPrompt` missing or not a string |
-| `500` | Ollama call failed (e.g. missing `OLLAMA_API_KEY`) |
+| `400` | `userPrompt` missing, unsupported `AI_PROVIDER`, or VAL rejects the request/model |
+| `401` | VAL rejects `VAL_API_KEY` |
+| `405` | VAL rejects the endpoint or method (the implementation uses `POST /api/chat/completions`) |
+| `502` | Text provider is unreachable or returned an unexpected upstream failure |
+| `503` | `VAL_API_KEY` is missing while `AI_PROVIDER=val` |
+| `504` | VAL request timed out |
+| `500` | Unexpected server failure |
 
-The model defaults to `deepseek-v4-flash` and can be overridden with `OLLAMA_MODEL`. Requests go to
-`{OLLAMA_HOST}/api/chat` (default `https://ollama.com` for Ollama Cloud) authenticated with
-`OLLAMA_API_KEY`.
+Ollama defaults to model `deepseek-v4-flash` and can be overridden with `OLLAMA_MODEL`; requests go
+to `{OLLAMA_HOST}/api/chat` (default `https://ollama.com`) authenticated with `OLLAMA_API_KEY`.
+RMIT VAL defaults to `openai-gpt-4.1`, can be overridden with `VAL_MODEL`, and sends an
+OpenAI-compatible Chat Completions request to `https://val.rmit.edu.au/api/chat/completions` with
+`Authorization: Bearer $VAL_API_KEY`. `VAL_TIMEOUT_MS` defaults to 30,000 ms.
 
 ### Token usage persistence
 
@@ -273,9 +281,13 @@ via `auth.updateUser`. An admin cannot block their own account.
 
 | Variable            | Required for      | Description                                    |
 | ------------------- | ----------------- | ---------------------------------------------- |
+| `AI_PROVIDER`       | Optional          | `ollama` (default) or `val` for text boxes     |
 | `OLLAMA_API_KEY`    | Text boxes        | Ollama Cloud API key (https://ollama.com/settings/keys) |
 | `OLLAMA_MODEL`      | Optional          | Model name (default `deepseek-v4-flash`)      |
 | `OLLAMA_HOST`       | Optional          | Ollama host (default `https://ollama.com`)     |
+| `VAL_API_KEY`       | RMIT VAL          | RMIT VAL API key; never expose or commit it    |
+| `VAL_MODEL`         | Optional          | RMIT VAL model (default `openai-gpt-4.1`)      |
+| `VAL_TIMEOUT_MS`    | Optional          | RMIT VAL request timeout in ms (default `30000`) |
 | `FAL_KEY`           | Cartoon box       | fal.ai API key                                 |
 | `STITCH_API_KEY`    | Stitch UI box     | Google Stitch API key                          |
 | `PORT`              | Optional (server) | Preferred server port (default `3001`)         |
@@ -301,4 +313,3 @@ custom token for the SAME uid, so guests keep their identity and boards on any d
 
 Admin-only (Bearer ID token + `admins/{uid}`). Grants or revokes the facilitator role by
 writing/deleting `facilitators/{uid}`. Cloud Function only (501 locally).
-

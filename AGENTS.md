@@ -18,7 +18,7 @@ to box — from an Idea, through Research, to PRD / Slides / Code / UI Design / 
 - **Client:** React + Vite + React Flow canvas, Zustand store, Tailwind CSS.
 - **Backend:** Node/Express for local dev; the same API packaged as a Firebase Cloud Function for
   production.
-- **AI providers:** Ollama (LLM text), fal.ai (image generation), Google Stitch (UI screens).
+- **AI providers:** RMIT VAL or Ollama (selected through `AI_PROVIDER` for text), fal.ai (image generation), Google Stitch (UI screens).
 - **Persistence & collaboration:** Firebase — Google Auth, Firestore (boards, presence, live
   cursors), Storage (board images). localStorage is an offline cache.
 
@@ -51,6 +51,10 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
 - **Two backends, one API surface.** The API logic is duplicated in `server/` (local Express) and
   `functions/` (Cloud Function) because Cloud Functions runs in the Firebase environment while the
   local server runs in Node. Both use the same SDKs. Keep them in sync when changing endpoints.
+- **Text-provider router:** `server/src/provider.ts` and `functions/src/provider.ts` select
+  `ollama` (default) or `val`; `ai.ts` defines the normalized generate result and safe provider
+  errors. VAL uses `POST https://val.rmit.edu.au/api/chat/completions`, model `openai-gpt-4.1`, and
+  `VAL_API_KEY`; provider modules must never log or expose that key.
 - **Single Zustand store** (`client/src/store/boardStore.ts`) owns the whole board: `nodes`/`edges`
   (React Flow graph), `boxData` (per-box content/prompts/status/output — kept separate from the
   graph objects so it serializes cleanly to Firestore), and board/collaboration metadata.
@@ -143,10 +147,10 @@ used) via an "Admin" button in the header.
 
 The app reports per-call LLM token usage and tracks cumulative usage per user and across the system.
 
-- **Source:** Ollama's non-streaming `/api/chat` response includes `prompt_eval_count` (input) and
-  `eval_count` (output). `generateContent` in both `server/src/ollama.ts` and `functions/src/ollama.ts`
-  returns `{ content, model, promptTokens, completionTokens, totalTokens }`, and `/api/generate`
-  returns those counts under `usage`.
+- **Source:** provider modules normalize their native token fields into `{ content, model,
+  promptTokens, completionTokens, totalTokens }`: Ollama uses `prompt_eval_count` / `eval_count` and
+  VAL uses `usage.prompt_tokens` / `completion_tokens`. `/api/generate` returns those counts under
+  `usage`.
 - **Per-box display:** each text AI box stores `tokens` in its `BoxData` and shows "in · out / total
   tok" in the box footer after running.
 - **Persistence (client-side):** after each successful generate, the client writes a detailed
@@ -174,8 +178,10 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 
 - **Run all:** `npm test` (server then client). **Watch:** `npm run test:watch`.
 - **Server tests** (`server/src/*.test.ts`, supertest + Vitest): hit `createApp()` from
-  `server/src/app.ts` with the AI modules (`ollama`/`fal`/`stitch`) mocked via `vi.mock`; they cover
-  route validation, response shaping, the stitch job flow, and `generateContent` token parsing.
+  `server/src/app.ts` with the AI modules (`provider`/`fal`/`stitch`) mocked via `vi.mock`; VAL
+  tests mock global `fetch` to cover its Chat Completions request and end-to-end generate-route
+  normalization without a real key. They cover route validation, response shaping, the stitch job
+  flow, and text-provider token parsing.
   Server test files are excluded from the `tsc` build via `exclude` in `server/tsconfig.json` — do
   not remove that.
 - **Client tests** (`client/src/lib/*.test.ts`): pure functions only (prompts, code, slides,

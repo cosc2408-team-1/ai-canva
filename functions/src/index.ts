@@ -5,7 +5,8 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { generateContent } from "./ollama.js";
+import { AIProviderError } from "./ai.js";
+import { generateContent } from "./provider.js";
 import { generateCartoonImage } from "./fal.js";
 import { enqueueStitchJob } from "./stitchJobs.js";
 
@@ -83,7 +84,9 @@ app.post("/api/generate", async (req, res) => {
     });
   } catch (err: any) {
     console.error("[/api/generate] Error:", err.message);
-    res.status(500).json({ error: err.message || "Failed to generate content" });
+    res.status(err instanceof AIProviderError ? err.status : 500).json({
+      error: err.message || "Failed to generate content",
+    });
   }
 });
 
@@ -151,7 +154,9 @@ app.get("/api/stitch-status/:jobId", async (req, res) => {
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
+    aiProvider: process.env.AI_PROVIDER || "ollama",
     ollamaKey: process.env.OLLAMA_API_KEY ? "configured" : "missing",
+    valKey: process.env.VAL_API_KEY ? "configured" : "missing",
     falKey: process.env.FAL_KEY ? "configured" : "missing",
     stitchKey: process.env.STITCH_API_KEY ? "configured" : "missing",
   });

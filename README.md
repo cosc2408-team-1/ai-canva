@@ -49,7 +49,7 @@ Course materials for using AI Canva as a teaching/learning project. A complete s
 
 - **Visual pipelines** — drag boxes onto a canvas and connect them; content flows box to box.
 - **11 box types** — Idea, Image, Research, Summarize, PRD, Dev Plan, Cartoon Profile, Slides, Code, UI Design, and Stitch UI.
-- **AI-powered** — Ollama (LLM) for text, fal.ai for image generation, Google Stitch for production-quality UI screens.
+- **AI-powered** — RMIT VAL or Ollama for text, fal.ai for image generation, Google Stitch for production-quality UI screens.
 - **Real-time collaboration** — share boards by email, live cursors with names/colors, and live multi-user editing via Firestore.
 - **Cloud persistence** — boards auto-save to Firestore (with localStorage as an offline cache). Sign in with Google to use the app; your boards are stored per user.
 - **Editable prompt templates** — reference connected inputs by name (`{{Box Name}}`, `{{input_1}}`, `{{inputs}}`) right in the settings panel.
@@ -91,15 +91,19 @@ npm run install:all         # installs server/ + client/ deps
 ```bash
 cp server/.env.example server/.env
 # Edit server/.env and fill in real keys:
-#   OLLAMA_API_KEY=your-ollama-api-key              # https://ollama.com/settings/keys
+#   AI_PROVIDER=val                                 # use RMIT VAL for text boxes
+#   VAL_API_KEY=your-rmit-val-api-key                # issued through RMIT VAL
+#   VAL_MODEL=openai-gpt-4.1
+# Or keep AI_PROVIDER=ollama and set OLLAMA_API_KEY=your-ollama-api-key
 #   FAL_KEY=your-fal-key-here                      # https://fal.ai/dashboard/keys
 #   STITCH_API_KEY=your-stitch-key-here            # https://stitch.withgoogle.com
 ```
 
-The server works without Firebase for local experimentation. It only needs the AI keys above
-(`OLLAMA_API_KEY` is required for text boxes; `FAL_KEY` for Cartoon boxes; `STITCH_API_KEY` for
-Stitch UI boxes). By default it calls **Ollama Cloud** at `https://ollama.com` — set `OLLAMA_MODEL`
-in `server/.env` to choose a model (see `server/.env.example`).
+The server works without Firebase for local experimentation. For text boxes, set `AI_PROVIDER=val`
+with `VAL_API_KEY` (RMIT VAL), or use the default `AI_PROVIDER=ollama` with `OLLAMA_API_KEY`.
+`FAL_KEY` is needed for Cartoon boxes and `STITCH_API_KEY` for Stitch UI boxes. RMIT VAL uses
+`POST https://val.rmit.edu.au/api/chat/completions` with model `openai-gpt-4.1`; Ollama Cloud
+defaults to `https://ollama.com` and can be configured with `OLLAMA_MODEL`.
 
 ### 3. Run
 
