@@ -71,7 +71,7 @@ export function buildDocumentsOutput(docs: BoxDocument[] | undefined): string {
   if (!docs || docs.length === 0) return "";
   const parts: string[] = [];
   for (const d of docs) {
-    if (d.error || !d.text) continue;
+    if (d.error || !d.text.trim()) continue;
     parts.push(`=== ${d.name} ===\n${d.text}`);
   }
   return parts.join("\n\n");

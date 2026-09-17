@@ -83,6 +83,13 @@ describe("buildDocumentsOutput", () => {
     ]);
     expect(out).toBe("=== good.txt ===\nGOOD");
   });
+
+  it("does not turn whitespace-only documents into input through filename labels", () => {
+    const blank = doc({ name: "project.txt", text: " \t\n" });
+    expect(buildDocumentsOutput([blank])).toBe("");
+    expect(buildDocumentsOutput([blank, doc({ text: "  actual evidence\n" })]))
+      .toBe("=== spec.txt ===\n  actual evidence\n");
+  });
 });
 
 describe("remainingDocBudget / clampDocText", () => {
