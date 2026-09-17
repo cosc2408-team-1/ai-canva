@@ -68,7 +68,7 @@ Create `functions/.env` from `functions/.env.example` and set your real keys:
 ```bash
 cp functions/.env.example functions/.env
 # OLLAMA_API_KEY=your-ollama-api-key
-# OLLAMA_MODEL=deepseek-v4-flash
+# OLLAMA_MODEL=deepseek-v4.1-flash
 # Or use RMIT VAL:
 # AI_PROVIDER=val
 # VAL_API_KEY=your-rmit-val-api-key
