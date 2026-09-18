@@ -63,7 +63,7 @@ sync_env_var() {
 # The deployed backend must use the same text provider the team agreed in
 # docs/ai-api-decision.md. Read it from server/.env so local and deployed
 # runs cannot silently disagree.
-AI_PROVIDER="$(grep '^AI_PROVIDER=' server/.env | head -1 | cut -d= -f2- | tr -d '"' | tr '[:upper:]' '[:lower:]')"
+AI_PROVIDER="$(grep '^AI_PROVIDER=' server/.env | head -1 | cut -d= -f2- | tr -d '"' | tr '[:upper:]' '[:lower:]' || echo "")"
 AI_PROVIDER="${AI_PROVIDER:-ollama}"
 echo "==> Selected text provider: $AI_PROVIDER"
 
