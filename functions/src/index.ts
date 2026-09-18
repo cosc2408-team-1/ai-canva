@@ -524,6 +524,12 @@ app.post("/api/workshop/join", async (req, res) => {
   }
 });
 
+// Exported so the route tests can drive the same Express instance the Cloud
+// Function serves. Importing this module is side-effect safe outside GCP:
+// initializeApp() succeeds without credentials, and only the admin/workshop
+// routes actually reach Auth or Firestore.
+export { app };
+
 export const api = onRequest({ maxInstances: 5, timeoutSeconds: 120, memory: "512MiB" }, app);
 
 // Re-export the async Stitch Cloud Task worker so Firebase deploys it.
