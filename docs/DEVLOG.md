@@ -29,6 +29,17 @@ current state).
 
 ---
 
+## 2026-09-19 — Security-box input guard prepared for merge
+
+- **Done:** Reviewed PR #17, merged current `main` into its branch, and added the missing-input
+  guard for the Requirements Elicitor, NIST Gap Checker and Security Advisor. Whitespace-only
+  documents cannot become AI input or consume new document-text budget; blank uploads show a
+  specific extraction message. Client build and 304 client tests pass (with Windows Git line-ending
+  conversion disabled for the Code Edit fixture tests). Updated `AGENTS.md`.
+- **In flight:** Deploy the merged branch and verify all three boxes with the live provider.
+- **Next steps:** Merge PR #17, deploy the Firebase function and client, then record a real
+  three-box run and the production health result.
+
 ## 2026-09-15 — RMIT VAL text provider through `/api/generate`
 
 - **Done:** Added `AI_PROVIDER` routing (`ollama` remains the default; `val` uses RMIT VAL) in both

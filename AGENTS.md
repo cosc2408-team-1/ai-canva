@@ -473,8 +473,10 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   (`/// <reference types="vite/client" />`) for TS and works in both dev and build. **Budgets:**
   extracted text is capped at 100k chars per document and 400k chars per box (`clampDocText` /
   `remainingDocBudget`) so the board doc stays under Firestore's 1MB limit; entries that fail
-  extraction are kept with an `error` message instead of being dropped. **`BoxDocument` fields are
-  always defined** (no `undefined`) — Firestore rejects `undefined` nested anywhere in a value.
+  extraction are kept with an `error` message instead of being dropped. Whitespace-only extraction
+  stores no text, does not consume the document budget, and cannot become a labeled AI input.
+  **`BoxDocument` fields are always defined** (no `undefined`) — Firestore rejects `undefined`
+  nested anywhere in a value.
   The raw file is uploaded best-effort to Storage at `boards/{boardId}/documents/{boxId}/…`
   (`uploadDocumentToStorage`, rules added to `storage.rules` — **deploy rules** for it to work);
   the extracted text always lives in `boxData.documents`, so prompts, persistence, and cross-user
@@ -485,6 +487,11 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   intercept of `/api/generate` to assert the labeled doc text reaches the connected box's prompt
   deterministically (mocked response — restore `window.fetch` afterwards so later tests hit the
   real API).
+- **Security-box input guard:** `securityInputError()` in `client/src/lib/securityInputValidation.ts`
+  checks the collected text before `runBox` starts a Requirements Elicitor, NIST Gap Checker, or
+  Security Advisor call. It gives a box-specific error when all inputs are blank. It checks text
+  presence only; structured output validation and `clarification_required` routing are separate
+  future work.
 - **Landing page:** the logged-out entry is a full marketing page in
   `client/src/components/landing/` (`LandingPage.tsx` composes `LandingNav`, `LandingHero`,
   `LandingHowItWorks`, `LandingFeatures`, `LandingBoxes`, `LandingRoles`, `LandingCTA`,

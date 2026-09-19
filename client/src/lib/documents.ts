@@ -91,6 +91,8 @@ export function clampDocText(
   text: string,
   budget: number
 ): { text: string; truncated: boolean } {
+  // Empty extraction should not consume the shared document budget.
+  if (!text.trim()) return { text: "", truncated: false };
   const limit = Math.min(MAX_DOC_CHARS, Math.max(0, budget));
   if (text.length <= limit) return { text, truncated: false };
   return { text: text.slice(0, limit).trimEnd(), truncated: true };

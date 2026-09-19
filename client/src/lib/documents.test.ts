@@ -107,6 +107,13 @@ describe("remainingDocBudget / clampDocText", () => {
     expect(r).toEqual({ text: "short", truncated: false });
   });
 
+  it("does not charge the document budget for whitespace-only extraction", () => {
+    expect(clampDocText(" \t\n", MAX_BOX_DOC_CHARS)).toEqual({
+      text: "",
+      truncated: false,
+    });
+  });
+
   it("truncates to the per-document cap", () => {
     const big = "x".repeat(MAX_DOC_CHARS + 5000);
     const r = clampDocText(big, MAX_BOX_DOC_CHARS);
