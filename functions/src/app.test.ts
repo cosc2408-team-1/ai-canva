@@ -90,10 +90,16 @@ describe("POST /api/generate with RMIT VAL", () => {
   it("returns the established generate response contract from a mocked VAL call", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
-        choices: [{ message: { content: "VAL response" } }],
-        usage: { prompt_tokens: 8, completion_tokens: 3, total_tokens: 11 },
-      }),
+      status: 200,
+      statusText: "OK",
+      headers: {
+        get: () => "application/json",
+      },
+      text: async () =>
+        JSON.stringify({
+          choices: [{ message: { content: "VAL response" } }],
+          usage: { prompt_tokens: 8, completion_tokens: 3, total_tokens: 11 },
+        }),
     });
 
     const res = await request(app)
@@ -112,7 +118,14 @@ describe("POST /api/generate with RMIT VAL", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 401,
-      json: async () => ({ error: { message: "invalid key" } }),
+      statusText: "Unauthorized",
+      headers: {
+        get: () => "application/json",
+      },
+      text: async () =>
+        JSON.stringify({
+          error: { message: "invalid key" },
+        }),
     });
 
     const res = await request(app).post("/api/generate").send({ userPrompt: "hello" });
