@@ -1,0 +1,152 @@
+name: Firebase Functions
+
+# The existing firebase-hosting.yml workflow deploys Hosting only, and does not
+# trigger on functions/** at all. firebase.json rewrites /api/** to the `api`
+# function, so without this workflow the deployed backend only ever changes when
+# somebody runs scripts/deploy.sh by hand.
+#
+# Build and tests run automatically. Deploy is manual (workflow_dispatch) on
+# purpose: a broken function takes /api/** down for the whole team, and the
+# provider key needed to verify a deploy is not in CI yet. See
+# docs/firebase-ai-deployment.md before switching deploy to automatic.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - ".github/workflows/firebase-functions.yml"
+  pull_request:
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - ".github/workflows/firebase-functions.yml"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm deploying functions to the project'
+        required: true
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test the functions backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Build the functions bundle
+        run: npm run build --prefix functions
+
+      - name: Run the health and generate route tests
+        run: npm test --prefix functions
+
+  deploy:
+    name: Deploy functions
+    needs: build-and-test
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'deploy'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # Fail before touching the project rather than shipping a backend that
+      # answers /api/generate with a 503 for every box on the canvas.
+      - name: Check the provider secrets are present
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          VAL_API_KEY: ${{ secrets.VAL_API_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+        run: |
+          PROVIDER="${AI_PROVIDER:-ollama}"
+          echo "Selected text provider: $PROVIDER"
+          if [ "$PROVIDER" = "val" ] && [ -z "$VAL_API_KEY" ]; then
+            echo "::error::AI_PROVIDER is val but the VAL_API_KEY repository secret is empty."
+            echo "::error::Add it under Settings > Secrets and variables > Actions, or set AI_PROVIDER=ollama."
+            exit 1
+          fi
+          if [ "$PROVIDER" = "ollama" ] && [ -z "$OLLAMA_API_KEY" ]; then
+            echo "::error::AI_PROVIDER is ollama but the OLLAMA_API_KEY repository secret is empty."
+            echo "::error::Cloud Functions cannot reach a local Ollama daemon, so a cloud key is required."
+            exit 1
+          fi
+
+      - name: Install functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Build the functions bundle
+        run: npm run build --prefix functions
+
+      # functions/.env is git-ignored, so CI writes it from repository secrets.
+      # Firebase reads this file at deploy time and stores the values as runtime
+      # configuration for the function.
+      - name: Write functions/.env from secrets
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          VAL_API_KEY: ${{ secrets.VAL_API_KEY }}
+          VAL_MODEL: ${{ secrets.VAL_MODEL }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+          STITCH_API_KEY: ${{ secrets.STITCH_API_KEY }}
+        run: |
+          umask 077
+          {
+            echo "AI_PROVIDER=${AI_PROVIDER:-ollama}"
+            [ -n "$VAL_API_KEY" ] && echo "VAL_API_KEY=$VAL_API_KEY"
+            [ -n "$VAL_MODEL" ] && echo "VAL_MODEL=$VAL_MODEL"
+            [ -n "$OLLAMA_API_KEY" ] && echo "OLLAMA_API_KEY=$OLLAMA_API_KEY"
+            [ -n "$FAL_KEY" ] && echo "FAL_KEY=$FAL_KEY"
+            [ -n "$STITCH_API_KEY" ] && echo "STITCH_API_KEY=$STITCH_API_KEY"
+          } > functions/.env
+          echo "Wrote functions/.env with $(wc -l < functions/.env) settings (values not printed)."
+
+      - name: Authenticate to Firebase
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AI_CANVA_E9DFF }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_AI_CANVA_E9DFF is not set."
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Deploy only the functions target
+        run: npx --yes firebase-tools@13 deploy --only functions --project ai-canva-e9dff --non-interactive
+
+      - name: Remove the credentials file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json" functions/.env
+
+      - name: Check the deployed health route
+        run: |
+          echo "Verifying https://ai-canva-e9dff.web.app/api/health"
+          curl -sS --fail --max-time 30 "https://ai-canva-e9dff.web.app/api/health" | tee health.json
+          echo
+          node -e "const h=require('./health.json');if(h.status!=='ok'){console.error('health.status is not ok');process.exit(1)};console.log('Provider reported:',h.aiProvider,'| valKey:',h.valKey)"
