@@ -65,19 +65,72 @@ export async function generateValContent(
     throw new AIProviderError(502, "RMIT VAL could not be reached. Check your network connection and try again.");
   }
 
-  const body = await response.json().catch(() => ({})) as ValResponse;
+  const rawBody = await response.text().catch(() => "");
+
+  let body: ValResponse = {};
+  try {
+    body = rawBody ? (JSON.parse(rawBody) as ValResponse) : {};
+  } catch {
+    // VAL/WAF may return HTML or another non-JSON error body.
+    body = {};
+  }
+
   if (!response.ok) {
     const detail = errorDetail(body);
+
+    // Log enough upstream detail to diagnose 403/WAF/network-policy failures,
+    // while explicitly redacting credentials and limiting log size.
+    const safeErrorBody = rawBody
+      .replaceAll(apiKey, "[REDACTED_VAL_API_KEY]")
+      .replace(
+        /Bearer\s+[A-Za-z0-9._~+/=-]+/gi,
+        "Bearer [REDACTED]",
+      )
+      .replace(
+        /(["']?(?:api[_-]?key|token|authorization)["']?\s*[:=]\s*["']?)[^"',}\s]+/gi,
+        "$1[REDACTED]",
+      )
+      .slice(0, 2000);
+
+    console.error("[RMIT VAL] upstream request rejected", {
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get("content-type"),
+      body: safeErrorBody || "<empty>",
+    });
+
     if (response.status === 401) {
-      throw new AIProviderError(401, "RMIT VAL rejected VAL_API_KEY. Check the key and try again.");
+      throw new AIProviderError(
+        401,
+        "RMIT VAL rejected VAL_API_KEY. Check the key and try again.",
+      );
     }
+
     if (response.status === 400) {
-      throw new AIProviderError(400, `RMIT VAL rejected the request or model \"${model}\".${detail ? ` ${detail}` : ""}`);
+      throw new AIProviderError(
+        400,
+        `RMIT VAL rejected the request or model "${model}".${detail ? ` ${detail}` : ""}`,
+      );
     }
+
+    if (response.status === 403) {
+      throw new AIProviderError(
+        502,
+        "RMIT VAL rejected the deployed server request (403). Check Firebase logs for the upstream response details.",
+      );
+    }
+
     if (response.status === 405) {
-      throw new AIProviderError(405, "RMIT VAL rejected the endpoint or HTTP method. Use POST https://val.rmit.edu.au/api/chat/completions.");
+      throw new AIProviderError(
+        405,
+        "RMIT VAL rejected the endpoint or HTTP method. Use POST https://val.rmit.edu.au/api/chat/completions.",
+      );
     }
-    throw new AIProviderError(502, `RMIT VAL request failed (${response.status}).${detail ? ` ${detail}` : ""}`);
+
+    throw new AIProviderError(
+      502,
+      `RMIT VAL request failed (${response.status}).${detail ? ` ${detail}` : ""}`,
+    );
   }
 
   const content = body.choices?.[0]?.message?.content;
