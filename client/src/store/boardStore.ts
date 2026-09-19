@@ -46,6 +46,7 @@ import {
 } from "../lib/sdlc.js";
 import { generate, generateImage, generateStitchUI, fetchRepoDigest, publishSite } from "../lib/api.js";
 import { fillPromptTemplate, getBoxOutput } from "../lib/prompts.js";
+import { securityInputError } from "../lib/securityInputValidation.js";
 import { buildChatSystemPrompt, buildConversationTurn, chatbotName, greetingMessage, trimChatMessages } from "../lib/chatbot.js";
 import {
   MAX_AGENT_TURNS,
@@ -1391,6 +1392,13 @@ export const useBoardStore = create<BoardState>()(
           state.boxData,
           id
         );
+
+        // Reject missing security-box inputs before entering the shared AI path.
+        const inputError = securityInputError(boxType, namedInputs);
+        if (inputError) {
+          get().setBoxStatus(id, "error", inputError);
+          return;
+        }
 
         // Set running state
         get().setBoxStatus(id, "running");

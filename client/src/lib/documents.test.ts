@@ -83,6 +83,13 @@ describe("buildDocumentsOutput", () => {
     ]);
     expect(out).toBe("=== good.txt ===\nGOOD");
   });
+
+  it("does not turn whitespace-only documents into input through filename labels", () => {
+    const blank = doc({ name: "project.txt", text: " \t\n" });
+    expect(buildDocumentsOutput([blank])).toBe("");
+    expect(buildDocumentsOutput([blank, doc({ text: "  actual evidence\n" })]))
+      .toBe("=== spec.txt ===\n  actual evidence\n");
+  });
 });
 
 describe("remainingDocBudget / clampDocText", () => {
@@ -98,6 +105,13 @@ describe("remainingDocBudget / clampDocText", () => {
   it("keeps text under the per-document limit untouched", () => {
     const r = clampDocText("short", MAX_BOX_DOC_CHARS);
     expect(r).toEqual({ text: "short", truncated: false });
+  });
+
+  it("does not charge the document budget for whitespace-only extraction", () => {
+    expect(clampDocText(" \t\n", MAX_BOX_DOC_CHARS)).toEqual({
+      text: "",
+      truncated: false,
+    });
   });
 
   it("truncates to the per-document cap", () => {

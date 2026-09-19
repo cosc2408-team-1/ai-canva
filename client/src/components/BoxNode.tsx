@@ -455,7 +455,9 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
           truncated,
           error: text
             ? ""
-            : "This box's document-text budget is used up — remove other files first.",
+            : raw.trim()
+              ? "This box's document-text budget is used up — remove other files first."
+              : "No extractable text was found in this file.",
         };
       } catch (err: any) {
         entry = {

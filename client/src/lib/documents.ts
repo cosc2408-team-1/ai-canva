@@ -71,7 +71,7 @@ export function buildDocumentsOutput(docs: BoxDocument[] | undefined): string {
   if (!docs || docs.length === 0) return "";
   const parts: string[] = [];
   for (const d of docs) {
-    if (d.error || !d.text) continue;
+    if (d.error || !d.text.trim()) continue;
     parts.push(`=== ${d.name} ===\n${d.text}`);
   }
   return parts.join("\n\n");
@@ -91,6 +91,8 @@ export function clampDocText(
   text: string,
   budget: number
 ): { text: string; truncated: boolean } {
+  // Empty extraction should not consume the shared document budget.
+  if (!text.trim()) return { text: "", truncated: false };
   const limit = Math.min(MAX_DOC_CHARS, Math.max(0, budget));
   if (text.length <= limit) return { text, truncated: false };
   return { text: text.slice(0, limit).trimEnd(), truncated: true };
