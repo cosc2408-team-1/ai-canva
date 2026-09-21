@@ -1,3 +1,5 @@
+import { resolveGenerateUrl } from "./apiTarget";
+
 const API_BASE = "/api";
 
 export interface GenerateRequest {
@@ -24,7 +26,7 @@ export interface GenerateResponse {
 export async function generate(
   req: GenerateRequest
 ): Promise<GenerateResponse> {
-  const res = await fetch(`${API_BASE}/generate`, {
+  const res = await fetch(resolveGenerateUrl(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
