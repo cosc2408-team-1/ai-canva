@@ -77,6 +77,13 @@ function record(value: unknown): ArtifactRecord | null {
     : null;
 }
 
+function plainRecord(value: unknown): ArtifactRecord | null {
+  const item = record(value);
+  if (!item) return null;
+  const prototype = Object.getPrototypeOf(item);
+  return prototype === Object.prototype || prototype === null ? item : null;
+}
+
 function strings(value: unknown): string[] {
   if (typeof value === "string") return [value];
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
@@ -267,10 +274,13 @@ function validateNistPackage(
   upstream: Partial<Record<SecurityArtifactBoxType, SecurityArtifactInput>>,
   assessmentDate: string,
 ) {
-  for (const field of ["scope_boundary", "exclusions", "function_coverage", "findings", "unmapped_requirements", "unassessed_areas", "limitations"]) {
+  for (const field of ["scope_boundary", "exclusions", "findings", "unmapped_requirements", "unassessed_areas", "limitations"]) {
     if (!Array.isArray(value[field]) && !(field === "scope_boundary" && record(value[field]))) {
       issue(issues, "invalid_structure", field, `${field} must be a structured value.`);
     }
+  }
+  if (!Array.isArray(value.function_coverage) && !plainRecord(value.function_coverage)) {
+    issue(issues, "invalid_structure", "function_coverage", "function_coverage must be an array or object.");
   }
   if (assessmentDate && value.assessment_date !== assessmentDate) {
     issue(issues, "trusted_metadata_mismatch", "assessment_date", "assessment_date does not match application-supplied metadata.");

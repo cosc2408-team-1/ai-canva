@@ -129,6 +129,40 @@ describe("RequirementsPackage traceability", () => {
 });
 
 describe("NISTAssessmentPackage trusted metadata", () => {
+  it("accepts array and mapping function_coverage, but rejects scalar values", () => {
+    const upstream = { reqelicitor: { boxType: "reqelicitor" as const, output: requirementsPackage } };
+    const validate = (coverage: string) => validateSecurityArtifact({
+      boxType: "nistgap",
+      output: nistPackage().replace("function_coverage: []", `function_coverage: ${coverage}`),
+      upstreamArtifacts: upstream,
+      trustedMetadata: { assessmentDate: "2026-09-22" },
+    });
+
+    expect(validate("[]").status).toBe("valid");
+    expect(validate("{ GOVERN: { status: unknown }, IDENTIFY: { status: partial } }").status).toBe("valid");
+    expect(validate("[{ function: GOVERN, status: unknown }, { function: IDENTIFY, status: partial }]").status).toBe("valid");
+    for (const scalar of ["unknown", "123", "null"]) {
+      const result = validate(scalar);
+      expect(result.status).toBe("invalid");
+      expect(result.issues.some((entry) => entry.path === "function_coverage" && entry.message === "function_coverage must be an array or object.")).toBe(true);
+    }
+  });
+
+  it("continues requiring arrays for other NIST collections", () => {
+    const upstream = { reqelicitor: { boxType: "reqelicitor" as const, output: requirementsPackage } };
+    for (const field of ["exclusions", "findings", "unmapped_requirements", "unassessed_areas", "limitations"]) {
+      const output = field === "findings"
+        ? nistPackage().replace("findings:\n  - id: GAP-001\n    related_evidence: [EVID-001]", "findings: unknown")
+        : nistPackage().replace(`${field}: []`, `${field}: unknown`);
+      expect(validateSecurityArtifact({
+        boxType: "nistgap",
+        output,
+        upstreamArtifacts: upstream,
+        trustedMetadata: { assessmentDate: "2026-09-22" },
+      }).status, field).toBe("invalid");
+    }
+  });
+
   it("uses injected UTC dates and rejects mismatches, wrong versions, and altered requirements", () => {
     expect(applicationAssessmentDate(new Date("2026-09-22T13:00:00Z"))).toBe("2026-09-22");
     expect(nistTrustedMetadataPrompt("2026-09-22")).toContain("assessment_date: 2026-09-22");
