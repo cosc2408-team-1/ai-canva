@@ -24,6 +24,7 @@ import { isAdmin, updateUserProfile, heartbeat } from "./lib/admin.js";
 import { fetchUserTokenTotal } from "./lib/firestore.js";
 import { BOX_TYPES } from "./types.js";
 import type { BoxType } from "./types.js";
+import type { BoardTemplateId } from "./lib/boardTemplates.js";
 
 export default function App() {
   const addBox = useBoardStore((s) => s.addBox);
@@ -216,8 +217,8 @@ export default function App() {
     setShowNewBoardModal(true);
   }, []);
 
-  const handleCreateBoard = async (name: string) => {
-    await createNewBoard(name);
+  const handleCreateBoard = async (name: string, templateId: BoardTemplateId) => {
+    await createNewBoard(name, templateId);
     setShowNewBoardModal(false);
   };
 

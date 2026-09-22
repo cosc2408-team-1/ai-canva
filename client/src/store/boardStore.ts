@@ -69,6 +69,7 @@ import {
 } from "../lib/deploy.js";
 import { parseSlidesResponse } from "../lib/slides.js";
 import { cleanBoxDataForFirestore } from "../lib/serialization.js";
+import { createBoardTemplate, type BoardTemplateId } from "../lib/boardTemplates.js";
 import { DEFAULT_TIMER_MS } from "../lib/timer.js";
 import type { CustomBoxDef } from "../lib/customBoxes.js";
 import {
@@ -339,7 +340,7 @@ interface BoardState {
   setBoxStatus: (id: string, status: BoxStatus, error?: string) => void;
 
   // Board operations (Firestore)
-  createNewBoard: (title?: string) => Promise<void>;
+  createNewBoard: (title?: string, templateId?: BoardTemplateId) => Promise<void>;
   loadBoardFromFirestore: (boardId: string) => Promise<void>;
   saveToFirestore: () => Promise<void>;
   setBoardTitle: (title: string) => void;
@@ -1071,25 +1072,30 @@ export const useBoardStore = create<BoardState>()(
 
       // --- Firestore board operations ---
 
-      createNewBoard: async (title) => {
+      createNewBoard: async (title, templateId = "blank") => {
         const user = useAuthStore.getState().user;
         if (!user) return;
         const boardId = makeId();
         const now = Date.now();
+        const template = createBoardTemplate(templateId, makeId, defaultBoxData);
         await saveBoard({
           id: boardId,
           title: title || "Untitled Board",
           ownerId: user.uid,
           ownerEmail: user.email || "",
           collaborators: [],
-          nodes: [], edges: [], boxData: {},
+          nodes: template.nodes,
+          edges: template.edges,
+          boxData: cleanBoxDataForFirestore(template.boxData),
           createdAt: now, updatedAt: now,
         });
         set({
           currentBoardId: boardId,
           boardTitle: title || "Untitled Board",
           collaborators: [],
-          nodes: [], edges: [], boxData: {},
+          nodes: template.nodes,
+          edges: template.edges,
+          boxData: template.boxData,
           saveStatus: "saved",
         });
         get().refreshBoardList();
