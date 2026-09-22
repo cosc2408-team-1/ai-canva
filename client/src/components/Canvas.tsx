@@ -15,79 +15,34 @@ import {
   type ReactFlowInstance,
 } from "@xyflow/react";
 import { useBoardStore } from "../store/boardStore.js";
-import { AREA_COLORS } from "../types.js";
+import { AREA_COLORS, BOX_TYPES, type BoxType } from "../types.js";
 import { isValidAreaSize, normalizeRect } from "../lib/areas.js";
 import { Button } from "./ui/Button.js";
 import BoxNode from "./BoxNode.js";
 import AreaNode from "./AreaNode.js";
 import Cursors from "./Cursors.js";
 
-export const NODE_TYPES = {
-  agent: BoxNode,
-  chatbot: BoxNode,
-  idea: BoxNode,
-  research: BoxNode,
-  assetmapper: BoxNode,
-  reqelicitor: BoxNode,
-  nistgap: BoxNode,
-  securityadvisor: BoxNode,
-  summarize: BoxNode,
-  image: BoxNode,
-  documents: BoxNode,
-  cartoon: BoxNode,
-  slides: BoxNode,
-  code: BoxNode,
-  codeedit: BoxNode,
-  prd: BoxNode,
-  devplan: BoxNode,
-  codemap: BoxNode,
-  ui: BoxNode,
-  stitch: BoxNode,
-  note: BoxNode,
-  label: BoxNode,
-  timer: BoxNode,
-  checklist: BoxNode,
-  "sdlc-intent": BoxNode,
-  "sdlc-spec": BoxNode,
-  "sdlc-plan": BoxNode,
-  "sdlc-implement": BoxNode,
-  "sdlc-review": BoxNode,
-  "sdlc-merge": BoxNode,
-  area: AreaNode,
-  custom: BoxNode,
-};
+const BOX_NODE_TYPES = Object.fromEntries(
+  (Object.keys(BOX_TYPES) as BoxType[]).map((type) => [type, BoxNode]),
+) as Record<BoxType, typeof BoxNode>;
 
-export const MINIMAP_NODE_COLORS: Record<string, string> = {
-  agent: "#4f46e5",
-  chatbot: "#e11d48",
-  idea: "#fbbf24",
-  research: "#60a5fa",
-  assetmapper: "#0891b2",
-  nistgap: "#0f766e",
-  securityadvisor: "#7c3aed",
-  summarize: "#a78bfa",
-  image: "#34d399",
-  documents: "#64748b",
-  cartoon: "#f472b6",
-  slides: "#fb923c",
-  code: "#22d3ee",
-  codeedit: "#1d4ed8",
-  prd: "#818cf8",
-  devplan: "#14b8a6",
-  codemap: "#0f766e",
-  ui: "#c026d3",
-  stitch: "#0ea5e9",
-  note: "#fbbf24",
-  label: "#64748b",
-  timer: "#06b6d4",
-  checklist: "#059669",
-  "sdlc-intent": "#7c3aed",
-  "sdlc-spec": "#4338ca",
-  "sdlc-plan": "#0e7490",
-  "sdlc-implement": "#15803d",
-  "sdlc-review": "#b45309",
-  "sdlc-merge": "#be123c",
-};
+export const NODE_TYPES = { ...BOX_NODE_TYPES, area: AreaNode };
+
+export const UNKNOWN_MINIMAP_NODE_COLOR = "#94a3b8";
+
+function isBoxType(type: string | undefined): type is BoxType {
+  return !!type && Object.prototype.hasOwnProperty.call(BOX_TYPES, type);
+}
+
+export function resolveMiniMapNodeColor(node: Pick<Node, "type" | "data">): string {
+  if (node.type === "area") {
+    return ((node.data as Record<string, unknown>)?.border as string) || "#cbd5e1";
+  }
+  if (node.type === "custom") {
+    return ((node.data as Record<string, unknown>)?.customColor as string) || BOX_TYPES.custom.color;
+  }
+  return isBoxType(node.type) ? BOX_TYPES[node.type].color : UNKNOWN_MINIMAP_NODE_COLOR;
+}
 
 export default function Canvas() {
   const nodes = useBoardStore((s) => s.nodes);
@@ -323,16 +278,7 @@ export default function Canvas() {
       <MiniMap
         pannable
         zoomable
-        nodeColor={(node: Node) => {
-          if (node.type === "area") {
-            // Areas are near-white on the minimap — use their border shade.
-            return (node.data as any)?.border || "#cbd5e1";
-          }
-          if (node.type === "custom") {
-            return (node.data as any)?.customColor || "#6366f1";
-          }
-          return MINIMAP_NODE_COLORS[node.type || ""] || "#94a3b8";
-        }}
+        nodeColor={resolveMiniMapNodeColor}
       />
     </ReactFlow>
   );

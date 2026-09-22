@@ -9,6 +9,12 @@ import type { BoxType } from "../types.js";
 import { wrapCodeInHtml, wrapUIInHtml, downloadHtml, copyToClipboard } from "../lib/code.js";
 import { downloadText, hasDownloadableOutcome, outcomeFilename, outcomeMime, outcomeText } from "../lib/download.js";
 import { buildAuditExport, forcedGateReason, isSdlcBox, sdlcStageMeta } from "../lib/sdlc.js";
+import {
+  calculateIdeaNodeHeight,
+  calculateIdeaTextareaHeight,
+  IDEA_NODE_MAX_AUTO_HEIGHT,
+  IDEA_NODE_MIN_HEIGHT,
+} from "../lib/ideaSizing.js";
 import SdlcGatePanel, { SdlcGateBadge } from "./SdlcGatePanel.js";
 import CodeEditPanel from "./CodeEditPanel.js";
 import CodeChangePanel from "./CodeChangePanel.js";
@@ -110,6 +116,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
       : baseMeta;
   const boxData = useBoardStore((s) => s.boxData[id]);
   const updateBoxData = useBoardStore((s) => s.updateBoxData);
+  const setNodeHeight = useBoardStore((s) => s.setNodeHeight);
   const deleteBox = useBoardStore((s) => s.deleteBox);
   const runBox = useBoardStore((s) => s.runBox);
   const stopAgent = useBoardStore((s) => s.stopAgent);
@@ -151,6 +158,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
   }, [timerRunning]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const ideaTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Find connected upstream box names for the settings panel
   const connectedInputs = edges
@@ -204,6 +212,19 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boxData?.code, boxType]);
+
+  useEffect(() => {
+    if (boxType !== "idea") return;
+    const textarea = ideaTextareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    const contentHeight = textarea.scrollHeight;
+    const nodeHeight = calculateIdeaNodeHeight(contentHeight);
+    textarea.style.height = `${calculateIdeaTextareaHeight(contentHeight)}px`;
+    textarea.style.overflowY = nodeHeight >= IDEA_NODE_MAX_AUTO_HEIGHT ? "auto" : "hidden";
+    setNodeHeight(id, nodeHeight);
+  }, [boxData?.content, boxType, id, setNodeHeight]);
 
   if (!boxData) return null;
 
@@ -538,7 +559,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
     <>
       <NodeResizer
         minWidth={220}
-        minHeight={isTimer ? 150 : isChecklist ? 200 : 160}
+        minHeight={isIdea ? IDEA_NODE_MIN_HEIGHT : isTimer ? 150 : isChecklist ? 200 : 160}
         isVisible={!!selected}
       />
       <div
@@ -764,7 +785,8 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
         {/* Idea box — editable textarea */}
         {isIdea && (
           <textarea
-            className="nodrag nowheel w-full min-h-[100px] resize-y rounded-lg border border-slate-200 p-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+            ref={ideaTextareaRef}
+            className="nodrag nowheel w-full resize-none rounded-lg border border-slate-200 p-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
             placeholder="Write your idea here..."
             value={boxData.content}
             onChange={(e) =>

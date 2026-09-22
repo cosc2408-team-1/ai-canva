@@ -276,6 +276,7 @@ interface BoardState {
     position?: { x: number; y: number }
   ) => string;
   updateBoxData: (id: string, patch: Partial<BoxData>) => void;
+  setNodeHeight: (id: string, height: number) => void;
   addArea: (rect: { x: number; y: number; width: number; height: number }, fill: string, border: string) => string;
   addCustomBox: (def: CustomBoxDef, position?: { x: number; y: number }) => string;
   setAreaColor: (id: string, fill: string, border: string) => void;
@@ -377,6 +378,20 @@ export const useBoardStore = create<BoardState>()(
 
       onEdgesChange: (changes) => {
         set({ edges: applyEdgeChanges(changes, get().edges) });
+        scheduleSave();
+      },
+
+      setNodeHeight: (id, height) => {
+        let changed = false;
+        const nodes = get().nodes.map((node) => {
+          if (node.id !== id) return node;
+          const currentHeight = Number(node.style?.height);
+          if (Number.isFinite(currentHeight) && Math.abs(currentHeight - height) < 1) return node;
+          changed = true;
+          return { ...node, style: { ...node.style, height } };
+        });
+        if (!changed) return;
+        set({ nodes });
         scheduleSave();
       },
 
