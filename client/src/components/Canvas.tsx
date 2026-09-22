@@ -22,11 +22,12 @@ import BoxNode from "./BoxNode.js";
 import AreaNode from "./AreaNode.js";
 import Cursors from "./Cursors.js";
 
-const nodeTypes = {
+export const NODE_TYPES = {
   agent: BoxNode,
   chatbot: BoxNode,
   idea: BoxNode,
   research: BoxNode,
+  assetmapper: BoxNode,
   reqelicitor: BoxNode,
   nistgap: BoxNode,
   securityadvisor: BoxNode,
@@ -54,6 +55,38 @@ const nodeTypes = {
   "sdlc-merge": BoxNode,
   area: AreaNode,
   custom: BoxNode,
+};
+
+export const MINIMAP_NODE_COLORS: Record<string, string> = {
+  agent: "#4f46e5",
+  chatbot: "#e11d48",
+  idea: "#fbbf24",
+  research: "#60a5fa",
+  assetmapper: "#0891b2",
+  nistgap: "#0f766e",
+  securityadvisor: "#7c3aed",
+  summarize: "#a78bfa",
+  image: "#34d399",
+  documents: "#64748b",
+  cartoon: "#f472b6",
+  slides: "#fb923c",
+  code: "#22d3ee",
+  codeedit: "#1d4ed8",
+  prd: "#818cf8",
+  devplan: "#14b8a6",
+  codemap: "#0f766e",
+  ui: "#c026d3",
+  stitch: "#0ea5e9",
+  note: "#fbbf24",
+  label: "#64748b",
+  timer: "#06b6d4",
+  checklist: "#059669",
+  "sdlc-intent": "#7c3aed",
+  "sdlc-spec": "#4338ca",
+  "sdlc-plan": "#0e7490",
+  "sdlc-implement": "#15803d",
+  "sdlc-review": "#b45309",
+  "sdlc-merge": "#be123c",
 };
 
 export default function Canvas() {
@@ -227,7 +260,7 @@ export default function Canvas() {
     <ReactFlow
       nodes={nodes}
       edges={edges}
-      nodeTypes={nodeTypes}
+      nodeTypes={NODE_TYPES}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
@@ -291,36 +324,6 @@ export default function Canvas() {
         pannable
         zoomable
         nodeColor={(node: Node) => {
-          const colors: Record<string, string> = {
-            agent: "#4f46e5",
-            chatbot: "#e11d48",
-            idea: "#fbbf24",
-            research: "#60a5fa",
-            nistgap: "#0f766e",
-            securityadvisor: "#7c3aed",
-            summarize: "#a78bfa",
-            image: "#34d399",
-            documents: "#64748b",
-            cartoon: "#f472b6",
-            slides: "#fb923c",
-            code: "#22d3ee",
-            codeedit: "#1d4ed8",
-            prd: "#818cf8",
-            devplan: "#14b8a6",
-            codemap: "#0f766e",
-            ui: "#c026d3",
-            stitch: "#0ea5e9",
-            note: "#fbbf24",
-            label: "#64748b",
-            timer: "#06b6d4",
-            checklist: "#059669",
-            "sdlc-intent": "#7c3aed",
-            "sdlc-spec": "#4338ca",
-            "sdlc-plan": "#0e7490",
-            "sdlc-implement": "#15803d",
-            "sdlc-review": "#b45309",
-            "sdlc-merge": "#be123c",
-          };
           if (node.type === "area") {
             // Areas are near-white on the minimap — use their border shade.
             return (node.data as any)?.border || "#cbd5e1";
@@ -328,7 +331,7 @@ export default function Canvas() {
           if (node.type === "custom") {
             return (node.data as any)?.customColor || "#6366f1";
           }
-          return colors[node.type || ""] || "#94a3b8";
+          return MINIMAP_NODE_COLORS[node.type || ""] || "#94a3b8";
         }}
       />
     </ReactFlow>
