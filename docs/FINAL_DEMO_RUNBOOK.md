@@ -3,7 +3,9 @@
 ## Pre-flight (operator only)
 
 1. Install dependencies and configure `server/.env` locally with `AI_PROVIDER=val`,
-   `VAL_MODEL=openai-gpt-4.1`, and a backend-only `VAL_API_KEY`. Never display the file.
+   Use a VAL model ID that has been verified with the API key.
+The currently confirmed working configuration is:
+VAL_MODEL=openai-gpt-4.1, and a backend-only `VAL_API_KEY`. Never display the file.
 2. Start `npm run dev:server`; check local `http://localhost:3001/api/health`
    (confirm the actual port if 3001 is occupied).
 3. Start `cloudflared tunnel --url http://localhost:3001` in another terminal.

@@ -22,8 +22,9 @@ on `main` provides a verifiable development trail:
 
 The entries above confirm merge commits and branch names, not reviewer approval
 or exact ownership. GitHub PR pages, reviews, comments and check runs should be
-captured and linked by the team for the final submission. `gh pr list` was not
-available during this audit, so remote PR metadata was not asserted.
+captured and linked by the team for the final submission. Remote PR metadata should be verified from GitHub before submission.
+The merge sequence below is grounded in repository history; reviewer and
+individual-role attribution still require team confirmation.
 
 ## Team-confirmed role handoff (complete before submission)
 
