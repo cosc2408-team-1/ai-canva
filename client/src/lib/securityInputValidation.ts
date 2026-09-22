@@ -1,8 +1,10 @@
 import type { BoxType, NamedInput } from "../types.js";
 
 const missingInputMessages: Partial<Record<BoxType, string>> = {
+  assetmapper:
+    "Connect an Idea or Documents box containing project or system information before running the Asset Mapper.",
   reqelicitor:
-    "Connect an Idea or Documents box containing a project description before running the Security Requirements Elicitor.",
+    "Connect and run an Asset Mapper, or connect an Idea or Documents box containing project evidence, before running the Security Requirements Elicitor.",
   nistgap:
     "Connect a box containing security requirements before running the NIST CSF Gap Checker.",
   securityadvisor:

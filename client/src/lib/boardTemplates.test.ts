@@ -27,11 +27,12 @@ describe("Security Assessment board template", () => {
     });
   });
 
-  it("creates the required four-box workflow with three directed edges", () => {
+  it("creates the required five-box workflow with four directed edges", () => {
     const template = createBoardTemplate("security-assessment", ids(), defaultBoxData);
 
     expect(template.nodes.map((node) => node.type)).toEqual([
       "idea",
+      "assetmapper",
       "reqelicitor",
       "nistgap",
       "securityadvisor",
@@ -40,16 +41,24 @@ describe("Security Assessment board template", () => {
       [template.nodes[0].id, template.nodes[1].id],
       [template.nodes[1].id, template.nodes[2].id],
       [template.nodes[2].id, template.nodes[3].id],
+      [template.nodes[3].id, template.nodes[4].id],
     ]);
   });
 
   it("uses unique IDs and supplies the named workflow with normal metadata and box data", () => {
     const template = createBoardTemplate("security-assessment", ids(), defaultBoxData);
-    const allIds = [...template.nodes.map((node) => node.id), ...template.edges.map((edge) => edge.id)];
+    const nodeIds = template.nodes.map((node) => node.id);
+    const edgeIds = template.edges.map((edge) => edge.id);
 
-    expect(new Set(allIds).size).toBe(allIds.length);
+    expect(new Set(nodeIds).size).toBe(nodeIds.length);
+    expect(new Set(edgeIds).size).toBe(edgeIds.length);
+    for (const edge of template.edges) {
+      expect(nodeIds).toContain(edge.source);
+      expect(nodeIds).toContain(edge.target);
+    }
     expect(template.nodes.map((node) => node.data.title)).toEqual([
       "Project Description",
+      "Asset Mapper",
       "Security Requirements Elicitor",
       "NIST CSF Gap Checker",
       "Security Advisor",
@@ -64,8 +73,22 @@ describe("Security Assessment board template", () => {
         prompt: BOX_TYPES[type].defaultPrompt,
         systemPrompt: BOX_TYPES[type].defaultSystemPrompt,
         status: "idle",
+        output: "",
       });
     }
+  });
+
+  it("uses Asset Mapper metadata and never starts an AI box automatically", () => {
+    const template = createBoardTemplate("security-assessment", ids(), defaultBoxData);
+    const mapper = template.nodes.find((node) => node.type === "assetmapper")!;
+
+    expect(template.boxData[mapper.id]).toMatchObject({
+      prompt: BOX_TYPES.assetmapper.defaultPrompt,
+      systemPrompt: BOX_TYPES.assetmapper.defaultSystemPrompt,
+      status: "idle",
+      output: "",
+    });
+    expect(Object.values(template.boxData).every((data) => data.status === "idle")).toBe(true);
   });
 
   it("can be serialized for Firestore without undefined values", () => {
