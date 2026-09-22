@@ -98,6 +98,17 @@ Runs an AI prompt over connected inputs and returns structured research findings
 - **Inputs:** any connected box; defaults to `{{input_1}}`.
 - **Output:** Markdown text.
 
+### 🗂️ Asset Mapper — `assetmapper`
+
+Turns connected project or system evidence into an evidence-first YAML `AssetPackage`. It assigns
+stable `AST-*` asset IDs and `EVID-*` evidence IDs, keeps unsupported values as `unknown`, and
+records assumptions, focused open questions, and limitations. It does not perform risk scoring,
+threat modelling, NIST mapping, gap analysis, remediation planning, or compliance assessment.
+
+- **AI:** generic text generation through the configured provider.
+- **Inputs:** connected project evidence, such as Idea or Documents boxes.
+- **Output:** YAML `AssetPackage`; no completeness or compliance claim.
+
 ### 📋 Summarize — `summarize`
 
 Combines multiple upstream inputs into a concise AI summary.

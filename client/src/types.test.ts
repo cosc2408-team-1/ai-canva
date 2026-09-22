@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { BOX_TYPES } from "./types.js";
 
+describe("Asset Mapper box", () => {
+  it("is a developer worker with an evidence-first AssetPackage contract", () => {
+    const box = BOX_TYPES.assetmapper;
+
+    expect(box).toMatchObject({
+      label: "Asset Mapper",
+      category: "worker",
+      hasAI: true,
+      roles: ["developer"],
+    });
+    for (const phrase of ["{{inputs}}", "AssetPackage", "AST-", "EVID-", "complete or clarification_required", "open_questions", "limitations"]) {
+      expect(box.defaultPrompt).toContain(phrase);
+    }
+    for (const phrase of ["Do not invent assets", "risk scoring", "threat modelling", "NIST mapping", "compliance determination", "Output valid YAML only"]) {
+      expect(box.defaultSystemPrompt).toContain(phrase);
+    }
+  });
+});
+
 describe("NIST CSF Gap Checker box", () => {
   it("is a developer worker with an evidence-aware assessment prompt", () => {
     const box = BOX_TYPES.nistgap;
@@ -32,6 +51,13 @@ describe("Security Requirements Elicitor box", () => {
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("RequirementsPackage");
     expect(box.defaultPrompt).toContain("clarification_required");
+    expect(box.defaultPrompt).toContain("AssetPackage");
+    expect(box.defaultPrompt).toContain("preserve its case_id");
+    expect(box.defaultPrompt).toContain("Do not renumber supplied AST-* IDs");
+    expect(box.defaultPrompt).toContain("EVID-* IDs");
+    expect(box.defaultPrompt).toContain("avoid duplicates");
+    expect(box.defaultPrompt).toContain("When no AssetPackage is supplied");
+    expect(box.defaultPrompt).toContain("direct-evidence mode");
     expect(box.defaultSystemPrompt).toContain("SQUARE-informed");
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
   });

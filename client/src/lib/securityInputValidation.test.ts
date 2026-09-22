@@ -3,7 +3,8 @@ import { BOX_TYPES, type BoxType } from "../types.js";
 import { securityInputError } from "./securityInputValidation.js";
 
 const cases = [
-  ["reqelicitor", "Connect an Idea or Documents box containing a project description before running the Security Requirements Elicitor."],
+  ["assetmapper", "Connect an Idea or Documents box containing project or system information before running the Asset Mapper."],
+  ["reqelicitor", "Connect and run an Asset Mapper, or connect an Idea or Documents box containing project evidence, before running the Security Requirements Elicitor."],
   ["nistgap", "Connect a box containing security requirements before running the NIST CSF Gap Checker."],
   ["securityadvisor", "Connect a box containing project or gap information before running the Security Advisor."],
 ] as const;

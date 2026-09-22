@@ -18,7 +18,7 @@ export const BOARD_TEMPLATE_OPTIONS: readonly BoardTemplateOption[] = [
   {
     id: "security-assessment",
     label: "Security Assessment",
-    description: "Project Description to security requirements, NIST CSF gaps, and next-step advice.",
+    description: "Project evidence to asset inventory, security requirements, NIST CSF gaps, and next-step advice.",
   },
 ];
 
@@ -31,13 +31,15 @@ interface TemplateBoxDefinition {
 
 const SECURITY_ASSESSMENT_BOXES: readonly TemplateBoxDefinition[] = [
   { key: "project-description", type: "idea", title: "Project Description", position: { x: 80, y: 240 } },
-  { key: "requirements-elicitor", type: "reqelicitor", title: "Security Requirements Elicitor", position: { x: 480, y: 120 } },
-  { key: "nist-gap-checker", type: "nistgap", title: "NIST CSF Gap Checker", position: { x: 980, y: 120 } },
-  { key: "security-advisor", type: "securityadvisor", title: "Security Advisor", position: { x: 1480, y: 120 } },
+  { key: "asset-mapper", type: "assetmapper", title: "Asset Mapper", position: { x: 480, y: 120 } },
+  { key: "requirements-elicitor", type: "reqelicitor", title: "Security Requirements Elicitor", position: { x: 980, y: 120 } },
+  { key: "nist-gap-checker", type: "nistgap", title: "NIST CSF Gap Checker", position: { x: 1480, y: 120 } },
+  { key: "security-advisor", type: "securityadvisor", title: "Security Advisor", position: { x: 1980, y: 120 } },
 ];
 
 const SECURITY_ASSESSMENT_CONNECTIONS = [
-  ["project-description", "requirements-elicitor"],
+  ["project-description", "asset-mapper"],
+  ["asset-mapper", "requirements-elicitor"],
   ["requirements-elicitor", "nist-gap-checker"],
   ["nist-gap-checker", "security-advisor"],
 ] as const;
