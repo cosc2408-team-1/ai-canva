@@ -19,7 +19,7 @@ All structured artifacts require `schema_version: "1.0"` and an `artifact_type`:
 
 The validator checks YAML syntax, expected artifact type/version, required structure, duplicate definition IDs, structured references, and upstream traceability preservation. It does not determine whether a CIA value, requirement, CSF mapping, severity, or recommendation is professionally correct. For `recommendation_ready` guidance, missing or empty `human_review` produces a non-blocking warning; malformed supplied guidance lists remain invalid.
 
-In a `NISTAssessmentPackage`, `function_coverage` may be an array or a mapping. Other NIST collections such as `exclusions`, `findings`, `unmapped_requirements`, `unassessed_areas`, and `limitations` remain arrays; `scope_boundary` retains its separately supported structured forms.
+NIST output must be valid block-style YAML. Quote free-text strings containing colons, and use the canonical `framework_version: "NIST CSF 2.0"`. `function_coverage` may be an array or mapping; other NIST collections such as `exclusions`, `findings`, `unmapped_requirements`, `unassessed_areas`, and `limitations` remain arrays. `scope_boundary` retains its separately supported structured forms.
 
 The Security Advisor is decision support, not an automated workflow controller. It preserves upstream identifiers and findings, represents unknowns explicitly, and may recommend a next step, but it does not create, connect, select, or run boxes. People retain technical validation, risk acceptance, release, privacy, legal, and compliance decisions.
 

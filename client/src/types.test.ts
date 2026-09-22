@@ -36,6 +36,17 @@ describe("NIST CSF Gap Checker box", () => {
     expect(box.defaultPrompt).toContain('schema_version: "1.0"');
     expect(box.defaultPrompt).toContain("trusted application assessment_date metadata");
     expect(box.defaultPrompt).toContain("function_coverage must be a structured collection (an array or mapping)");
+    for (const phrase of [
+      'framework_version: "NIST CSF 2.0"',
+      "Output block-style YAML only",
+      "Never place an unquoted colon inside a plain scalar value",
+      "Quote any YAML string containing a colon (:), hash (#)",
+      "Do not use compact mappings or put multiple key/value pairs on one line",
+      "structured fields for NIST Functions and outcomes",
+      "Copy supplied trusted application assessment_date metadata exactly",
+    ]) {
+      expect(`${box.defaultPrompt}\n${box.defaultSystemPrompt}`).toContain(phrase);
+    }
     expect(box.defaultPrompt).toContain("clarification_required");
     expect(box.defaultSystemPrompt).toContain("not a compliance determination");
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");

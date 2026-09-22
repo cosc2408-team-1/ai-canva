@@ -129,6 +129,29 @@ describe("RequirementsPackage traceability", () => {
 });
 
 describe("NISTAssessmentPackage trusted metadata", () => {
+  it("keeps malformed colon scalars invalid and accepts quoted or structured NIST outcomes", () => {
+    const withCoverage = (coverage: string) => nistPackage().replace("function_coverage: []", coverage);
+    const validate = (output: string) => validateSecurityArtifact({
+      boxType: "nistgap",
+      output,
+      trustedMetadata: { assessmentDate: "2026-09-22" },
+    });
+    const malformed = withCoverage("function_coverage:\n  - csf_outcome: Protect: identity management");
+    const malformedResult = validate(malformed);
+    expect(malformedResult.status).toBe("invalid");
+    expect(malformedResult.issues.some((entry) => entry.code === "malformed_yaml")).toBe(true);
+
+    const quoted = withCoverage('function_coverage:\n  - csf_outcome: "Protect: identity management"');
+    expect(validate(quoted).status).toBe("valid");
+
+    const structured = withCoverage(`function_coverage:
+  - csf_function: "Protect"
+    csf_outcome_ids:
+      - "PR.AA-1"
+      - "PR.IM-2"`);
+    expect(validate(structured).status).toBe("valid");
+  });
+
   it("accepts array and mapping function_coverage, but rejects scalar values", () => {
     const upstream = { reqelicitor: { boxType: "reqelicitor" as const, output: requirementsPackage } };
     const validate = (coverage: string) => validateSecurityArtifact({
@@ -170,6 +193,7 @@ describe("NISTAssessmentPackage trusted metadata", () => {
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage(), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("valid");
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage(requirementsPackage, "2024-06-10"), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage().replace("NIST CSF 2.0", "ISO 27001"), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
+    expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage().replace("NIST CSF 2.0", "2.0"), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage(requirementsPackage.replace("REQ-001", "REQ-002")), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage().replace("related_evidence: [EVID-001]", "related_evidence: [EVID-999]"), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "nistgap", output: nistPackage().replace("id: GAP-001", "id: GAP-001\n  - id: GAP-001"), upstreamArtifacts: upstream, trustedMetadata: { assessmentDate: "2026-09-22" } }).status).toBe("invalid");
