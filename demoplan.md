@@ -2,17 +2,20 @@
 
 ## Architecture
 
-`Firebase Hosting → Cloudflare Quick Tunnel → local Node/Express backend on Mac mini → RMIT VAL`
+`Firebase Preview Hosting → VITE_AI_API_BASE_URL → Cloudflare Quick Tunnel → local Node/Express backend on Mac mini → RMIT VAL`
 
-Firebase Auth and Firestore remain on Firebase. The tunnel is only a demo override for text
-generation (`/api/generate`); it does not proxy authentication, boards, or Firestore.
+Firebase Auth and Firestore remain on Firebase. The tunnel only serves text generation
+(`POST /api/generate`); it does not proxy authentication, boards, or Firestore. The tunnel URL is
+public configuration embedded in the demo Preview build, never a place for `VAL_API_KEY`.
 
 ## Prerequisites
 
 - Mac mini has Node dependencies installed and `cloudflared` available.
 - `server/.env` is saved with `AI_PROVIDER=val`, `VAL_API_KEY`, and optionally
   `VAL_MODEL=openai-gpt-4.1`.
-- Use the Firebase Preview URL for the deployed client. Keep the VAL key backend-only.
+- Firebase CLI is installed and authenticated for the target project.
+- Keep the VAL key backend-only. Do not put it in `VITE_*`, localStorage, browser code, screenshots,
+  or team messages.
 
 ## Start the Demo Backend
 
@@ -61,39 +64,46 @@ curl -sS -X POST "$TUNNEL_URL/api/generate" \
 The health response should show `aiProvider: "val"` and the generate request should return 200
 with VAL content.
 
-## Use the Firebase Preview Client
+## Deploy Zero-configuration Firebase Preview
 
-1. Open the Firebase Preview URL in the browser and sign in normally. Firebase Auth and Firestore
-   continue to use Firebase.
-2. Open DevTools Console and run, replacing the URL with the current Quick Tunnel URL:
+After the public tunnel tests pass, deploy a Preview that embeds the **public** tunnel URL:
 
-```js
-localStorage.setItem("ai-canva.demoAiApiBaseUrl", "https://YOUR-TUNNEL.trycloudflare.com");
-location.reload();
+```bash
+DEMO_AI_API_BASE_URL="$TUNNEL_URL" bash scripts/deploy-demo-preview.sh
 ```
 
-3. Run a text box such as Research or NIST Gap Checker.
-4. In DevTools Network, confirm the request is sent to the tunnel URL and shows an `OPTIONS`
-   CORS preflight with `204`, followed by `POST /api/generate` with `200`.
+The script prints the Firebase Preview URL. Send that URL to teammates and iPad users. They do not
+need to know the tunnel URL, open DevTools, or set localStorage.
+
+## Verify the Firebase Preview Client
+
+1. Open the Firebase Preview URL and sign in normally. Firebase Auth and Firestore continue to use
+   Firebase.
+2. Run a text box such as Research or NIST Gap Checker.
+3. For operator verification, open DevTools Network and confirm the request uses the tunnel URL,
+   shows an `OPTIONS` CORS preflight with `204`, then `POST /api/generate` with `200`.
 
 ## Remote Teammate Test
 
-Send teammates the Firebase Preview URL and the current tunnel URL. They open the Preview URL,
-sign in, then run the same localStorage command in their browser with the tunnel URL. They should
-run a text box, confirm a successful result, and report the browser, time, generated box, and
-Network status. They must not receive, request, or enter `VAL_API_KEY`.
+Send teammates only the Firebase Preview URL. They sign in, run a text box, confirm a successful
+result, and report the browser, time, and generated box. They must not receive, request, enter, or
+need the tunnel URL or `VAL_API_KEY`.
 
 ## Shutdown and Reset
 
 1. Stop `cloudflared` with `Ctrl+C`; the Quick Tunnel URL immediately stops working.
 2. Stop `npm run dev:server` with `Ctrl+C`.
 3. Stop `caffeinate` with `Ctrl+C` when the demo is over.
-4. In every demo browser, reset to the normal Firebase `/api` route:
+4. The Preview build already routes text generation through its embedded public tunnel URL. To reset
+   a browser that used the optional troubleshooting override, remove it:
 
 ```js
 localStorage.removeItem("ai-canva.demoAiApiBaseUrl");
 location.reload();
 ```
+
+After removal, routing falls back to `VITE_AI_API_BASE_URL` when that Preview build configured one,
+otherwise to the relative Firebase `/api/generate` route.
 
 ## Troubleshooting
 
@@ -101,9 +111,10 @@ location.reload();
 | --- | --- |
 | Local generation fails | Confirm `server/.env` is saved, `AI_PROVIDER=val`, and the server was restarted after editing it. |
 | Tunnel URL does not respond | Confirm the local smoke test passes, `cloudflared` is still running, and the tunnel port matches the server port. |
-| Preview still calls Firebase `/api` | Check the exact localStorage key/value, use the tunnel root URL without `/api/generate`, then reload. |
+| Preview still calls Firebase `/api` | Confirm the Preview was deployed with `DEMO_AI_API_BASE_URL` set to the current tunnel root URL. Re-run the deploy script after a tunnel restart. |
 | CORS failure | Confirm the Network panel shows the tunnel host and an `OPTIONS` response of `204`; restart the local server/tunnel if needed. |
-| Tunnel changed after restart | Quick Tunnel hostnames are temporary. Copy the new URL and reset the localStorage value for every browser. |
+| Tunnel changed after restart | Quick Tunnel hostnames are temporary. Re-run `DEMO_AI_API_BASE_URL="$TUNNEL_URL" bash scripts/deploy-demo-preview.sh` and share the new Preview URL. |
+| One browser needs a temporary override | In DevTools only, run `localStorage.setItem("ai-canva.demoAiApiBaseUrl", "https://YOUR-TUNNEL.trycloudflare.com"); location.reload();`. Remove it after diagnosis to restore the build-time route. |
 
 ## Security and Verified Baseline
 
