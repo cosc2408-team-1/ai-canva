@@ -121,5 +121,5 @@ otherwise to the relative Firebase `/api/generate` route.
 `VAL_API_KEY` must remain in `server/.env` or another backend-only secret store. Never put it in
 client code, Firebase Preview configuration, localStorage, screenshots, or team messages.
 
-Verified baseline: **309/309 client tests passed** and the **production build passed** before demo
+Verified baseline: **313/313 client tests passed** and the **production build passed** before demo
 use.

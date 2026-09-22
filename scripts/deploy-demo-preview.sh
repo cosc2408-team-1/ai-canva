@@ -45,6 +45,25 @@ if [ -z "$PROJECT" ]; then
   exit 1
 fi
 
+HEALTH_URL="${DEMO_BASE%/}/api/health"
+if ! curl --fail --silent --show-error --max-time 20 "$HEALTH_URL" | node -e '
+let body = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { body += chunk; });
+process.stdin.on("end", () => {
+  try {
+    if (JSON.parse(body).status !== "ok") throw new Error("unexpected status");
+  } catch {
+    console.error("ERROR: Demo backend health check did not return status: ok.");
+    process.exit(1);
+  }
+});
+'; then
+  echo "ERROR: Demo backend health check failed." >&2
+  exit 1
+fi
+echo "Demo backend health check passed"
+
 echo "==> Building Firebase Preview for project: $PROJECT"
 echo "==> Preview channel: $CHANNEL (expires: $EXPIRES)"
 echo "==> Text generation uses the supplied public API base URL; no secret is printed."
