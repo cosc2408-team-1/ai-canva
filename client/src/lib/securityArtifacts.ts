@@ -82,6 +82,14 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 
+function usableQuestions(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  return value.some((entry) => {
+    if (typeof entry === "string") return entry.trim().length > 0;
+    return typeof record(entry)?.question === "string" && (record(entry)?.question as string).trim().length > 0;
+  });
+}
+
 function identifier(value: unknown, keys: string[]): string | null {
   const item = record(value);
   if (!item) return null;
@@ -292,8 +300,9 @@ function validateNistPackage(
 function validateAdvisor(value: ArtifactRecord, issues: SecurityArtifactValidationIssue[], upstream: Partial<Record<SecurityArtifactBoxType, SecurityArtifactInput>>) {
   const status = value.status;
   if (status === "interview_required") {
-    const questions = strings(value.focused_questions).concat(strings(value.questions));
-    if (!questions.length) issue(issues, "missing_required_field", "focused_questions", "interview_required needs focused questions.");
+    if (!usableQuestions(value.focused_questions) && !usableQuestions(value.questions)) {
+      issue(issues, "missing_required_field", "focused_questions", "interview_required needs at least one usable question.");
+    }
   }
   if (status === "recommendation_ready") {
     const guidance = typeof value.guidance_id === "string" ? value.guidance_id : "";
@@ -302,13 +311,36 @@ function validateAdvisor(value: ArtifactRecord, issues: SecurityArtifactValidati
     if (typeof value.recommended_next_box !== "string" || !allowed.includes(value.recommended_next_box)) issue(issues, "invalid_next_box", "recommended_next_box", "recommended_next_box is not allowed.");
     for (const field of ["recommended_next_step", "reason"]) if (typeof value[field] !== "string" || !value[field]) issue(issues, "missing_required_field", field, `Missing required field ${field}.`);
   }
+  const known: Record<string, Set<string>> = {};
+  const addIds = (namespace: string, ids: Set<string>) => {
+    known[namespace] ??= new Set<string>();
+    ids.forEach((id) => known[namespace].add(id));
+  };
+  const assetMapper = parseUpstream(upstream.assetmapper, issues);
+  if (assetMapper) {
+    const ids = validateAssetPackage(assetMapper, []);
+    addIds("AST", ids.assets);
+    addIds("EVID", ids.evidence);
+  }
+  const requirements = parseUpstream(upstream.reqelicitor, issues);
+  if (requirements) {
+    const ids = validateRequirementsPackage(requirements, []);
+    addIds("AST", ids.assets);
+    addIds("EVID", ids.evidence);
+    addIds("REQ", ids.requirements);
+  }
   const nist = parseUpstream(upstream.nistgap, issues);
-  const nested = nist ? record(nist.requirements_package) : null;
-  const requirementIds = nested ? validateRequirementsPackage(nested, []).requirements : new Set<string>();
-  const assetIds = nested ? validateRequirementsPackage(nested, []).assets : new Set<string>();
-  const evidenceIds = nested ? validateRequirementsPackage(nested, []).evidence : new Set<string>();
-  const gapIds = nist ? validateDefinitionIds(nist.findings, "GAP", "findings", ["id", "gap_id"], []) : new Set<string>();
-  validateReferenceFields(value, { AST: assetIds, EVID: evidenceIds, REQ: requirementIds, GAP: gapIds }, issues);
+  if (nist) {
+    const nested = record(nist.requirements_package);
+    if (nested) {
+      const ids = validateRequirementsPackage(nested, []);
+      addIds("AST", ids.assets);
+      addIds("EVID", ids.evidence);
+      addIds("REQ", ids.requirements);
+    }
+    addIds("GAP", validateDefinitionIds(nist.findings, "GAP", "findings", ["id", "gap_id"], []));
+  }
+  validateReferenceFields(value, known, issues);
 }
 
 export function validateSecurityArtifact(context: SecurityArtifactValidationContext): SecurityArtifactValidationResult {

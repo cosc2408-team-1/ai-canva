@@ -153,6 +153,51 @@ describe("NextStepGuidance and execution gate", () => {
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: recommendation.replace("nist_csf_checker", "asset_mapper") }).status).toBe("invalid");
   });
 
+  it("resolves Advisor references from a direct RequirementsPackage", () => {
+    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct requirements context.\nrelevant_upstream_references: [${reference}]`;
+    const upstreamArtifacts = { reqelicitor: { boxType: "reqelicitor" as const, output: requirementsPackage } };
+    for (const reference of ["REQ-001", "AST-001", "EVID-001"]) {
+      expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor(reference), upstreamArtifacts }).status).toBe("valid");
+    }
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor("REQ-999"), upstreamArtifacts }).status).toBe("invalid");
+  });
+
+  it("resolves Advisor references from a direct AssetPackage", () => {
+    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct asset context.\nrelevant_upstream_references: [${reference}]`;
+    const upstreamArtifacts = { assetmapper: { boxType: "assetmapper" as const, output: assetPackage } };
+    for (const reference of ["AST-001", "EVID-001"]) {
+      expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor(reference), upstreamArtifacts }).status).toBe("valid");
+    }
+    for (const reference of ["AST-999", "EVID-999"]) {
+      expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor(reference), upstreamArtifacts }).status).toBe("invalid");
+    }
+  });
+
+  it("keeps NIST GAP and nested RequirementsPackage references resolvable", () => {
+    const advisor = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review gaps\nreason: NIST context.\nrelevant_upstream_references: [GAP-001, REQ-001, AST-001, EVID-001]`;
+    const upstreamArtifacts = { nistgap: { boxType: "nistgap" as const, output: nistPackage() } };
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: advisor, upstreamArtifacts }).status).toBe("valid");
+    for (const reference of ["GAP-999", "REQ-999", "AST-999", "EVID-999"]) {
+      expect(validateSecurityArtifact({
+        boxType: "securityadvisor",
+        output: advisor.replace("GAP-001, REQ-001, AST-001, EVID-001", reference),
+        upstreamArtifacts,
+      }).status).toBe("invalid");
+    }
+  });
+
+  it("accepts string, structured, and fallback interview questions but rejects unusable questions", () => {
+    const base = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: interview_required`;
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions: [What authentication method is used?]` }).status).toBe("clarification_required");
+    expect(validateSecurityArtifact({
+      boxType: "securityadvisor",
+      output: `${base}\nfocused_questions:\n  - question: What authentication method is used?\n    why_it_matters: Determines the review path.\n    evidence_needed: Authentication architecture.`,
+    }).status).toBe("clarification_required");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nquestions: [What evidence is available?]` }).status).toBe("clarification_required");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions: ["", "   "]\nquestions: []` }).status).toBe("invalid");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions:\n  - why_it_matters: Needs context\n  - question: "   "` }).status).toBe("invalid");
+  });
+
   it("blocks only invalid direct upstream artifacts and validates legacy output on demand", () => {
     const invalid = securityUpstreamGate("reqelicitor", [{ boxType: "assetmapper", title: "Asset Mapper", output: "not yaml" }]);
     expect(invalid.message).toContain("invalid structured artifact");
