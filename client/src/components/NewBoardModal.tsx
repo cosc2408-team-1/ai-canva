@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef } from "react";
+import { BOARD_TEMPLATE_OPTIONS, type BoardTemplateId } from "../lib/boardTemplates.js";
 
 interface NewBoardModalProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (name: string) => void;
+  onCreate: (name: string, templateId: BoardTemplateId) => void;
 }
 
 export default function NewBoardModal({ open, onClose, onCreate }: NewBoardModalProps) {
   const [name, setName] = useState("");
+  const [templateId, setTemplateId] = useState<BoardTemplateId>("blank");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setName("");
+      setTemplateId("blank");
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
@@ -30,7 +33,7 @@ export default function NewBoardModal({ open, onClose, onCreate }: NewBoardModal
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(name.trim() || "Untitled Board");
+    onCreate(name.trim() || "Untitled Board", templateId);
   };
 
   return (
@@ -66,6 +69,33 @@ export default function NewBoardModal({ open, onClose, onCreate }: NewBoardModal
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
             />
           </div>
+
+          <fieldset>
+            <legend className="text-sm font-medium text-slate-600 block mb-1.5">
+              Template
+            </legend>
+            <div className="space-y-2">
+              {BOARD_TEMPLATE_OPTIONS.map((template) => (
+                <label
+                  key={template.id}
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:border-blue-300"
+                >
+                  <input
+                    type="radio"
+                    name="board-template"
+                    value={template.id}
+                    checked={templateId === template.id}
+                    onChange={() => setTemplateId(template.id)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-700">{template.label}</span>
+                    <span className="block text-xs text-slate-500">{template.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
