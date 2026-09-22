@@ -59,6 +59,18 @@ describe("Security Requirements Elicitor box", () => {
     expect(box.defaultPrompt).toContain("When no AssetPackage is supplied");
     expect(box.defaultPrompt).toContain("direct-evidence mode");
     expect(box.defaultSystemPrompt).toContain("SQUARE-informed");
+    for (const phrase of [
+      "upstream AssetPackage or raw project evidence",
+      "case_id, assessment_boundary, AST-* IDs, asset names, EVID-* IDs, and evidence_register entries",
+      "Do not renumber supplied AST-* IDs or EVID-* IDs",
+      "silently rewrite upstream evidence",
+      "reference preserved upstream EVID-* IDs",
+      "do not collide with existing upstream IDs",
+      "When no AssetPackage is supplied, retain the direct raw-evidence mode",
+      "unverified, user-reported evidence",
+    ]) {
+      expect(box.defaultSystemPrompt).toContain(phrase);
+    }
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
   });
 });
