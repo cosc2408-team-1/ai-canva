@@ -76,4 +76,20 @@ describe("cleanBoxDataForFirestore", () => {
     walk(cleaned.i);
     expect(nested).toEqual([]);
   });
+
+  it("keeps plain security artifact validation metadata for Firestore", () => {
+    const validation = {
+      status: "invalid" as const,
+      artifactType: "AssetPackage",
+      schemaVersion: "1.0",
+      issues: [{ code: "broken_reference", severity: "error" as const, path: "assets[0]", message: "Broken reference EVID-009." }],
+      validatedAt: 1700000000000,
+      trustedMetadata: { assessmentDate: "" },
+    };
+    const cleaned = cleanBoxDataForFirestore({
+      security: { content: "", prompt: "", systemPrompt: "", output: "raw YAML", status: "done", securityArtifactValidation: validation } as BoxData,
+    });
+    expect(cleaned.security.securityArtifactValidation).toEqual(validation);
+    expect(JSON.stringify(cleaned.security)).toContain("broken_reference");
+  });
 });

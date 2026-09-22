@@ -10,8 +10,8 @@ import {
   type EdgeChange,
   type Connection,
 } from "@xyflow/react";
-import type { BoxData, BoxType, BoxStatus, NamedInput, AgentStep, ChatMessage, DeployInfo, FileChange, EditMeta, ArtifactVersion, SdlcEvent, SdlcStage, RepoMeta, ChecklistItem } from "../types.js";
-import { BOX_TYPES, AGENT_CONTROLLER_SYSTEM_PROMPT } from "../types.js";
+import type { BoxData, BoxType, BoxStatus, NamedInput, AgentStep, ChatMessage, DeployInfo, FileChange, EditMeta, ArtifactVersion, SdlcEvent, SdlcStage, RepoMeta, ChecklistItem, SecurityArtifactBoxType } from "../types.js";
+import { BOX_TYPES, AGENT_CONTROLLER_SYSTEM_PROMPT, isSecurityArtifactBoxType } from "../types.js";
 import { buildCodeMapPrompt, resolveRepoRef } from "../lib/repo.js";
 import {
   buildEditPrompt,
@@ -47,6 +47,12 @@ import {
 import { generate, generateImage, generateStitchUI, fetchRepoDigest, publishSite } from "../lib/api.js";
 import { fillPromptTemplate, getBoxOutput } from "../lib/prompts.js";
 import { securityInputError } from "../lib/securityInputValidation.js";
+import {
+  applicationAssessmentDate,
+  nistTrustedMetadataPrompt,
+  securityUpstreamGate,
+  validateSecurityArtifact,
+} from "../lib/securityArtifacts.js";
 import { buildChatSystemPrompt, buildConversationTurn, chatbotName, greetingMessage, trimChatMessages } from "../lib/chatbot.js";
 import {
   MAX_AGENT_TURNS,
@@ -1421,6 +1427,42 @@ export const useBoardStore = create<BoardState>()(
           return;
         }
 
+        const securityBox = isSecurityArtifactBoxType(boxType);
+        const directSecurityUpstreams = securityBox
+          ? state.edges
+            .filter((edge) => edge.target === id)
+            .flatMap((edge) => {
+              const sourceNode = state.nodes.find((node) => node.id === edge.source);
+              const sourceData = state.boxData[edge.source];
+              const sourceType = (sourceNode?.data.boxType || sourceNode?.type) as BoxType | undefined;
+              if (!sourceData || !sourceType || !isSecurityArtifactBoxType(sourceType)) return [];
+              return [{
+                boxType: sourceType,
+                title: (sourceNode?.data.title as string) || BOX_TYPES[sourceType].label,
+                output: sourceData.output,
+                validation: sourceData.securityArtifactValidation,
+                sourceId: edge.source,
+              }];
+            })
+          : [];
+        if (securityBox) {
+          const gate = securityUpstreamGate(boxType, directSecurityUpstreams);
+          // Old boards have no validation metadata. Persist an on-demand summary
+          // while preserving their raw model output and without migrating data.
+          for (const { source, validation } of gate.validations) {
+            if (!source.validation && source.sourceId) {
+              const { parsed: _parsed, ...summary } = validation;
+              get().updateBoxData(source.sourceId, { securityArtifactValidation: summary });
+            }
+          }
+          if (gate.message) {
+            get().setBoxStatus(id, "error", gate.message);
+            return;
+          }
+          // A rerun must not display validation belonging to an older result.
+          get().updateBoxData(id, { securityArtifactValidation: undefined });
+        }
+
         // Set running state
         get().setBoxStatus(id, "running");
 
@@ -1461,10 +1503,15 @@ export const useBoardStore = create<BoardState>()(
           } else {
             // Text generation via the Ollama backend (research, summarize,
             // slides, custom boxes)
-            const filledPrompt = fillPromptTemplate(
+            let filledPrompt = fillPromptTemplate(
               data.prompt,
               namedInputs
             );
+
+            // NIST's date is application-supplied runtime metadata, not an LLM
+            // guess. It is appended immediately before the model call.
+            const assessmentDate = boxType === "nistgap" ? applicationAssessmentDate() : "";
+            if (assessmentDate) filledPrompt += nistTrustedMetadataPrompt(assessmentDate);
 
             const result = await generateTextForBox(id, {
               systemPrompt: data.systemPrompt,
@@ -1508,10 +1555,30 @@ export const useBoardStore = create<BoardState>()(
               });
             } else {
               // Store text output (research, summarize)
+              const validation = securityBox
+                ? validateSecurityArtifact({
+                    boxType: boxType as SecurityArtifactBoxType,
+                    output: result.content,
+                    upstreamArtifacts: Object.fromEntries(
+                      directSecurityUpstreams.map((source) => [source.boxType, {
+                        boxType: source.boxType,
+                        output: source.output,
+                      }]),
+                    ),
+                    trustedMetadata: { assessmentDate },
+                  })
+                : undefined;
+              const securityArtifactValidation = validation
+                ? (() => {
+                    const { parsed: _parsed, ...summary } = validation;
+                    return summary;
+                  })()
+                : undefined;
               get().updateBoxData(id, {
                 output: result.content,
                 status: "done",
                 error: undefined,
+                ...(securityArtifactValidation ? { securityArtifactValidation } : {}),
               });
             }
           }

@@ -3,7 +3,8 @@ import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import ReactMarkdown from "react-markdown";
 import { useBoardStore } from "../store/boardStore.js";
 import { useAuthStore } from "../store/authStore.js";
-import { BOX_TYPES, LABEL_COLORS } from "../types.js";
+import { BOX_TYPES, LABEL_COLORS, isSecurityArtifactBoxType } from "../types.js";
+import SecurityArtifactStatus from "./SecurityArtifactStatus.js";
 import { chatbotName } from "../lib/chatbot.js";
 import type { BoxType } from "../types.js";
 import { wrapCodeInHtml, wrapUIInHtml, downloadHtml, copyToClipboard } from "../lib/code.js";
@@ -1095,6 +1096,10 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
             {isCodeEdit && <CodeEditPanel id={id} boxType={boxType} />}
             {isCodeEdit && (boxData.changeSet || []).length > 0 && (
               <DeployPanel id={id} boxType={boxType} />
+            )}
+
+            {isSecurityArtifactBoxType(boxType) && !isRunning && (
+              <SecurityArtifactStatus validation={boxData.securityArtifactValidation} />
             )}
 
             {hasTextOutput && !isRunning && !isCodeEdit && (
