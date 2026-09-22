@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BOX_TYPES, type BoxData, type BoxType } from "../types.js";
 import { cleanBoxDataForFirestore } from "./serialization.js";
-import { createBoardTemplate } from "./boardTemplates.js";
+import { BOARD_TEMPLATE_OPTIONS, createBoardTemplate } from "./boardTemplates.js";
 
 function ids() {
   let count = 0;
@@ -43,6 +43,12 @@ describe("Security Assessment board template", () => {
       [template.nodes[2].id, template.nodes[3].id],
       [template.nodes[3].id, template.nodes[4].id],
     ]);
+  });
+
+  it("describes the workflow at a glance", () => {
+    const option = BOARD_TEMPLATE_OPTIONS.find((item) => item.id === "security-assessment");
+    expect(option?.description).toContain("Discover assets");
+    expect(option?.description).toContain("evidence-linked next-step guidance");
   });
 
   it("uses unique IDs and supplies the named workflow with normal metadata and box data", () => {

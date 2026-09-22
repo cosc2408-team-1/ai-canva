@@ -18,7 +18,7 @@ export const BOARD_TEMPLATE_OPTIONS: readonly BoardTemplateOption[] = [
   {
     id: "security-assessment",
     label: "Security Assessment",
-    description: "Project evidence to asset inventory, security requirements, NIST CSF gaps, and next-step advice.",
+    description: "Discover assets → specify security requirements → assess NIST CSF gaps → get evidence-linked next-step guidance.",
   },
 ];
 

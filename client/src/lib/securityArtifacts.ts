@@ -310,6 +310,20 @@ function validateAdvisor(value: ArtifactRecord, issues: SecurityArtifactValidati
     const allowed = ["security_requirements_elicitor", "nist_csf_checker", "security_advisor", "none"];
     if (typeof value.recommended_next_box !== "string" || !allowed.includes(value.recommended_next_box)) issue(issues, "invalid_next_box", "recommended_next_box", "recommended_next_box is not allowed.");
     for (const field of ["recommended_next_step", "reason"]) if (typeof value[field] !== "string" || !value[field]) issue(issues, "missing_required_field", field, `Missing required field ${field}.`);
+    if (value.human_review === undefined || (Array.isArray(value.human_review) && value.human_review.length === 0)) {
+      issue(issues, "missing_human_review_guidance", "human_review", "Recommendation should identify applicable human review or decision boundaries.", "warning");
+    }
+    for (const field of ["inputs_to_prepare", "human_review", "assumptions", "limitations"]) {
+      if (value[field] !== undefined && !Array.isArray(value[field])) {
+        issue(issues, "invalid_structure", field, `${field} must be a list when supplied.`);
+      }
+    }
+    if (value.confidence !== undefined) {
+      const confidence = record(value.confidence);
+      if (!(typeof value.confidence === "string" && value.confidence.trim()) && !confidence) {
+        issue(issues, "invalid_structure", "confidence", "confidence must be a non-empty string or structured object when supplied.");
+      }
+    }
   }
   const known: Record<string, Set<string>> = {};
   const addIds = (namespace: string, ids: Set<string>) => {

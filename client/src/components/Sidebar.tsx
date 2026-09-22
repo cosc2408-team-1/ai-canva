@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useBoardStore } from "../store/boardStore.js";
 import { useUserBoxesStore } from "../store/userBoxesStore.js";
 import { BOX_TYPES } from "../types.js";
-import type { BoxType, BoxCategory, BoxRole } from "../types.js";
+import type { BoxType, BoxCategory } from "../types.js";
+import { boxVisibleForRole, ROLE_LABELS, SIDEBAR_ROLES, sidebarRoleFromStored, type SidebarRole } from "../lib/boxRoles.js";
+import SecurityWorkflowGuide from "./SecurityWorkflowGuide.js";
 import CustomBoxModal from "./CustomBoxModal.js";
 
 interface SidebarProps {
@@ -25,16 +27,6 @@ const SECTIONS: { title: string; category: BoxCategory }[] = [
 const ROLE_STORAGE_KEY = "ai-canva:sidebar-role";
 
 /** The selectable role profiles (must stay in sync with the <option> list). */
-const ROLES: BoxRole[] = ["designer", "developer", "product", "sdlc"];
-
-const ROLE_LABELS: Record<BoxRole, string> = {
-  everyone: "Everyone",
-  designer: "🎨 Designer",
-  developer: "💻 Developer",
-  product: "📊 Product",
-  sdlc: "🔁 SDLC",
-};
-
 export default function Sidebar({ open, onToggle }: SidebarProps) {
   const addBox = useBoardStore((s) => s.addBox);
   const addCustomBox = useBoardStore((s) => s.addCustomBox);
@@ -42,16 +34,16 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const removeCustomDef = useUserBoxesStore((s) => s.remove);
   const [showCustomModal, setShowCustomModal] = useState(false);
 
-  const [role, setRole] = useState<"all" | BoxRole>(() => {
+  const [role, setRole] = useState<SidebarRole>(() => {
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem(ROLE_STORAGE_KEY) : null;
-    return ROLES.includes(stored as BoxRole) ? (stored as BoxRole) : "all";
+    return sidebarRoleFromStored(stored);
   });
 
   const handleAdd = (type: BoxType) => {
     addBox(type);
   };
 
-  const selectRole = (next: "all" | BoxRole) => {
+  const selectRole = (next: SidebarRole) => {
     setRole(next);
     if (typeof localStorage !== "undefined") {
       if (next === "all") localStorage.removeItem(ROLE_STORAGE_KEY);
@@ -59,14 +51,9 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     }
   };
 
-  /** True when a box should appear under the active role filter.
-   *  `everyone` boxes are shared scaffolding and show in every view. */
-  const boxVisible = (meta: typeof BOX_TYPES[BoxType]) =>
-    role === "all" || meta.roles.includes("everyone") || meta.roles.includes(role);
-
   const boxesByCategory = (cat: BoxCategory) =>
     (Object.entries(BOX_TYPES) as [BoxType, typeof BOX_TYPES[BoxType]][])
-      .filter(([, meta]) => meta.category === cat && boxVisible(meta));
+      .filter(([, meta]) => meta.category === cat && boxVisibleForRole(meta, role));
 
   return (
     <>
@@ -109,12 +96,12 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
           </label>
           <select
             value={role}
-            onChange={(e) => selectRole(e.target.value as "all" | BoxRole)}
+            onChange={(e) => selectRole(e.target.value as SidebarRole)}
             className="w-full h-8 rounded-lg border border-slate-200 bg-white px-2 text-[13px] font-medium text-slate-700 focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
             title="Filter which boxes appear in the palette"
           >
             <option value="all">🧩 All boxes</option>
-            {ROLES.map((r) => (
+            {SIDEBAR_ROLES.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABELS[r]}
               </option>
@@ -124,6 +111,7 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
 
         {/* Scrollable palette */}
         <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
+          {role === "security" && <SecurityWorkflowGuide />}
           {SECTIONS.map((section) => {
             // The static "custom" meta is a runtime fallback, never a
             // palette item — the Custom section lists the user's saved

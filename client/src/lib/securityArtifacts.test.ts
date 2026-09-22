@@ -146,7 +146,7 @@ describe("NextStepGuidance and execution gate", () => {
   it("maps a valid interview to clarification and validates recommendation references", () => {
     const interview = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: interview_required\nfocused_questions: [What evidence is available?]`;
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: interview }).status).toBe("clarification_required");
-    const recommendation = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: nist_csf_checker\nrecommended_next_step: Review requirements\nreason: Requirements are complete.\nrelevant_upstream_references: [REQ-999]`;
+    const recommendation = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: nist_csf_checker\nrecommended_next_step: Review requirements\nreason: Requirements are complete.\nhuman_review: [Review with the project team.]\nrelevant_upstream_references: [REQ-999]`;
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: recommendation, upstreamArtifacts: { nistgap: { boxType: "nistgap", output: nistPackage() } } }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: recommendation.replace("REQ-999", "REQ-001"), upstreamArtifacts: { nistgap: { boxType: "nistgap", output: nistPackage() } } }).status).toBe("valid");
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: recommendation.replace("NEXT-001", "NEXT-0") }).status).toBe("invalid");
@@ -154,7 +154,7 @@ describe("NextStepGuidance and execution gate", () => {
   });
 
   it("resolves Advisor references from a direct RequirementsPackage", () => {
-    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct requirements context.\nrelevant_upstream_references: [${reference}]`;
+    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct requirements context.\nhuman_review: [Review with the project team.]\nrelevant_upstream_references: [${reference}]`;
     const upstreamArtifacts = { reqelicitor: { boxType: "reqelicitor" as const, output: requirementsPackage } };
     for (const reference of ["REQ-001", "AST-001", "EVID-001"]) {
       expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor(reference), upstreamArtifacts }).status).toBe("valid");
@@ -163,7 +163,7 @@ describe("NextStepGuidance and execution gate", () => {
   });
 
   it("resolves Advisor references from a direct AssetPackage", () => {
-    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct asset context.\nrelevant_upstream_references: [${reference}]`;
+    const makeAdvisor = (reference: string) => `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Direct asset context.\nhuman_review: [Review with the project team.]\nrelevant_upstream_references: [${reference}]`;
     const upstreamArtifacts = { assetmapper: { boxType: "assetmapper" as const, output: assetPackage } };
     for (const reference of ["AST-001", "EVID-001"]) {
       expect(validateSecurityArtifact({ boxType: "securityadvisor", output: makeAdvisor(reference), upstreamArtifacts }).status).toBe("valid");
@@ -174,7 +174,7 @@ describe("NextStepGuidance and execution gate", () => {
   });
 
   it("keeps NIST GAP and nested RequirementsPackage references resolvable", () => {
-    const advisor = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review gaps\nreason: NIST context.\nrelevant_upstream_references: [GAP-001, REQ-001, AST-001, EVID-001]`;
+    const advisor = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review gaps\nreason: NIST context.\nhuman_review: [Review with the project team.]\nrelevant_upstream_references: [GAP-001, REQ-001, AST-001, EVID-001]`;
     const upstreamArtifacts = { nistgap: { boxType: "nistgap" as const, output: nistPackage() } };
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: advisor, upstreamArtifacts }).status).toBe("valid");
     for (const reference of ["GAP-999", "REQ-999", "AST-999", "EVID-999"]) {
@@ -196,6 +196,30 @@ describe("NextStepGuidance and execution gate", () => {
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nquestions: [What evidence is available?]` }).status).toBe("clarification_required");
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions: ["", "   "]\nquestions: []` }).status).toBe("invalid");
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions:\n  - why_it_matters: Needs context\n  - question: "   "` }).status).toBe("invalid");
+  });
+
+  it("warns when human review is missing or empty and accepts explicit review guidance", () => {
+    const base = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Review the supplied evidence.`;
+    for (const output of [base, `${base}\nhuman_review: []`]) {
+      const result = validateSecurityArtifact({ boxType: "securityadvisor", output });
+      expect(result.status).toBe("warning");
+      expect(result.issues.some((entry) => entry.code === "missing_human_review_guidance" && entry.severity === "warning")).toBe(true);
+    }
+    expect(validateSecurityArtifact({
+      boxType: "securityadvisor",
+      output: `${base}\nhuman_review:\n  - Technical validation by project owner.`,
+    }).status).toBe("valid");
+  });
+
+  it("validates optional recommendation lists and confidence shape without judging their content", () => {
+    const base = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Review the supplied evidence.\nhuman_review: [Discuss with the owner.]`;
+    expect(validateSecurityArtifact({
+      boxType: "securityadvisor",
+      output: `${base}\nassumptions: not-a-list`,
+    }).status).toBe("invalid");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nconfidence: 4` }).status).toBe("invalid");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nconfidence: uncertain` }).status).toBe("valid");
+    expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nconfidence:\n  level: unknown\n  rationale: Insufficient evidence.` }).status).toBe("valid");
   });
 
   it("blocks only invalid direct upstream artifacts and validates legacy output on demand", () => {

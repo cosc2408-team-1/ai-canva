@@ -9,7 +9,7 @@ describe("Asset Mapper box", () => {
       label: "Asset Mapper",
       category: "worker",
       hasAI: true,
-      roles: ["developer"],
+      roles: ["developer", "security"],
     });
     for (const phrase of ["{{inputs}}", "AssetPackage", "AST-", "EVID-", "complete or clarification_required", "open_questions", "limitations"]) {
       expect(box.defaultPrompt).toContain(phrase);
@@ -28,7 +28,7 @@ describe("NIST CSF Gap Checker box", () => {
       label: "NIST CSF Gap Checker",
       category: "worker",
       hasAI: true,
-      roles: ["developer"],
+      roles: ["developer", "security"],
     });
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("NISTAssessmentPackage");
@@ -49,7 +49,7 @@ describe("Security Requirements Elicitor box", () => {
       label: "Security Requirements Elicitor",
       category: "worker",
       hasAI: true,
-      roles: ["developer"],
+      roles: ["developer", "security"],
     });
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("RequirementsPackage");
@@ -86,7 +86,7 @@ describe("Security Advisor box", () => {
       label: "Security Advisor",
       category: "worker",
       hasAI: true,
-      roles: ["developer"],
+      roles: ["developer", "security"],
     });
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("NextStepGuidance");
@@ -95,6 +95,31 @@ describe("Security Advisor box", () => {
     expect(box.defaultPrompt).toContain("interview_required");
     expect(box.defaultSystemPrompt).toContain("recommended_next_box");
     expect(box.defaultSystemPrompt).toContain("Do not claim compliance");
+    for (const phrase of [
+      'artifact_type: NextStepGuidance',
+      'schema_version: "1.0"',
+      "interview_required",
+      "recommendation_ready",
+      "focused_questions",
+      "why_it_matters",
+      "evidence_needed",
+      "guidance_id",
+      "recommended_next_box",
+      "recommended_next_step",
+      "relevant_upstream_references",
+      "human_review",
+      "assumptions",
+      "limitations",
+      "confidence",
+      "Preserve their identifiers and meaning",
+      "never delete, merge, downgrade, upgrade, rewrite",
+      "Never infer implementation status or control effectiveness",
+      "risk acceptance",
+      "compliance, certification or security approval",
+      "never create, connect, navigate to or run a box automatically",
+    ]) {
+      expect(box.defaultSystemPrompt).toContain(phrase);
+    }
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
   });
 });
