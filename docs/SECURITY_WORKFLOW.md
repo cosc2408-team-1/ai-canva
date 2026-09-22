@@ -13,3 +13,4 @@ Create a new Security Assessment board or add the workers to an existing board. 
 The Advisor offers next-step decision support and clarification questions. It does not rewrite upstream findings, infer implementation or control effectiveness, or route/run boxes automatically. A valid artifact status means only that application-level format and reference checks passed. Human review remains necessary before technical, risk, release, privacy, legal, or compliance decisions. The workflow does not provide a certification or compliance determination.
 
 See [Structured Security Artifacts](SECURITY_ARTIFACTS.md) for artifact contracts and validation status meanings.
+For final demonstration and submission, start at [Final Handoff](FINAL_HANDOFF.md).

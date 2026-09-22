@@ -50,16 +50,17 @@ into `firebaseConfig`.
 
 ## 4. Publish security rules
 
-Deploy the rules that ship in the repo:
+Inspect and harden the rules before any wider deployment. The current board and file rules
+allow access by any authenticated user; see [Known Limitations](FINAL_KNOWN_LIMITATIONS.md).
+For an authorized project deployment, the existing commands are:
 
 ```bash
 firebase deploy --only firestore:rules
 firebase deploy --only storage:rules
 ```
 
-> **Important:** `firestore.rules` currently contains a **permissive placeholder** (any signed-in
-> user can read/update any board). Before deploying to the public, replace it with the
-> ownership/collaborator rules in [OSS_READINESS.md](OSS_READINESS.md).
+> Do not copy a generic replacement without testing owner, collaborator, guest, team, and
+> workshop flows in the Firebase emulator. Storage rules require the same review.
 
 ## 5. Configure the Cloud Function environment
 
@@ -81,7 +82,8 @@ cp functions/.env.example functions/.env
 
 ## 6. Set the deploy target project
 
-The repo ships a `.firebaserc` with `carbondocs` as the default project. Set it to your project:
+The repo currently defaults to `ai-canva-e9dff` in `.firebaserc`. Verify the target before any
+deploy; to select your own authorized project:
 
 ```bash
 firebase use <your-project-id>
@@ -104,6 +106,13 @@ This deploys:
   `timeoutSeconds: 120`, `memory: 512MiB`.
 
 After deploy, open your Hosting URL. Sign in with Google to get cloud save and collaboration.
+
+The existing `firebase-hosting.yml` deploys Hosting on relevant changes to `main`.
+`firebase-functions.yml` builds/tests on relevant pushes and PRs but deploys Functions only
+after an explicit manual dispatch with confirmation. The general `ci.yml` runs tests and builds
+on PRs and `main` without deploying or requiring secrets. `scripts/deploy-demo-preview.sh`
+is a separate, demo-only Preview route through a temporary Cloudflare Quick Tunnel; see
+[Demo Plan](../demoplan.md). `scripts/deploy.sh` is a full deployment command, not a CI check.
 
 ---
 
@@ -130,4 +139,4 @@ configure your reverse proxy / CDN to forward `/api` to the server.
 | Ollama request fails | Set `AI_PROVIDER=ollama` and the required Ollama settings in `functions/.env` or `server/.env`. |
 | Boards don't sync | Auth is enabled + rules permit access; the user is signed in. |
 | `404` on `/api/*` in prod | Cloud Function named `api` exists and hosting rewrites are in `firebase.json`. |
-| Deploy fails on rules | Replace the placeholder rules with the strict ones from OSS_READINESS. |
+| Rules need hardening | Design and emulator-test project-specific board/file access rules before wider release. |
