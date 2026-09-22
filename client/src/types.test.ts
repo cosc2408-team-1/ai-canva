@@ -32,6 +32,9 @@ describe("NIST CSF Gap Checker box", () => {
     });
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("NISTAssessmentPackage");
+    expect(box.defaultPrompt).toContain("artifact_type: NISTAssessmentPackage");
+    expect(box.defaultPrompt).toContain('schema_version: "1.0"');
+    expect(box.defaultPrompt).toContain("trusted application assessment_date metadata");
     expect(box.defaultPrompt).toContain("clarification_required");
     expect(box.defaultSystemPrompt).toContain("not a compliance determination");
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
@@ -87,6 +90,8 @@ describe("Security Advisor box", () => {
     });
     expect(box.defaultPrompt).toContain("{{inputs}}");
     expect(box.defaultPrompt).toContain("NextStepGuidance");
+    expect(box.defaultPrompt).toContain("artifact_type: NextStepGuidance");
+    expect(box.defaultPrompt).toContain('schema_version: "1.0"');
     expect(box.defaultPrompt).toContain("interview_required");
     expect(box.defaultSystemPrompt).toContain("recommended_next_box");
     expect(box.defaultSystemPrompt).toContain("Do not claim compliance");

@@ -25,6 +25,45 @@ export interface ChecklistItem {
 
 export type BoxStatus = "idle" | "running" | "done" | "error";
 
+/** Security boxes whose generated YAML is checked for application-level integrity. */
+export const SECURITY_ARTIFACT_BOX_TYPES = [
+  "assetmapper",
+  "reqelicitor",
+  "nistgap",
+  "securityadvisor",
+] as const;
+
+export type SecurityArtifactBoxType = (typeof SECURITY_ARTIFACT_BOX_TYPES)[number];
+
+export function isSecurityArtifactBoxType(type: BoxType | string): type is SecurityArtifactBoxType {
+  return (SECURITY_ARTIFACT_BOX_TYPES as readonly string[]).includes(type);
+}
+
+export type SecurityArtifactValidationStatus =
+  | "valid"
+  | "warning"
+  | "invalid"
+  | "clarification_required";
+
+export interface SecurityArtifactValidationIssue {
+  code: string;
+  severity: "warning" | "error";
+  path: string;
+  message: string;
+}
+
+/** Persisted summary only; parsed YAML remains ephemeral untrusted input. */
+export interface SecurityArtifactValidation {
+  status: SecurityArtifactValidationStatus;
+  artifactType: string;
+  schemaVersion: string;
+  issues: SecurityArtifactValidationIssue[];
+  validatedAt: number;
+  trustedMetadata: {
+    assessmentDate: string;
+  };
+}
+
 /** A single slide in a generated deck. */
 export interface Slide {
   title: string;
@@ -558,6 +597,8 @@ export interface BoxData {
   systemPrompt: string;
   output: string;
   status: BoxStatus;
+  /** Application-level format and traceability checks for security YAML. */
+  securityArtifactValidation?: SecurityArtifactValidation;
   error?: string;
   imageData?: string;
   outputImage?: string;
@@ -766,7 +807,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
     category: "worker",
     roles: ["developer"],
     defaultPrompt:
-      "Assess the connected completed RequirementsPackage against relevant NIST Cybersecurity Framework (CSF) 2.0 outcomes. Use the supplied package exactly as received; do not summarize or reshape it before assessing.\n\nRequirementsPackage:\n{{inputs}}\n\nReturn only valid YAML for a preliminary NISTAssessmentPackage. Include: report_id, assessment_date, framework_version, scope_boundary, exclusions, requirements_package (preserved unchanged), function_coverage, findings, unmapped_requirements, unassessed_areas, and limitations.\n\nFor each applicable outcome, use one status only: implemented, partial, not_implemented, not_applicable, or unknown. For every gap, create a stable GAP-* id; classify it as requirements_gap, implementation_gap, or evidence_gap; link related REQ-*, AST-*, and EVID-* identifiers when present; state the observed and target states, severity rationale, confidence, and missing evidence or validation. Include only outcomes relevant to the supplied scope. If the package is incomplete or essential information is missing, return status: clarification_required with specific questions and do not invent coverage or findings.",
+      "Assess the connected completed RequirementsPackage against relevant NIST Cybersecurity Framework (CSF) 2.0 outcomes. Use the supplied package exactly as received; do not summarize or reshape it before assessing.\n\nRequirementsPackage:\n{{inputs}}\n\nReturn only valid YAML for a preliminary NISTAssessmentPackage. Include: artifact_type: NISTAssessmentPackage, schema_version: \"1.0\", report_id, assessment_date, status, framework_version, scope_boundary, exclusions, requirements_package (preserved unchanged), function_coverage, findings, unmapped_requirements, unassessed_areas, and limitations. Copy supplied trusted application assessment_date metadata exactly; never infer or invent a date.\n\nFor each applicable outcome, use one status only: implemented, partial, not_implemented, not_applicable, or unknown. For every gap, create a stable GAP-* id; classify it as requirements_gap, implementation_gap, or evidence_gap; link related REQ-*, AST-*, and EVID-* identifiers when present; state the observed and target states, severity rationale, confidence, and missing evidence or validation. Include only outcomes relevant to the supplied scope. If the package is incomplete or essential information is missing, return status: clarification_required with specific questions and do not invent coverage or findings.",
     defaultSystemPrompt:
       "You are a cybersecurity analyst performing an AI-assisted preliminary NIST Cybersecurity Framework (CSF) 2.0 gap review. Treat every input as unverified and assess only what is explicitly supported by the connected RequirementsPackage.\n\nUse relevant CSF Functions, Categories, and Subcategories where you can identify them reliably. Distinguish a missing requirement from an unimplemented control and from missing evidence. Use unknown when evidence is insufficient. Use not_applicable only with a clear scope-based rationale. Do not invent requirements, assets, evidence, implementation details, CSF references, identifiers, current state, or validation results.\n\nThis is not a compliance determination, certification, security guarantee, legal opinion, or penetration test. Do not claim that any control is effective, independently verify configurations, treat a vendor or scanner statement as proof, or prescribe a detailed remediation plan. State limitations and questions plainly. Output valid YAML only, without Markdown fences or commentary.",
     defaultWidth: 420,
@@ -782,7 +823,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
     category: "worker",
     roles: ["developer"],
     defaultPrompt:
-      "I need help deciding what to do next in my security workflow.\n\nHere is the information currently available:\n{{inputs}}\n\nDetermine whether there is enough context to recommend the next step. If not, ask only the focused questions needed to make the routing decision.\n\nReturn valid YAML for a NextStepGuidance artifact. Use status: interview_required when more context is needed, or status: recommendation_ready when a next step can be recommended.",
+      "I need help deciding what to do next in my security workflow.\n\nHere is the information currently available:\n{{inputs}}\n\nDetermine whether there is enough context to recommend the next step. If not, ask only the focused questions needed to make the routing decision.\n\nReturn valid YAML for a NextStepGuidance artifact with artifact_type: NextStepGuidance, schema_version: \"1.0\", and status. Use status: interview_required when more context is needed, or status: recommendation_ready when a next step can be recommended.",
     defaultSystemPrompt:
       "You are a Security Workflow Advisor. You help a practitioner decide the most appropriate next security-workflow action from their goal, current stage, available artifacts, evidence, blockers and constraints. You are decision support, not a security requirements elicitor, framework auditor or remediation designer.\n\nUse supplied artifacts and conversation context to establish the user's goal, what has already been done, what evidence is available, what is missing and what action is appropriate. Ask focused questions only when an answer could change the routing decision.\n\nIf information is insufficient, return valid YAML with status: interview_required, a partial summary, focused questions, why each question matters and the evidence needed. If information is sufficient, return valid YAML with status: recommendation_ready, a stable NEXT-* guidance_id, interview summary, recommended_next_box, recommended_next_step, reason, inputs_to_prepare, relevant upstream references, assumptions, limitations, confidence and conditions for specialist review.\n\nrecommended_next_box must be one of security_requirements_elicitor, nist_csf_checker, security_advisor or none. Preserve supplied REQ-*, GAP-*, AST-* and EVID-* references. Do not create or change requirements, framework mappings or gap findings. Do not claim compliance, certification, security, legal sufficiency or production readiness. Do not request secrets, credentials, production logs or unnecessary personal data. Output valid YAML only, without Markdown fences or commentary.",
     defaultWidth: 420,
