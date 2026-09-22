@@ -6,6 +6,7 @@ import { useAuthStore } from "../store/authStore.js";
 import { BOX_TYPES, LABEL_COLORS, isSecurityArtifactBoxType } from "../types.js";
 import SecurityArtifactStatus from "./SecurityArtifactStatus.js";
 import { chatbotName } from "../lib/chatbot.js";
+import { securityWorkflowStageForBoxType } from "../lib/securityWorkflow.js";
 import type { BoxType } from "../types.js";
 import { wrapCodeInHtml, wrapUIInHtml, downloadHtml, copyToClipboard } from "../lib/code.js";
 import { downloadText, hasDownloadableOutcome, outcomeFilename, outcomeMime, outcomeText } from "../lib/download.js";
@@ -248,6 +249,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
   const isUtility = isNote || isLabel || isTimer || isChecklist;
   // SDLC pipeline stage boxes (gated; see components/SdlcGatePanel.tsx).
   const isSdlc = isSdlcBox(boxType);
+  const securityStage = securityWorkflowStageForBoxType(boxType);
   // Code Map worker: reads a GitHub repository through the backend.
   const isCodeMap = boxType === "codemap";
   // Code Edit worker: reads a repository and proposes a reviewable change set.
@@ -615,6 +617,15 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
             </span>
           )}
           <span className="text-xs text-slate-400 flex-shrink-0">{meta.label}</span>
+          {securityStage && (
+            <span
+              className="flex-shrink-0 rounded border border-slate-200 bg-white/80 px-1 py-0.5 text-[9px] font-medium leading-none text-slate-500"
+              title={`${securityStage.actionLabel} stage ${securityStage.order} of 4`}
+              aria-label={`${securityStage.actionLabel}, stage ${securityStage.order} of 4`}
+            >
+              {securityStage.actionLabel} · {securityStage.order}/4
+            </span>
+          )}
           {/* SDLC stage: gate state at a glance (approved / awaiting / stale) */}
           {isSdlc && <SdlcGateBadge data={boxData} />}
         </div>
@@ -1099,7 +1110,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
             )}
 
             {isSecurityArtifactBoxType(boxType) && !isRunning && (
-              <SecurityArtifactStatus validation={boxData.securityArtifactValidation} />
+              <SecurityArtifactStatus validation={boxData.securityArtifactValidation} hasOutput={Boolean(boxData.output?.trim())} />
             )}
 
             {hasTextOutput && !isRunning && !isCodeEdit && (

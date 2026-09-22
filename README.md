@@ -51,7 +51,7 @@ Course materials for using AI Canva as a teaching/learning project. A complete s
 - **30+ box types** — Idea, Image, Documents, the six gated **SDLC stages** (Intent, Spec, Plan,
    Implementation, Review, Merge), Research, Summarize, PRD, Dev Plan, **Code Map**, **Code Edit**,
    Cartoon Profile, Slides, Code, UI Design, Stitch UI, plus Notes / Labels / Timers / the shared
-   team **Checklist**, Chatbot, Agent, three security-analysis boxes, and custom boxes.
+   team **Checklist**, Chatbot, Agent, four evidence-first security workflow boxes, and custom boxes.
 - **Gated SDLC pipeline** — walk one change request through intent → spec → plan → implementation →
   review → merge, approving (or sending back, rejecting, editing) each artifact at its gate. Every
   version is append-only, an unapproved stage blocks the next one, and the whole chain exports as

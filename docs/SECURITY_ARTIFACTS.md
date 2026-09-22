@@ -17,7 +17,11 @@ All structured artifacts require `schema_version: "1.0"` and an `artifact_type`:
 | NIST CSF Gap Checker | `NISTAssessmentPackage` | `GAP-*` plus preserved upstream IDs |
 | Security Advisor | `NextStepGuidance` | `NEXT-*` |
 
-The validator checks YAML syntax, expected artifact type/version, required structure, duplicate definition IDs, structured references, and upstream traceability preservation. It does not determine whether a CIA value, requirement, CSF mapping, severity, or recommendation is professionally correct.
+The validator checks YAML syntax, expected artifact type/version, required structure, duplicate definition IDs, structured references, and upstream traceability preservation. It does not determine whether a CIA value, requirement, CSF mapping, severity, or recommendation is professionally correct. For `recommendation_ready` guidance, missing or empty `human_review` produces a non-blocking warning; malformed supplied guidance lists remain invalid.
+
+NIST output must be valid block-style YAML. Quote free-text strings containing colons, and use the canonical `framework_version: "NIST CSF 2.0"`. `function_coverage` may be an array or mapping; other NIST collections such as `exclusions`, `findings`, `unmapped_requirements`, `unassessed_areas`, and `limitations` remain arrays. `scope_boundary` retains its separately supported structured forms.
+
+The Security Advisor is decision support, not an automated workflow controller. It preserves upstream identifiers and findings, represents unknowns explicitly, and may recommend a next step, but it does not create, connect, select, or run boxes. People retain technical validation, risk acceptance, release, privacy, legal, and compliance decisions.
 
 ## Validation Status
 
@@ -26,7 +30,7 @@ The validator checks YAML syntax, expected artifact type/version, required struc
 - **Invalid**: a syntax, contract, identifier, or structured-reference check failed.
 - **Needs clarification**: the artifact is structurally valid but has status `clarification_required` or `interview_required` and needs human input.
 
-These statuses are not a security approval, compliance determination, certification, or guarantee.
+These statuses describe artifact structure and references only. Even **Valid** does not mean secure, approved, compliant, certified, or guaranteed. Generated security outputs require human review.
 
 Only an invalid direct upstream structured artifact blocks the next security box. Warnings and clarification-required artifacts remain available for human review and may be used manually. Older boards remain compatible: output without validation metadata is checked on demand when it is used downstream.
 

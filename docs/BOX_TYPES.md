@@ -504,12 +504,12 @@ All AI boxes support these in their prompt templates (see `lib/prompts.ts`):
 ## Role tags & the palette filter
 
 Every box type carries `roles: BoxRole[]` (`"everyone" | "designer" | "developer" | "product" |
-"sdlc"`) used by the View dropdown in `client/src/components/Sidebar.tsx`. This is a
+"security" | "sdlc"`) used by the View dropdown in `client/src/components/Sidebar.tsx`. This is a
 **discovery-only label**, not a permission:
 
 - Boxes tagged `"everyone"` (Idea, Research, Summarize) are shared pipeline scaffolding and appear
   in every role view.
-- Selecting the **Designer**, **Developer**, **Product** or **SDLC** profile filters the palette to
+- Selecting the **Designer**, **Developer**, **Product**, **Security** or **SDLC** profile filters the palette to
   boxes tagged with that role — plus all `"everyone"` boxes.
 - The six SDLC stage boxes are tagged `["sdlc"]` only, so the other profiles stay unchanged; the
   SDLC profile is the pipeline plus the shared scaffolding (Idea, Documents, Research, Note, …).
@@ -520,11 +520,16 @@ Every box type carries `roles: BoxRole[]` (`"everyone" | "designer" | "developer
 
 Tagging a box does not affect collaboration, the canvas, or `runBox` — it is purely a UI filter.
 
+The **Security** profile is a discovery guide and palette filter for the four-stage workflow
+Discover → Specify → Assess → Advise. It is not an authorization boundary. See
+[`SECURITY_WORKFLOW.md`](SECURITY_WORKFLOW.md) for artifact and review guidance.
+
 ## Adding a new box type
 
 1. Add a `BoxType` union member and a `BOX_TYPES` entry in `client/src/types.ts` (including its
    `roles` tags and `category` — see above).
-2. Register it in `Canvas.tsx` (`nodeTypes`) and the MiniMap color map.
+2. Canvas node registration and MiniMap colors are derived from `BOX_TYPES`; check `Canvas.tsx` only
+   when adding a special renderer or behavior. `Area` remains a separate non-box node type.
 3. Add a render/output branch in `BoxNode.tsx`.
 4. Add run behavior in `boardStore.ts` `runBox()` (or route to an existing branch — a plain text
    box needs no branch at all).
