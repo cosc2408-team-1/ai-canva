@@ -159,6 +159,14 @@ containing box is the edge target and the referenced entity occurs in the edge s
 edges remain dim. GAP `evidence_refs` and `related_evidence` both link to EVID entities. No
 entity-level canvas edges are created. Escape or Close clears the transient selection.
 
+**Microsoft Security Lens:** `microsoftSecurityLens.ts` deterministically maps only the selected
+trace entity and its direct graph neighbors to a small, explicit Microsoft capability catalogue.
+Every match retains its matched phrase and source entity ID, uses a predefined rationale, and
+links to official product documentation. The Lens is a read-only client presentation: it does not
+create another graph, call Microsoft/Azure APIs, use credentials, invoke AI, persist view state, or
+change artifact output or traceability semantics. Do not present a mapping as a recommendation,
+fix, compliance result, or Microsoft endorsement; prefer no match when evidence is weak.
+
 ## Admin board
 
 Admins can view system-wide usage (total users, active users, new users/boards in 7 days, storage

@@ -29,6 +29,26 @@ current state).
 
 ---
 
+## 2026-09-23 — Microsoft Security Lens
+
+- **Done:** Added a deterministic, client-side Microsoft Security Lens tab to the existing
+  Traceability Inspector. It maps selected + direct-neighbor text to seven fixed capabilities and
+  shows matched phrases, source IDs, predefined rationale, and official documentation links. No
+  second graph, Microsoft/Azure API call, AI call, artifact mutation, persistence, or
+  compliance/endorsement claim.
+- **Verified:** Focused Lens/Inspector tests 23/23; full server 69, client 446, Functions 7 tests
+  pass. Client, server, and Functions builds pass; `git diff --check` passes. The product names and
+  official documentation URLs were checked against Microsoft Learn and GitHub Docs.
+- **Manual browser:** Local Vite opened the public sign-in landing page, not an authenticated
+  populated Security Assessment board; the landing page reported one console error that was not
+  investigated. No sign-in, Firestore change, or synthetic live artifact was attempted; live
+  identity/secrets/no-match acceptance remains unverified.
+- **In flight:** `feat/microsoft-security-lens` is ready for PR review; do not merge automatically.
+- **Next steps:** Open the PR against `main`, check CI, and manually verify the Lens against the
+  existing populated board when an authenticated session is available.
+
+---
+
 ## 2026-09-23 — PR #37 traceability review fixes
 
 - **Done:** Scoped transient trace selection to a board and clear it on board switch/unmount;
