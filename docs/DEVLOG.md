@@ -29,6 +29,15 @@ current state).
 
 ---
 
+## 2026-09-23 — Unified expandable security summaries
+
+- **Done:** Replaced separate asset, excerpt, question, and Advisor list renderers with independent
+  expandable summary sections. Added matching asset, evidence, requirement, NIST, and Advisor
+  sections, including explicit empty states and duplicate-question filtering for NIST.
+- **In flight:** Feature branch `feat/unified-expandable-security-summaries` is ready for PR review.
+- **Next steps:** Review the PR against `main`; the attempted local browser refresh timed out, so
+  confirm the visual layout in the PR preview. Do not merge automatically.
+
 ## 2026-09-23 — Medium-density security summaries
 
 - **Done:** Added display-only evidence, requirement, and NIST finding excerpts in artifact order,

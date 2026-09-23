@@ -135,10 +135,10 @@ in board persistence; populated boards continue to use the normal canvas and pal
 
 **Summary-first security results:** the four Security Assessment worker boxes use
 `SecurityArtifactResult.tsx` in `BoxNode.tsx`. `securityArtifactSummary.ts` derives a display-only
-summary from the original YAML; `SecurityArtifactSummary.tsx` shows counts, the first three
-artifact-order evidence/requirement/finding excerpts where applicable, clarification items, and
-next steps before the optional Technical artifact view. Excerpts are not priority rankings. The
-exact `boxData.output` remains the persisted, downstream, and export source. Validation stays in
+summary from the original YAML; `SecurityArtifactSummary.tsx` renders artifact collections as
+independent expandable sections, showing three items by default and an empty state for zero items.
+Excerpts preserve artifact order and are not priority rankings. The exact `boxData.output` remains
+the persisted, downstream, export, and Technical artifact source. Validation stays in
 `securityArtifacts.ts`, and Summary/Technical selection is transient component state reset when
 output changes.
 

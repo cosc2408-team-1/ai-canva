@@ -10,38 +10,63 @@ assets:
   - {id: AST-003, name: Documents}
   - {id: AST-004, name: User accounts}
 evidence_register:
-  - {id: EVID-001}
-  - {id: EVID-002}
+  - {id: EVID-001, statement: Profiles are stored., source: Project brief}
+  - {id: EVID-002, description: Boards are shared.}
+  - {id: EVID-003, statement: Documents are uploaded.}
+  - {id: EVID-004, statement: Users sign in.}
 open_questions:
   - Who owns the system?
-  - {question: Where are documents stored?}
+  - {question: Where are documents stored?, why_it_matters: Determines access.}
   - How are sessions handled?
-  - Who can access shared boards?
-limitations: []`;
+  - Who can access shared boards?`;
 
 const requirements = `artifact_type: RequirementsPackage
 schema_version: "1.0"
 status: clarification_required
-assets: [{id: AST-001, name: Student profiles}]
+assets:
+  - {id: AST-001, name: Student profiles}
+  - {id: AST-002, name: Shared boards}
+  - {id: AST-003, name: Documents}
+  - {id: AST-004, name: User accounts}
 requirements:
-  - {id: REQ-001, shall_statement: The system SHALL protect profiles.}
+  - {id: REQ-001, shall_statement: The system SHALL protect profiles., acceptance_criteria: Profiles are private.}
   - {id: REQ-002, shall_statement: The system SHALL limit access.}
-evidence_register: [{id: EVID-001}]
+  - {id: REQ-003, shall_statement: The system SHALL retain records.}
+  - {id: REQ-004, shall_statement: The system SHALL log approvals.}
+evidence_register:
+  - {id: EVID-001, statement: Profiles are stored.}
+  - {id: EVID-002, statement: Boards are shared.}
+  - {id: EVID-003, statement: Documents are uploaded.}
+  - {id: EVID-004, statement: Users sign in.}
 open_questions:
-  - {question: Who approves access?, why_it_matters: Determines ownership.}
-  - Is MFA required?`;
+  - Who approves access?
+  - Is MFA required?
+  - How long are records retained?
+  - Are approvals audited?`;
 
 const nist = `artifact_type: NISTAssessmentPackage
 schema_version: "1.0"
 status: clarification_required
 framework_version: NIST CSF 2.0
 findings:
-  - {id: GAP-001, missing_evidence: Authentication test results}
-  - {id: GAP-002}
-unmapped_requirements: [REQ-002]
+  - {id: GAP-001, gap_statement: Authentication test results are missing., evidence_refs: [EVID-001]}
+  - {id: GAP-002, observation: Recovery has not been evidenced.}
+  - {id: GAP-003, finding: Monitoring ownership is unclear.}
+  - {id: GAP-004, gap_statement: Access review evidence is missing.}
+unmapped_requirements:
+  - REQ-001
+  - {requirement_id: REQ-002, statement: The system SHALL limit access.}
+  - {id: REQ-003, shall_statement: The system SHALL retain records.}
+  - {requirement_id: REQ-004}
 unassessed_areas:
   - {area: Recovery planning, reason: No exercise evidence}
-  - {question: Is monitoring active?}`;
+  - {question: Is monitoring active?, reason: No monitoring evidence}
+  - Access ownership
+  - {title: Incident response}
+open_questions:
+  - Is monitoring active?
+  - Who owns recovery planning?
+  - Is the provider independently reviewed?`;
 
 const advisorReady = `artifact_type: NextStepGuidance
 schema_version: "1.0"
@@ -49,7 +74,7 @@ status: recommendation_ready
 recommended_next_step: Review access controls with the project owner.
 reason: Ownership evidence is missing.
 inputs_to_prepare: [Access policy, User roles, Session design, Review notes]
-human_review: [Project owner confirms roles., Security reviewer checks evidence.]
+human_review: [Project owner confirms roles., Security reviewer checks evidence., Team validates scope., Owner records decisions.]
 confidence: {level: medium}`;
 
 const advisorInterview = `artifact_type: NextStepGuidance
@@ -61,109 +86,108 @@ focused_questions:
   - Is the app deployed?`;
 
 describe("security artifact presentation extraction", () => {
-  it("summarizes AssetPackage counts and preserves question order", () => {
-    const summary = summarizeSecurityArtifact("assetmapper", asset);
-    expect(summary?.metrics).toEqual([
+  it("builds ordered Asset Mapper sections with IDs, wording, and empty states", () => {
+    const summary = summarizeSecurityArtifact("assetmapper", asset)!;
+    expect(summary.metrics).toEqual([
       { label: "Assets", count: 4 },
-      { label: "Evidence items", count: 2 },
+      { label: "Evidence items", count: 4 },
       { label: "Questions", count: 4 },
     ]);
-    expect(summary?.examples).toEqual(["Student profiles", "Shared boards", "Documents", "User accounts"]);
-    expect(summary?.clarificationItems.map((item) => item.text)).toEqual([
-      "Who owns the system?", "Where are documents stored?", "How are sessions handled?", "Who can access shared boards?",
+    expect(summary.sections.map(({ key }) => key)).toEqual(["assets", "evidence", "questions"]);
+    expect(summary.sections[0].items[0]).toEqual({ text: "AST-001 — Student profiles" });
+    expect(summary.sections[1].items[0]).toEqual({ text: "EVID-001 — Profiles are stored.", detail: "Project brief" });
+    expect(summary.sections[2].items[1]).toEqual({ text: "Where are documents stored?", detail: "Determines access." });
+
+    const empty = summarizeSecurityArtifact("assetmapper", asset.replace(/^assets:[\s\S]*?evidence_register:/m, "assets: []\nevidence_register:").replace(/^evidence_register:[\s\S]*?open_questions:/m, "evidence_register: []\nopen_questions:").replace(/^open_questions:[\s\S]*$/m, "open_questions: []"))!;
+    expect(empty.sections.map((entry) => [entry.heading, entry.items.length, entry.emptyText])).toEqual([
+      ["Asset excerpts", 0, "No assets reported in this artifact."],
+      ["Evidence excerpts", 0, "No evidence items reported in this artifact."],
+      ["Open questions", 0, "No open questions reported in this artifact."],
     ]);
   });
 
-  it("shows evidence wording and source in artifact order without requiring optional fields", () => {
-    const output = asset
-      .replace("- {id: EVID-001}", "- {id: EVID-001, statement: Student profiles are stored., source: Project brief}")
-      .replace("- {id: EVID-002}", "- {id: EVID-002, description: Board membership is recorded.}");
-    const summary = summarizeSecurityArtifact("assetmapper", output);
-    expect(summary?.sections).toEqual([{
-      heading: "Evidence excerpts",
-      items: [
-        { text: "EVID-001 — Student profiles are stored.", detail: "Project brief" },
-        { text: "EVID-002 — Board membership is recorded." },
-      ],
-    }]);
-    expect(summarizeSecurityArtifact("assetmapper", asset)?.sections[0].items).toEqual([
-      { text: "EVID-001" }, { text: "EVID-002" },
+  it("builds Requirements Elicitor asset, requirement, evidence, and question sections", () => {
+    const summary = summarizeSecurityArtifact("reqelicitor", requirements)!;
+    expect(summary.metrics).toEqual([
+      { label: "Assets", count: 4 },
+      { label: "Requirements", count: 4 },
+      { label: "Evidence items", count: 4 },
+      { label: "Questions", count: 4 },
+    ]);
+    expect(summary.sections.map(({ key }) => key)).toEqual(["assets", "requirements", "evidence", "questions"]);
+    expect(summary.sections[0].items[0].text).toBe("AST-001 — Student profiles");
+    expect(summary.sections[1].items[0]).toEqual({ text: "REQ-001 — The system SHALL protect profiles.", detail: "Profiles are private." });
+    expect(summary.sections[2].items[0].text).toBe("EVID-001 — Profiles are stored.");
+  });
+
+  it("provides empty sections for zero-count Requirements collections", () => {
+    const output = `artifact_type: RequirementsPackage
+schema_version: "1.0"
+status: complete
+assets: []
+requirements: []
+evidence_register: []
+open_questions: []`;
+    const summary = summarizeSecurityArtifact("reqelicitor", output)!;
+    expect(summary.sections.map(({ items, emptyText }) => [items.length, emptyText])).toEqual([
+      [0, "No assets reported in this artifact."],
+      [0, "No requirements reported in this artifact."],
+      [0, "No evidence items reported in this artifact."],
+      [0, "No open questions reported in this artifact."],
     ]);
   });
 
-  it("summarizes RequirementsPackage without ranking or rewriting requirements", () => {
-    const summary = summarizeSecurityArtifact("reqelicitor", requirements);
-    expect(summary?.metrics).toEqual([
-      { label: "Assets", count: 1 },
-      { label: "Requirements", count: 2 },
-      { label: "Evidence items", count: 1 },
-      { label: "Questions", count: 2 },
+  it("supports NIST mapping and string entries without duplicating unassessed questions", () => {
+    const summary = summarizeSecurityArtifact("nistgap", nist)!;
+    expect(summary.metrics).toEqual([
+      { label: "Findings", count: 4 },
+      { label: "Unmapped requirements", count: 4 },
+      { label: "Unassessed areas", count: 4 },
     ]);
-    expect(summary?.clarificationItems[0]).toEqual({ text: "Who approves access?", detail: "Determines ownership." });
-    expect(summary?.title).toBe("Security requirements drafted");
+    expect(summary.sections.map(({ key }) => key)).toEqual(["findings", "unmapped", "unassessed", "questions"]);
+    expect(summary.sections[0].items[0]).toEqual({ text: "GAP-001 — Authentication test results are missing.", detail: "EVID-001" });
+    expect(summary.sections[1].items).toEqual([
+      { text: "REQ-001" },
+      { text: "REQ-002 — The system SHALL limit access." },
+      { text: "REQ-003 — The system SHALL retain records." },
+      { text: "REQ-004" },
+    ]);
+    expect(summary.sections[2].items.map(({ text }) => text)).toEqual([
+      "Recovery planning", "Is monitoring active?", "Access ownership", "Incident response",
+    ]);
+    expect(summary.sections[3].items.map(({ text }) => text)).toEqual([
+      "Who owns recovery planning?", "Is the provider independently reviewed?",
+    ]);
+    expect(JSON.stringify(summary)).not.toMatch(/priority ranking|compliance score|percentage/i);
   });
 
-  it("preserves requirement IDs, exact SHALL wording, and optional acceptance criteria", () => {
-    const output = requirements.replace(
-      "shall_statement: The system SHALL protect profiles.}",
-      "shall_statement: The system SHALL protect profiles., acceptance_criteria: [A profile is unavailable to other users.]}",
-    );
-    const summary = summarizeSecurityArtifact("reqelicitor", output);
-    expect(summary?.sections).toEqual([{
-      heading: "Requirement excerpts",
-      items: [
-        { text: "REQ-001 — The system SHALL protect profiles.", detail: "A profile is unavailable to other users." },
-        { text: "REQ-002 — The system SHALL limit access." },
-      ],
-    }]);
-    expect(JSON.stringify(summary?.sections)).not.toMatch(/priority ranking|compliance score/i);
-  });
-
-  it("summarizes NIST findings and evidence-limited areas without a compliance score", () => {
-    const summary = summarizeSecurityArtifact("nistgap", nist);
-    expect(summary?.frameworkVersion).toBe("NIST CSF 2.0");
-    expect(summary?.metrics).toEqual([
-      { label: "Findings", count: 2 },
-      { label: "Unmapped requirements", count: 1 },
-      { label: "Unassessed areas", count: 2 },
-    ]);
-    expect(summary?.clarificationItems.map((item) => item.text)).toEqual([
-      "Recovery planning", "Is monitoring active?", "Authentication test results",
-    ]);
-    expect(JSON.stringify(summary)).not.toMatch(/percentage|score|compliant/i);
-  });
-
-  it("uses the finding's own wording and evidence detail without inventing a ranking", () => {
+  it("shows empty states for zero-count NIST collections", () => {
     const output = nist
-      .replace("- {id: GAP-001, missing_evidence: Authentication test results}", "- {id: GAP-001, gap_statement: Authentication evidence is missing., evidence_refs: [EVID-001]}")
-      .replace("- {id: GAP-002}", "- {id: GAP-002, observation: Recovery has not been evidenced.}");
-    const summary = summarizeSecurityArtifact("nistgap", output);
-    expect(summary?.sections).toEqual([{
-      heading: "Finding excerpts",
-      items: [
-        { text: "GAP-001 — Authentication evidence is missing.", detail: "EVID-001" },
-        { text: "GAP-002 — Recovery has not been evidenced." },
-      ],
-    }]);
-    expect(summarizeSecurityArtifact("nistgap", nist)?.sections[0].items[1]).toEqual({ text: "GAP-002" });
-    expect(JSON.stringify(summary?.sections)).not.toMatch(/priority|rank|score|percentage/i);
+      .replace(/^findings:[\s\S]*?unmapped_requirements:/m, "findings: []\nunmapped_requirements:")
+      .replace(/^unmapped_requirements:[\s\S]*?unassessed_areas:/m, "unmapped_requirements: []\nunassessed_areas:")
+      .replace(/^unassessed_areas:[\s\S]*?open_questions:/m, "unassessed_areas: []\nopen_questions:")
+      .replace(/^open_questions:[\s\S]*$/m, "open_questions: []");
+    const summary = summarizeSecurityArtifact("nistgap", output)!;
+    expect(summary.sections.slice(0, 3).map((entry) => [entry.items.length, entry.emptyText])).toEqual([
+      [0, "No findings reported in this artifact."],
+      [0, "No unmapped requirements reported in this artifact."],
+      [0, "No unassessed areas reported in this artifact."],
+    ]);
   });
 
-  it("uses the Advisor's actual recommendation, reason, inputs and review guidance", () => {
-    const summary = summarizeSecurityArtifact("securityadvisor", advisorReady);
-    expect(summary?.recommendedNextStep).toBe("Review access controls with the project owner.");
-    expect(summary?.reason).toBe("Ownership evidence is missing.");
-    expect(summary?.inputsToPrepare).toHaveLength(4);
-    expect(summary?.humanReview).toEqual(["Project owner confirms roles.", "Security reviewer checks evidence."]);
-    expect(summary?.confidence).toBe("medium");
-  });
+  it("preserves Advisor guidance and supports the legacy questions field", () => {
+    const summary = summarizeSecurityArtifact("securityadvisor", advisorReady)!;
+    expect(summary.recommendedNextStep).toBe("Review access controls with the project owner.");
+    expect(summary.reason).toBe("Ownership evidence is missing.");
+    expect(summary.confidence).toBe("medium");
+    expect(summary.sections.map(({ key }) => key)).toEqual(["inputs", "human-review"]);
+    expect(summary.sections[0].items).toHaveLength(4);
+    expect(summary.sections[1].showAllLabel).toBe("Show all review items");
 
-  it("supports structured interview questions and the legacy questions field", () => {
-    const summary = summarizeSecurityArtifact("securityadvisor", advisorInterview);
-    expect(summary?.title).toBe("More context needed");
-    expect(summary?.clarificationItems[0]).toEqual({ text: "Who owns the access policy?", detail: "Determines the next reviewer." });
-    expect(summary?.clarificationItems[1].text).toBe("Is the app deployed?");
-    expect(summarizeSecurityArtifact("securityadvisor", advisorInterview.replace("focused_questions:", "questions:"))?.clarificationItems).toEqual(summary?.clarificationItems);
+    const interview = summarizeSecurityArtifact("securityadvisor", advisorInterview)!;
+    expect(interview.sections[0].heading).toBe("Open questions");
+    expect(interview.sections[0].items[0]).toEqual({ text: "Who owns the access policy?", detail: "Determines the next reviewer." });
+    expect(summarizeSecurityArtifact("securityadvisor", advisorInterview.replace("focused_questions:", "questions:"))?.sections).toEqual(interview.sections);
   });
 
   it("returns unavailable for malformed, duplicate-key, wrong-type and unsupported YAML", () => {
