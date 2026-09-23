@@ -5,7 +5,7 @@ export function securityArtifactStatusPresentation(status: SecurityArtifactValid
     valid: { label: "Valid", description: "Format & references checked", icon: "✓", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
     warning: { label: "Warning", description: "Usable artifact with validation warnings", icon: "⚠", className: "border-amber-200 bg-amber-50 text-amber-700" },
     invalid: { label: "Invalid", description: "Artifact integrity check failed", icon: "✕", className: "border-rose-200 bg-rose-50 text-rose-700" },
-    clarification_required: { label: "Needs clarification", description: "Structured artifact requires human input", icon: "?", className: "border-violet-200 bg-violet-50 text-violet-700" },
+    clarification_required: { label: "Needs clarification", description: "More project evidence or clarification is needed", icon: "?", className: "border-violet-200 bg-violet-50 text-violet-700" },
   }[status];
 }
 
@@ -22,13 +22,13 @@ export default function SecurityArtifactStatus({ validation, hasOutput = false }
         <span>{presentation.label}</span>
         <span className="font-normal">· {presentation.description}</span>
       </div>}
+      {!validation && hasOutput && <p className="font-medium">Validation status is not available for this saved result.</p>}
       {visible.length > 0 && (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 font-normal" title={(validation?.issues ?? []).map((entry) => entry.message).join("\n")}>
           {visible.map((entry, index) => <li key={`${entry.code}-${entry.path}-${index}`}>{entry.message}</li>)}
           {remaining > 0 && <li>+ {remaining} more issues</li>}
         </ul>
       )}
-      {hasOutput && <p className={`${presentation ? "mt-1" : ""} font-medium`} title="Review generated analysis before technical validation, risk acceptance, production, privacy, legal, or compliance decisions.">Human review required. This output is decision support, not approval or a compliance determination.</p>}
     </section>
   );
 }

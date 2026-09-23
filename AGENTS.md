@@ -133,6 +133,13 @@ manually switches to the normal palette. `NewBoardModal.tsx` selects Security As
 default, while Blank Board remains available. App keeps this presentation mode locally, never
 in board persistence; populated boards continue to use the normal canvas and palette.
 
+**Summary-first security results:** the four Security Assessment worker boxes use
+`SecurityArtifactResult.tsx` in `BoxNode.tsx`. `securityArtifactSummary.ts` derives a display-only
+summary from the original YAML; `SecurityArtifactSummary.tsx` shows counts, clarification items,
+and next steps before the optional Technical artifact view. The exact `boxData.output` remains
+the persisted, downstream, and export source. Validation stays in `securityArtifacts.ts`, and
+Summary/Technical selection is transient component state reset when output changes.
+
 ## Admin board
 
 Admins can view system-wide usage (total users, active users, new users/boards in 7 days, storage

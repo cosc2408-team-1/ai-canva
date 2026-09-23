@@ -20,7 +20,7 @@ describe("SecurityArtifactStatus", () => {
     expect(validMeaning).toMatch(/format|integrity|references/i);
     expect(validMeaning).not.toMatch(/secure|compliant|certified|approved/i);
     expect(copy).toContain("format");
-    expect(copy).toContain("human input");
+    expect(copy).toContain("project evidence");
     expect(copy).not.toMatch(/secure|compliant|certified|approved/);
   });
 });
