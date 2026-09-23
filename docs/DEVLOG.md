@@ -29,6 +29,17 @@ current state).
 
 ---
 
+## 2026-09-23 — Summary-first security results
+
+- **Done:** Added read-only YAML summaries for Asset Mapper, Requirements Elicitor, NIST Gap
+  Checker, and Security Advisor, with condensed clarification questions, clearer human-review
+  wording, and an exact Technical artifact view. Existing `boxData.output`, validation, and
+  downstream routing remain unchanged. Added focused parser/component tests and checked the
+  four-box experience in a local browser with synthetic artifacts.
+- **In flight:** PR on `feature/demo-ux-summary-first` awaits review; no production merge.
+- **Next steps:** Review the PR, then run a signed-in end-to-end security workflow with live
+  provider output before the next demo.
+
 ## 2026-09-23 — Board-first demo onboarding
 
 - **Done:** Added a visible New Board action, Security Assessment-first empty-board onboarding,

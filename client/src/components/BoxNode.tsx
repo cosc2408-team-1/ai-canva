@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { useBoardStore } from "../store/boardStore.js";
 import { useAuthStore } from "../store/authStore.js";
 import { BOX_TYPES, LABEL_COLORS, isSecurityArtifactBoxType } from "../types.js";
-import SecurityArtifactStatus from "./SecurityArtifactStatus.js";
+import SecurityArtifactResult from "./SecurityArtifactResult.js";
 import { chatbotName } from "../lib/chatbot.js";
 import { securityWorkflowStageForBoxType } from "../lib/securityWorkflow.js";
 import type { BoxType } from "../types.js";
@@ -1110,10 +1110,15 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
             )}
 
             {isSecurityArtifactBoxType(boxType) && !isRunning && (
-              <SecurityArtifactStatus validation={boxData.securityArtifactValidation} hasOutput={Boolean(boxData.output?.trim())} />
+              <SecurityArtifactResult
+                boxType={boxType}
+                output={boxData.output}
+                validation={boxData.securityArtifactValidation}
+                isError={hasError}
+              />
             )}
 
-            {hasTextOutput && !isRunning && !isCodeEdit && (
+            {hasTextOutput && !isRunning && !isCodeEdit && !isSecurityArtifactBoxType(boxType) && (
               <div className="markdown-output text-slate-700 text-sm">
                 <ReactMarkdown>{boxData.output}</ReactMarkdown>
               </div>
