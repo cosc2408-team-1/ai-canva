@@ -16,19 +16,29 @@ interface NewBoardModalProps {
 
 const SECURITY_STAGES = securityWorkflowStages();
 
+export function boardNameAfterTemplateChange(
+  name: string,
+  nameDirty: boolean,
+  nextTemplateId: BoardTemplateId,
+): string {
+  return nameDirty ? name : defaultBoardName(nextTemplateId);
+}
+
 export default function NewBoardModal({
   open,
   initialTemplateId = DEFAULT_BOARD_TEMPLATE_ID,
   onClose,
   onCreate,
 }: NewBoardModalProps) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultBoardName(initialTemplateId));
+  const [nameDirty, setNameDirty] = useState(false);
   const [templateId, setTemplateId] = useState<BoardTemplateId>(initialTemplateId);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName("");
+    setName(defaultBoardName(initialTemplateId));
+    setNameDirty(false);
     setTemplateId(initialTemplateId);
     const timer = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(timer);
@@ -97,7 +107,10 @@ export default function NewBoardModal({
                       name="board-template"
                       value={template.id}
                       checked={templateId === template.id}
-                      onChange={() => setTemplateId(template.id)}
+                      onChange={() => {
+                        setName(boardNameAfterTemplateChange(name, nameDirty, template.id));
+                        setTemplateId(template.id);
+                      }}
                       className="mt-0.5 h-4 w-4 flex-shrink-0 accent-indigo-600"
                     />
                     <span className="min-w-0 flex-1">
@@ -150,7 +163,10 @@ export default function NewBoardModal({
               ref={inputRef}
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                setNameDirty(true);
+              }}
               placeholder={defaultBoardName(templateId)}
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
             />

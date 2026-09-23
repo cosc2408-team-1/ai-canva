@@ -227,7 +227,7 @@ export default function App() {
   const handleCreateBoard = async (name: string, templateId: BoardTemplateId) => {
     await createNewBoard(name, templateId);
     setManualBoardId(templateId === "blank" ? useBoardStore.getState().currentBoardId : null);
-    if (templateId === "blank") setSidebarOpen(true);
+    setSidebarOpen(templateId === "blank");
     setShowNewBoardModal(false);
   };
 

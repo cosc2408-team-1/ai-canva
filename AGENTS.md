@@ -257,8 +257,8 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 - **UI text markers the E2E clicks by** (keep these EXACT strings when restyling — the suite
   finds buttons by `textContent`, not selectors): header `Boards (` and `New Board` (capital B)
   and `🧑‍🏫 Facilitator`; palette rows keep the box label as the button's trailing text
-  (`textContent.trim().endsWith(label)` — a leading icon tile is fine); the help card keeps the
-  text `How to use` inside a div whose class includes `rounded-xl`; canvas buttons `▶ Run`,
+  (`textContent.trim().endsWith(label)` — a leading icon tile is fine); the canvas Quick Guide
+  starts collapsed, so the suite no longer dismisses the old help card; canvas buttons `▶ Run`,
   `▶ Start`, `⏹ Stop`, and `▭ Area` (exact suffix match when inactive); the join modal's `Join`
   button (`trim() === "Join"`), the landing pill `Have a workshop code?`, and `Join my team`;
   the roster test ids `roster-popover`/`roster-row`/`you-chip`; the idea textarea placeholder

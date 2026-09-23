@@ -4,7 +4,7 @@ import type { User } from "firebase/auth";
 import { describe, expect, it, vi } from "vitest";
 import BoardEmptyState from "./BoardEmptyState.js";
 import Header from "./Header.js";
-import NewBoardModal from "./NewBoardModal.js";
+import NewBoardModal, { boardNameAfterTemplateChange } from "./NewBoardModal.js";
 import Sidebar from "./Sidebar.js";
 
 const action = vi.fn();
@@ -91,6 +91,15 @@ describe("board-first onboarding", () => {
     expect(selectedValue(renderModal("blank"))).toBe("blank");
     expect(renderModal("security-assessment")).toContain("Create Security Assessment");
     expect(renderModal("blank")).toContain("Create Blank Board");
+    expect(renderModal("security-assessment")).toContain('value="Security Assessment"');
+    expect(renderModal("blank")).toContain('value="Untitled Board"');
+  });
+
+  it("updates untouched default names while preserving a user-entered name", () => {
+    expect(boardNameAfterTemplateChange("Security Assessment", false, "blank")).toBe("Untitled Board");
+    expect(boardNameAfterTemplateChange("Untitled Board", false, "security-assessment")).toBe("Security Assessment");
+    expect(boardNameAfterTemplateChange("My Demo Security Review", true, "blank")).toBe("My Demo Security Review");
+    expect(boardNameAfterTemplateChange("My Demo Security Review", true, "security-assessment")).toBe("My Demo Security Review");
   });
 
   it("exposes New Board before Add Box and Boards in the top bar", () => {

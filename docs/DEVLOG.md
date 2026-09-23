@@ -35,9 +35,10 @@ current state).
   contextual Get Started/Add Box sidebar, and Security-first New Board modal. Kept the five-box
   template idle with no AI auto-run. Added focused UI contract tests and checked desktop/iPad
   layout in a local browser using synthetic auth and a local board-creation mock.
-- **In flight:** Branch `feature/demo-ux-polish` pending PR review; real Firestore board creation
-  was not exercised by the synthetic browser smoke check.
-- **Next steps:** Review the UX PR and verify board creation with a signed-in test account.
+- **In flight:** PR #28 is pending review. The original synthetic browser smoke check did not
+  exercise Firestore, but a subsequent real signed-in manual check confirmed creation, refresh
+  persistence, and switching away and back to the Security Assessment board.
+- **Next steps:** Review PR #28; no production merge has been performed.
 
 ## 2026-09-19 — Security-box input guard prepared for merge
 
