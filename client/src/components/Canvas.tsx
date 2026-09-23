@@ -19,7 +19,7 @@ import { AREA_COLORS, BOX_TYPES, isSecurityArtifactBoxType, type BoxType } from 
 import { isValidAreaSize, normalizeRect } from "../lib/areas.js";
 import { buildSecurityTraceGraph, traceBoxIds, traceEntity } from "../lib/securityTraceability.js";
 import { deriveTraceEdgePresentation, deriveTraceNodePresentation } from "../lib/securityTraceabilityPresentation.js";
-import { useSecurityTraceStore } from "../store/securityTraceStore.js";
+import { useBoardTraceSelection, useSecurityTraceStore } from "../store/securityTraceStore.js";
 import { Button } from "./ui/Button.js";
 import BoxNode from "./BoxNode.js";
 import AreaNode from "./AreaNode.js";
@@ -53,12 +53,13 @@ export default function Canvas() {
   const nodes = useBoardStore((s) => s.nodes);
   const edges = useBoardStore((s) => s.edges);
   const boxData = useBoardStore((s) => s.boxData);
+  const currentBoardId = useBoardStore((s) => s.currentBoardId);
   const onNodesChange = useBoardStore((s) => s.onNodesChange);
   const onEdgesChange = useBoardStore((s) => s.onEdgesChange);
   const onConnect = useBoardStore((s) => s.onConnect);
   const updateCursorPosition = useBoardStore((s) => s.updateCursorPosition);
   const cleanupPresence = useBoardStore((s) => s.cleanupPresence);
-  const selectedTraceEntityId = useSecurityTraceStore((s) => s.selectedEntityId);
+  const selectedTraceEntityId = useBoardTraceSelection(currentBoardId);
   const selectTraceEntity = useSecurityTraceStore((s) => s.selectEntity);
   const clearTraceSelection = useSecurityTraceStore((s) => s.clearSelection);
 
@@ -71,8 +72,8 @@ export default function Canvas() {
   const traceGraph = useMemo(() => buildSecurityTraceGraph(traceSources), [traceSources]);
   const traceableEntityIds = useMemo(() => new Set(traceGraph.entities.map(({ id }) => id)), [traceGraph]);
   const selectTraceableEntity = useCallback((id: string) => {
-    if (traceableEntityIds.has(id)) selectTraceEntity(id);
-  }, [selectTraceEntity, traceableEntityIds]);
+    if (traceableEntityIds.has(id)) selectTraceEntity(id, currentBoardId);
+  }, [selectTraceEntity, traceableEntityIds, currentBoardId]);
   const traceContext = useMemo(() => ({
     traceableEntityIds,
     selectEntity: selectTraceableEntity,
@@ -96,8 +97,9 @@ export default function Canvas() {
     [nodes, selectedTraceEntity, tracedBoxIds, selectedEntityBoxIds],
   );
   const displayEdges = useMemo(
-    () => selectedTraceEntity ? deriveTraceEdgePresentation(edges, tracedBoxIds) : edges,
-    [edges, selectedTraceEntity, tracedBoxIds],
+    () => selectedTraceEntity && selectedTraceEntityId
+      ? deriveTraceEdgePresentation(edges, traceGraph, selectedTraceEntityId) : edges,
+    [edges, selectedTraceEntity, selectedTraceEntityId, traceGraph],
   );
 
   const { screenToFlowPosition } = useReactFlow();

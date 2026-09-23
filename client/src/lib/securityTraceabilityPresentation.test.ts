@@ -4,6 +4,7 @@ import type { SecurityTraceGraph } from "./securityTraceability.js";
 import {
   deriveTraceEdgePresentation,
   deriveTraceNodePresentation,
+  traceRelationshipLabel,
   traceabilityGroups,
 } from "./securityTraceabilityPresentation.js";
 
@@ -28,12 +29,19 @@ describe("security traceability presentation", () => {
   it("groups only entities reachable through explicit relations", () => {
     const groups = traceabilityGroups(graph, "REQ-001");
     expect(groups.map(({ heading, entities }) => [heading, entities.map(({ id }) => id)])).toEqual([
-      ["Evidence / supported by", ["EVID-001"]],
-      ["Related assets", ["AST-001"]],
-      ["Assessed by findings", ["GAP-001"]],
-      ["Used by guidance", ["NEXT-001"]],
+      ["Evidence", ["EVID-001"]],
+      ["Assets", ["AST-001"]],
+      ["Findings", ["GAP-001"]],
+      ["Guidance", ["NEXT-001"]],
     ]);
     expect(groups.flatMap(({ entities }) => entities.map(({ id }) => id))).not.toContain("REQ-002");
+  });
+
+  it("labels both directions of evidence and asset support", () => {
+    expect(traceRelationshipLabel(graph, "REQ-001", "EVID-001")).toBe("Supports this item");
+    expect(traceRelationshipLabel(graph, "EVID-001", "REQ-001")).toBe("References this item");
+    expect(traceRelationshipLabel(graph, "REQ-001", "AST-001")).toBe("Supports this item");
+    expect(traceRelationshipLabel(graph, "AST-001", "REQ-001")).toBe("References this item");
   });
 
   it("derives highlighted/dimmed nodes without mutating board nodes or React Flow selection", () => {
@@ -55,17 +63,31 @@ describe("security traceability presentation", () => {
     expect(nodes).toEqual(before);
   });
 
-  it("highlights only existing workflow edges within traced boxes without mutation", () => {
+  it("highlights only edges backed by explicit cross-box relations", () => {
+    const edgeGraph: SecurityTraceGraph = {
+      entities: [
+        { id: "EVID-001", kind: "evidence", label: "Source", occurrences: [{ boxId: "asset-box", boxType: "assetmapper", sourcePath: "evidence_register[0]", label: "Source" }] },
+        { id: "REQ-001", kind: "requirement", label: "Requirement", occurrences: [{ boxId: "req-box", boxType: "reqelicitor", sourcePath: "requirements[0]", label: "Requirement" }] },
+        { id: "GAP-001", kind: "finding", label: "Finding", occurrences: [{ boxId: "nist-box", boxType: "nistgap", sourcePath: "findings[0]", label: "Finding" }] },
+      ],
+      relations: [
+        { from: "EVID-001", to: "REQ-001", kind: "supports", sourceBoxId: "req-box", sourcePath: "requirements[0].source_refs[0]" },
+        { from: "REQ-001", to: "GAP-001", kind: "assessed_by", sourceBoxId: "nist-box", sourcePath: "findings[0].related_requirements[0]" },
+      ],
+    };
     const edges: Edge[] = [
-      { id: "trace-edge", source: "req-box", target: "asset-box" },
-      { id: "outside-edge", source: "req-box", target: "other-box", selected: true, style: { stroke: "#64748b" } },
+      { id: "trace-edge", source: "asset-box", target: "req-box" },
+      { id: "second-trace-edge", source: "req-box", target: "nist-box" },
+      { id: "unrelated-edge", source: "asset-box", target: "nist-box", selected: true, style: { stroke: "#64748b" } },
     ];
     const before = structuredClone(edges);
-    const presentation = deriveTraceEdgePresentation(edges, new Set(["req-box", "asset-box"]));
+    const presentation = deriveTraceEdgePresentation(edges, edgeGraph, "EVID-001");
 
     expect(presentation[0].style).toMatchObject({ opacity: 1, stroke: "#0f766e", strokeWidth: 3 });
-    expect(presentation[1].style).toMatchObject({ opacity: 0.22, stroke: "#64748b" });
-    expect(presentation[1].selected).toBe(true);
+    expect(presentation[1].style).toMatchObject({ opacity: 1, stroke: "#0f766e", strokeWidth: 3 });
+    expect(presentation[2].style).toMatchObject({ opacity: 0.22, stroke: "#64748b" });
+    expect(presentation[2].selected).toBe(true);
     expect(edges).toEqual(before);
+    expect(deriveTraceEdgePresentation(edges, edgeGraph, "REQ-999")).toBe(edges);
   });
 });

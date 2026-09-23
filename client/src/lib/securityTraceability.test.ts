@@ -194,6 +194,16 @@ evidence_register: []`);
     ]));
   });
 
+  it("accepts GAP evidence_refs as an explicit evidence relation", () => {
+    const output = nistOutput.replace("related_evidence: [EVID-001]", "evidence_refs: [EVID-001]");
+    const graph = buildSecurityTraceGraph([
+      fullWorkflow[0], fullWorkflow[1], source("nist-box", "nistgap", output),
+    ]);
+    expect(graph.relations).toContainEqual({
+      from: "EVID-001", to: "GAP-001", kind: "assessed_by", sourceBoxId: "nist-box", sourcePath: "findings[0].evidence_refs[0]",
+    });
+  });
+
   it("traverses the full explicit workflow chain and returns its source boxes", () => {
     const graph = buildSecurityTraceGraph(fullWorkflow);
     expect(traceConnectedEntityIds(graph, "AST-001")).toEqual([

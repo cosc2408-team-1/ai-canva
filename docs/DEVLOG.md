@@ -29,6 +29,20 @@ current state).
 
 ---
 
+## 2026-09-23 — PR #37 traceability review fixes
+
+- **Done:** Scoped transient trace selection to a board and clear it on board switch/unmount;
+  highlighted only existing workflow edges backed by explicit cross-box references. Corrected
+  reverse-direction support labels and neutralized connected-component headings. GAP
+  `evidence_refs` now maps to EVID like `related_evidence`.
+- **Verified:** Server 69, client 426, and Functions 7 tests pass; all three builds pass.
+  Focused tests cover extra unrelated edges, same-ID board switching, both support directions,
+  and a synthetic NIST GAP Summary-to-Inspector flow with edge/reset checks.
+- **In flight:** PR #37 awaits re-review; do not merge automatically.
+- **Next steps:** Push the follow-up to the existing PR, then re-review.
+
+---
+
 ## 2026-09-23 — Visual security traceability spotlight
 
 - **Done:** Added clickable stable IDs to security summaries and a compact inspector grouped by

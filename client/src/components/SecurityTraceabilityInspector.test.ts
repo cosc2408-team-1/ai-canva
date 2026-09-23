@@ -56,15 +56,18 @@ describe("SecurityTraceabilityInspector", () => {
     expect(container.textContent).toContain("Traceability");
     expect(container.textContent).toContain("REQ-001");
     expect(container.textContent).toContain("Authenticate members");
-    expect(container.textContent).toContain("Evidence / supported by");
+    expect(container.textContent).toContain("Evidence");
     expect(container.textContent).toContain("EVID-001");
-    expect(container.textContent).toContain("Related assets");
-    expect(container.textContent).toContain("Assessed by findings");
-    expect(container.textContent).toContain("Used by guidance");
+    expect(container.textContent).toContain("Assets");
+    expect(container.textContent).toContain("Findings");
+    expect(container.textContent).toContain("Guidance");
     expect(container.textContent).toContain("Supports this item");
 
     await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label^="Trace EVID-001"]')!.click());
     expect(onSelectEntity).toHaveBeenCalledWith("EVID-001");
+
+    await render(graph, "EVID-001");
+    expect(container.textContent).toContain("References this item");
   });
 
   it("shows a neutral empty state when the entity has no relations", async () => {

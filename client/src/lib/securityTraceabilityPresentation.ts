@@ -12,11 +12,11 @@ export interface TraceabilityGroup {
 }
 
 const GROUPS: Array<{ kind: TraceEntity["kind"]; heading: string }> = [
-  { kind: "evidence", heading: "Evidence / supported by" },
-  { kind: "asset", heading: "Related assets" },
-  { kind: "requirement", heading: "Related requirements" },
-  { kind: "finding", heading: "Assessed by findings" },
-  { kind: "guidance", heading: "Used by guidance" },
+  { kind: "evidence", heading: "Evidence" },
+  { kind: "asset", heading: "Assets" },
+  { kind: "requirement", heading: "Requirements" },
+  { kind: "finding", heading: "Findings" },
+  { kind: "guidance", heading: "Guidance" },
 ];
 
 export function traceabilityGroups(graph: SecurityTraceGraph, selectedId: string): TraceabilityGroup[] {
@@ -34,8 +34,7 @@ export function traceRelationshipLabel(graph: SecurityTraceGraph, selectedId: st
   if (!relation) return "Connected through explicit artifact references";
 
   if (relation.kind === "supports") {
-    const related = graph.entities.find((entity) => entity.id === relatedId);
-    return related?.kind === "evidence" ? "Supports this item" : "Referenced by this item";
+    return relation.from === relatedId ? "Supports this item" : "References this item";
   }
   if (relation.kind === "related_to") return "Related requirement";
   if (relation.kind === "assessed_by") {
@@ -69,10 +68,20 @@ export function deriveTraceNodePresentation(
   });
 }
 
-export function deriveTraceEdgePresentation(edges: Edge[], tracedBoxIds: ReadonlySet<string>): Edge[] {
-  if (!tracedBoxIds.size) return edges;
+export function deriveTraceEdgePresentation(edges: Edge[], graph: SecurityTraceGraph, selectedId: string): Edge[] {
+  const connectedIds = new Set(traceConnectedEntityIds(graph, selectedId));
+  if (!connectedIds.size) return edges;
+  const entities = new Map(graph.entities.map((entity) => [entity.id, entity]));
+  const relatedBoxPairs = new Set<string>();
+  for (const relation of graph.relations) {
+    if (!connectedIds.has(relation.from) || !connectedIds.has(relation.to)) continue;
+    if (!entities.get(relation.to)?.occurrences.some(({ boxId }) => boxId === relation.sourceBoxId)) continue;
+    for (const { boxId } of entities.get(relation.from)?.occurrences || []) {
+      if (boxId !== relation.sourceBoxId) relatedBoxPairs.add(`${boxId}\u0000${relation.sourceBoxId}`);
+    }
+  }
   return edges.map((edge) => {
-    const tracedWorkflowEdge = tracedBoxIds.has(edge.source) && tracedBoxIds.has(edge.target);
+    const tracedWorkflowEdge = relatedBoxPairs.has(`${edge.source}\u0000${edge.target}`);
     return {
       ...edge,
       style: {
