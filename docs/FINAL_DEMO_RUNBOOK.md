@@ -5,7 +5,12 @@
 1. Install dependencies and configure `server/.env` locally with `AI_PROVIDER=val`,
    Use a VAL model ID that has been verified with the API key.
 The currently confirmed working configuration is:
-VAL_MODEL=openai-gpt-5.6-terra, VAL_TIMEOUT_MS=120000, and a backend-only `VAL_API_KEY`. Never display the file.
+
+AI_PROVIDER=val
+VAL_MODEL=openai-gpt-5.6-terra
+VAL_TIMEOUT_MS=120000
+
+Keep VAL_API_KEY backend-only and never display or commit it.
 2. Start `npm run dev:server`; check local `http://localhost:3001/api/health`
    (confirm the actual port if 3001 is occupied).
 3. Start `cloudflared tunnel --url http://localhost:3001` in another terminal.
