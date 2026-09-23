@@ -61,6 +61,15 @@ describe("SecurityArtifactResult", () => {
     expect(html).toContain("Show all questions (4)");
   });
 
+  it("shows Asset Mapper open questions even for a valid legacy artifact", () => {
+    const html = render(yaml.replace("status: clarification_required", "status: complete"));
+    expect(html).toContain("Open questions");
+    expect(html).toContain("Who owns the system?");
+    expect(html).not.toContain("Who can access boards?");
+    expect(html).toContain("Show all questions (4)");
+    expect(html).not.toContain("More information needed");
+  });
+
   it("keeps invalid status and issues prominent instead of showing a successful summary", () => {
     const html = render(yaml, "invalid");
     expect(html).toContain("Artifact integrity check failed");

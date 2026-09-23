@@ -17,6 +17,9 @@ describe("Asset Mapper box", () => {
     for (const phrase of ["Do not invent assets", "risk scoring", "threat modelling", "NIST mapping", "compliance determination", "Output valid YAML only"]) {
       expect(box.defaultSystemPrompt).toContain(phrase);
     }
+    for (const phrase of ["one concise sentence", "Avoid repeating project narrative", "Preserve every required field, ID, and reference", "If open_questions is non-empty, use status: clarification_required", "if status is complete, open_questions must be []"]) {
+      expect(box.defaultPrompt).toContain(phrase);
+    }
   });
 });
 
@@ -57,6 +60,9 @@ describe("NIST CSF Gap Checker box", () => {
     expect(box.defaultPrompt).toContain("clarification_required");
     expect(box.defaultSystemPrompt).toContain("not a compliance determination");
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
+    for (const phrase of ["short structured function_coverage", "one concise sentence for each finding rationale", "Avoid repeating full upstream requirement text", "unchanged requirements_package"]) {
+      expect(`${box.defaultPrompt}\n${box.defaultSystemPrompt}`).toContain(phrase);
+    }
   });
 });
 
@@ -94,6 +100,9 @@ describe("Security Requirements Elicitor box", () => {
       expect(box.defaultSystemPrompt).toContain(phrase);
     }
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
+    for (const phrase of ["one testable sentence", "acceptance_criteria short and testable", "Refer to upstream AST-* and EVID-* IDs", "If open_questions is non-empty, use status: clarification_required", "if status is complete, open_questions must be []"]) {
+      expect(box.defaultPrompt).toContain(phrase);
+    }
   });
 });
 

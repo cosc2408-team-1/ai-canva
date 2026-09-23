@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SecurityArtifactSummary as Summary, SummaryItem } from "../lib/securityArtifactSummary.js";
 
-function ClarificationList({ items }: { items: SummaryItem[] }) {
+function ClarificationList({ items, needsClarification }: { items: SummaryItem[]; needsClarification: boolean }) {
   const [showAll, setShowAll] = useState(false);
   if (!items.length) return null;
   const visible = showAll ? items : items.slice(0, 3);
@@ -9,7 +9,7 @@ function ClarificationList({ items }: { items: SummaryItem[] }) {
 
   return (
     <div className="mt-3 border-t border-slate-200 pt-2.5">
-      <p className="text-xs font-semibold text-slate-800">More information needed</p>
+      <p className="text-xs font-semibold text-slate-800">{needsClarification ? "More information needed" : "Open questions"}</p>
       <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
         {visible.map((item, index) => (
           <li key={`${index}-${item.text}`}>
@@ -27,6 +27,29 @@ function ClarificationList({ items }: { items: SummaryItem[] }) {
           className="mt-1 min-h-9 rounded px-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {showAll ? "Show less" : `Show all questions (${items.length})`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AssetList({ items }: { items: string[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? items : items.slice(0, 3);
+  return (
+    <div className="mt-3 border-t border-slate-200 pt-2.5">
+      <p className="text-xs font-semibold text-slate-800">Identified assets</p>
+      <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
+        {visible.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
+      </ul>
+      {items.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((current) => !current)}
+          aria-expanded={showAll}
+          className="mt-1 min-h-9 rounded px-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          {showAll ? "Show less" : `Show all assets (${items.length})`}
         </button>
       )}
     </div>
@@ -70,7 +93,7 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
         </dl>
       )}
 
-      {summary.examples.length > 0 && <ShortList heading="Identified assets" items={summary.examples} />}
+      {summary.examples.length > 0 && <AssetList items={summary.examples} />}
 
       {advisor && summary.recommendedNextStep && (
         <div className="mt-3 border-t border-slate-200 pt-2.5 text-xs leading-relaxed">
@@ -83,7 +106,7 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
         </div>
       )}
 
-      {needsClarification && <ClarificationList items={summary.clarificationItems} />}
+      {summary.clarificationItems.length > 0 && <ClarificationList items={summary.clarificationItems} needsClarification={needsClarification} />}
       {advisor && <ShortList heading="Inputs to prepare" items={summary.inputsToPrepare} />}
       {advisor && <ShortList heading="Human review from guidance" items={summary.humanReview} />}
       {advisor && summary.confidence && (
