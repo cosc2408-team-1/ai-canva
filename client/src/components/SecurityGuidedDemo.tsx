@@ -45,24 +45,30 @@ export function SecurityDemoCoachmark({
   active,
   step,
   artifactOutputCount,
-  hasTraceTarget,
+  hasRelatedTraceTarget,
   hasLensMatch,
   inspectorOpen,
+  lensViewActive,
+  lensTargetAvailable,
+  onReopenInspector,
   onFinish,
 }: {
   active: boolean;
   step: SecurityDemoStep;
   artifactOutputCount: number;
-  hasTraceTarget: boolean;
+  hasRelatedTraceTarget: boolean;
   hasLensMatch: boolean;
   inspectorOpen: boolean;
+  lensViewActive: boolean;
+  lensTargetAvailable: boolean;
+  onReopenInspector: () => void;
   onFinish: () => void;
 }) {
   const next = useSecurityDemoStore((state) => state.next);
   const previous = useSecurityDemoStore((state) => state.previous);
   const content = STEP_CONTENT[step];
   const missingArtifactOutput = step === 1 && artifactOutputCount === 0;
-  const missingTraceTarget = step === 2 && !hasTraceTarget;
+  const missingTraceTarget = step === 2 && !hasRelatedTraceTarget;
   const fallback = step === 1
     ? missingArtifactOutput
       ? "Run the Security Assessment stages first. This tour will not generate content."
@@ -71,15 +77,17 @@ export function SecurityDemoCoachmark({
         : null
     : step === 2
       ? missingTraceTarget
-        ? "No traceable ID is available yet. A NIST finding is not required to use this step."
+        ? "No direct relationship is available yet. A NIST finding is not required to use this step."
         : !inspectorOpen
           ? "The Inspector is closed or the selected item changed. Continue to choose a current trace target."
           : null
       : step === 3
-        ? !hasTraceTarget
-          ? "No current trace target is available. Return to the board and run the stages when ready."
-          : !inspectorOpen
-            ? "The Inspector is closed. Continue to reopen it on the current trace context."
+        ? !inspectorOpen
+          ? lensTargetAvailable
+            ? "The Inspector is closed. Reopen it to review the current workflow artifact."
+            : "No current entity is available for the Lens. Review existing workflow artifacts; this tour will not generate content."
+          : !lensViewActive
+            ? "Select Microsoft Security Lens in the Inspector to view available mappings."
             : !hasLensMatch
               ? "No Microsoft capability mapping is supported by this immediate context. The Lens prefers no match over a weak signal."
               : null
@@ -119,6 +127,9 @@ export function SecurityDemoCoachmark({
           <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-600">{fallback || content.body}</p>
         </div>
         <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:w-auto">
+          {step === 3 && !inspectorOpen && lensTargetAvailable && (
+            <Button size="xs" variant="secondary" onClick={onReopenInspector}>Reopen Inspector</Button>
+          )}
           <Button size="xs" variant="ghost" onClick={onFinish} aria-label="Close guided demo">Close</Button>
           <Button size="xs" variant="secondary" disabled={step === 0} onClick={previous}>Previous</Button>
           <Button size="xs" variant="primary" onClick={step === 3 ? onFinish : next}>{actionLabel}</Button>

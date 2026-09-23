@@ -33,9 +33,12 @@ function coachmark(step: 0 | 1 | 2 | 3, overrides: Partial<React.ComponentProps<
     active: true,
     step,
     artifactOutputCount: 4,
-    hasTraceTarget: true,
+    hasRelatedTraceTarget: true,
     hasLensMatch: true,
     inspectorOpen: true,
+    lensViewActive: true,
+    lensTargetAvailable: false,
+    onReopenInspector: vi.fn(),
     onFinish,
     ...overrides,
   });
@@ -82,11 +85,23 @@ describe("Security guided demo UI", () => {
     expect(container.textContent).toContain("Run the Security Assessment stages first.");
     expect(container.textContent).toContain("Skip");
 
-    await render(coachmark(2, { hasTraceTarget: false }));
+    await render(coachmark(2, { hasRelatedTraceTarget: false }));
     expect(container.textContent).toContain("A NIST finding is not required");
 
     await render(coachmark(3, { hasLensMatch: false }));
     expect(container.textContent).toContain("prefers no match over a weak signal");
+  });
+
+  it("gives a direct action when the Inspector is closed during the Lens step", async () => {
+    const onReopenInspector = vi.fn();
+    await render(coachmark(3, {
+      inspectorOpen: false,
+      lensTargetAvailable: true,
+      onReopenInspector,
+    }));
+    expect(container.textContent).toContain("Reopen it to review the current workflow artifact");
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Reopen Inspector")!.click());
+    expect(onReopenInspector).toHaveBeenCalledOnce();
   });
 
   it("closes on Escape and makes no network request while navigating", async () => {

@@ -17,6 +17,7 @@ export default function SecurityTraceabilityInspector({
   selectedEntityId,
   onSelectEntity,
   onClose,
+  escapeEnabled = true,
   view,
   onViewChange,
 }: {
@@ -24,6 +25,7 @@ export default function SecurityTraceabilityInspector({
   selectedEntityId: string;
   onSelectEntity: (id: string) => void;
   onClose: () => void;
+  escapeEnabled?: boolean;
   view?: InspectorView;
   onViewChange?: (view: InspectorView) => void;
 }) {
@@ -60,12 +62,13 @@ export default function SecurityTraceabilityInspector({
   };
 
   useEffect(() => {
+    if (!escapeEnabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [escapeEnabled, onClose]);
 
   if (!entity) return null;
 

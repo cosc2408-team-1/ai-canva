@@ -105,7 +105,7 @@ export default function Canvas() {
   const artifactOutputCount = useMemo(() => securityWorkflow && demoArtifactBox
     ? securityWorkflowStageIds(securityWorkflow).slice(1).filter((id) => Boolean(boxData[id]?.output?.trim())).length
     : 0, [securityWorkflow, demoArtifactBox, boxData]);
-  const hasTraceTarget = useMemo(() => Boolean(findBestTraceEntity(demoTraceGraph)), [demoTraceGraph]);
+  const hasRelatedTraceTarget = useMemo(() => Boolean(findBestTraceEntity(demoTraceGraph)), [demoTraceGraph]);
   const traceableEntityIds = useMemo(() => new Set(traceGraph.entities.map(({ id }) => id)), [traceGraph]);
   const demoTraceableEntityIds = useMemo(
     () => new Set(demoTraceGraph.entities.map(({ id }) => id)),
@@ -143,6 +143,10 @@ export default function Canvas() {
   const hasLensMatch = useMemo(() => selectedTraceEntity
     ? deriveMicrosoftSecurityLens(activeTraceGraph, selectedTraceEntity.id).matches.length > 0
     : false, [activeTraceGraph, selectedTraceEntity]);
+  const lensFocus = useMemo(
+    () => resolveSecurityDemoFocus(3, demoTraceGraph, selectedTraceEntityId),
+    [demoTraceGraph, selectedTraceEntityId],
+  );
 
   const clearDemoOwnedSelection = useCallback(() => {
     const owner = demoSelectionRef.current;
@@ -184,6 +188,12 @@ export default function Canvas() {
     setDemoSelectionOwner(transition.owner);
     if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
   }, [currentBoardId, demoTraceableEntityIds, selectTraceEntity, setDemoSelectionOwner]);
+
+  const reopenLensInspector = useCallback(() => {
+    if (!lensFocus.entityId) return;
+    setInspectorView(lensFocus.view);
+    selectDemoEntity(lensFocus.entityId);
+  }, [lensFocus, selectDemoEntity]);
 
   useEffect(() => {
     if (!demoActive) {
@@ -412,9 +422,12 @@ export default function Canvas() {
           active={demoActive}
           step={demoStep}
           artifactOutputCount={artifactOutputCount}
-          hasTraceTarget={hasTraceTarget}
+          hasRelatedTraceTarget={hasRelatedTraceTarget}
           hasLensMatch={hasLensMatch}
           inspectorOpen={Boolean(selectedTraceEntity)}
+          lensViewActive={inspectorView === "microsoft-security-lens"}
+          lensTargetAvailable={Boolean(lensFocus.entityId)}
+          onReopenInspector={reopenLensInspector}
           onFinish={finishGuidedDemo}
         />
         <div className="relative min-h-0 flex-1">
@@ -457,6 +470,7 @@ export default function Canvas() {
                 selectedEntityId={selectedTraceEntityId}
                 onSelectEntity={selectTraceableEntity}
                 onClose={closeInspector}
+                escapeEnabled={!demoActive}
                 view={inspectorView}
                 onViewChange={setInspectorView}
               />
