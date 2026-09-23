@@ -142,6 +142,11 @@ the persisted, downstream, export, and Technical artifact source. Validation sta
 `securityArtifacts.ts`, and Summary/Technical selection is transient component state reset when
 output changes.
 
+**Security traceability:** `securityTraceability.ts` derives an ephemeral display/navigation graph
+from exact security artifact YAML. It canonicalizes preserved stable IDs across occurrences in
+different boxes and creates relations only from explicit reference fields; prose similarity is
+never a relation. The graph is not persisted and does not replace artifact validation or output.
+
 ## Admin board
 
 Admins can view system-wide usage (total users, active users, new users/boards in 7 days, storage
