@@ -95,6 +95,21 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
 
       {summary.examples.length > 0 && <AssetList items={summary.examples} />}
 
+      {summary.sections.map((section) => (
+        <div key={section.heading} className="mt-3 border-t border-slate-200 pt-2.5">
+          <p className="text-xs font-semibold text-slate-800">{section.heading}</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
+            {section.items.slice(0, 3).map((item, index) => (
+              <li key={`${index}-${item.text}`} className="break-words">
+                {item.text}
+                {item.detail && <span className="mt-0.5 block text-[11px] text-slate-500">{item.detail}</span>}
+              </li>
+            ))}
+          </ul>
+          {section.items.length > 3 && <p className="mt-1 text-xs text-slate-500">+ {section.items.length - 3} more in Technical artifact</p>}
+        </div>
+      ))}
+
       {advisor && summary.recommendedNextStep && (
         <div className="mt-3 border-t border-slate-200 pt-2.5 text-xs leading-relaxed">
           <p className="font-semibold text-slate-800">Recommended next step</p>

@@ -13,6 +13,11 @@ export interface SummaryItem {
   detail?: string;
 }
 
+export interface SummarySection {
+  heading: string;
+  items: SummaryItem[];
+}
+
 export interface SecurityArtifactSummary {
   kind: SecurityArtifactBoxType;
   sourceStatus: string;
@@ -20,6 +25,7 @@ export interface SecurityArtifactSummary {
   description: string;
   metrics: SummaryMetric[];
   examples: string[];
+  sections: SummarySection[];
   clarificationItems: SummaryItem[];
   nextAction?: string;
   frameworkVersion?: string;
@@ -73,6 +79,36 @@ function items(value: unknown, keys: readonly string[]): string[] {
   return (list(value) || []).map((entry) => firstItemText(entry, keys)).filter((entry): entry is string => Boolean(entry));
 }
 
+function excerptText(value: unknown): string | undefined {
+  const direct = text(value);
+  if (direct) return direct;
+  const entries = list(value);
+  if (entries) return entries.map(excerptText).find(Boolean);
+  const item = record(value);
+  return item ? firstItemText(item, ["text", "statement", "description", "criterion", "method", "subcategory_id", "category_id", "id"]) : undefined;
+}
+
+function excerptSection(
+  heading: string,
+  value: unknown,
+  idKeys: readonly string[],
+  primaryKeys: readonly string[],
+  detailKeys: readonly string[],
+): SummarySection[] {
+  const excerpts = (list(value) || []).flatMap((entry): SummaryItem[] => {
+    const direct = text(entry);
+    if (direct) return [{ text: direct }];
+    const item = record(entry);
+    if (!item) return [];
+    const id = idKeys.map((key) => text(item[key])).find(Boolean);
+    const primary = primaryKeys.map((key) => excerptText(item[key])).find(Boolean);
+    if (!id && !primary) return [];
+    const detail = detailKeys.map((key) => excerptText(item[key])).find((value) => value && value !== primary);
+    return [{ text: id && primary ? `${id} — ${primary}` : (id || primary)!, ...(detail ? { detail } : {}) }];
+  });
+  return excerpts.length ? [{ heading, items: excerpts }] : [];
+}
+
 function questions(value: unknown): SummaryItem[] {
   return (list(value) || []).flatMap((entry) => {
     const question = firstItemText(entry, ["question", "name", "area", "title", "description", "reason", "missing_evidence", "evidence_needed"]);
@@ -108,6 +144,7 @@ export function summarizeSecurityArtifact(
     description: "",
     metrics: [],
     examples: [],
+    sections: [],
     clarificationItems: [],
     inputsToPrepare: [],
     humanReview: [],
@@ -125,6 +162,7 @@ export function summarizeSecurityArtifact(
         metric(artifact.open_questions, "Questions"),
       ),
       examples: items(artifact.assets, ["name"]),
+      sections: excerptSection("Evidence excerpts", artifact.evidence_register, ["id", "evidence_id"], ["statement", "description", "source"], ["source", "verification_state"]),
       clarificationItems: questions(artifact.open_questions),
       nextAction: "Update Project Description or connect supporting Documents, then rerun this stage.",
     };
@@ -142,6 +180,7 @@ export function summarizeSecurityArtifact(
         metric(artifact.evidence_register, "Evidence items"),
         metric(artifact.open_questions, "Questions"),
       ),
+      sections: excerptSection("Requirement excerpts", artifact.requirements, ["id", "requirement_id"], ["shall_statement", "statement", "requirement", "description"], ["acceptance_criteria", "verification_method", "test_method", "source_refs"]),
       clarificationItems: questions(artifact.open_questions),
       nextAction: "Clarify upstream project evidence, then rerun this stage as appropriate.",
     };
@@ -166,6 +205,7 @@ export function summarizeSecurityArtifact(
         metric(artifact.unmapped_requirements, "Unmapped requirements"),
         metric(artifact.unassessed_areas, "Unassessed areas"),
       ),
+      sections: excerptSection("Finding excerpts", artifact.findings, ["id", "gap_id"], ["gap_statement", "finding", "observation", "observed_state", "current_state", "description", "summary", "missing_evidence"], ["evidence_refs", "related_evidence", "related_requirements", "missing_evidence", "validation_needed", "evidence_needed", "target_state"]),
       clarificationItems: [...unassessed, ...findingEvidence],
       nextAction: "Clarify upstream project evidence, then rerun this stage as appropriate.",
     };

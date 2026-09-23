@@ -29,6 +29,15 @@ current state).
 
 ---
 
+## 2026-09-23 — Medium-density security summaries
+
+- **Done:** Added display-only evidence, requirement, and NIST finding excerpts in artifact order,
+  capped at three per section with Technical artifact overflow text. Kept Asset Mapper expansion,
+  question controls, Advisor guidance, exact YAML, and validation behavior unchanged. Added focused
+  parser/component tests.
+- **In flight:** Feature branch `feat/medium-density-security-summaries` is ready for PR review.
+- **Next steps:** Review the presentation change and run a browser check on the PR preview.
+
 ## 2026-09-23 — Summary-first security results
 
 - **Done:** Added read-only YAML summaries for Asset Mapper, Requirements Elicitor, NIST Gap

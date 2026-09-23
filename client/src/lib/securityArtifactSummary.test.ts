@@ -74,6 +74,23 @@ describe("security artifact presentation extraction", () => {
     ]);
   });
 
+  it("shows evidence wording and source in artifact order without requiring optional fields", () => {
+    const output = asset
+      .replace("- {id: EVID-001}", "- {id: EVID-001, statement: Student profiles are stored., source: Project brief}")
+      .replace("- {id: EVID-002}", "- {id: EVID-002, description: Board membership is recorded.}");
+    const summary = summarizeSecurityArtifact("assetmapper", output);
+    expect(summary?.sections).toEqual([{
+      heading: "Evidence excerpts",
+      items: [
+        { text: "EVID-001 — Student profiles are stored.", detail: "Project brief" },
+        { text: "EVID-002 — Board membership is recorded." },
+      ],
+    }]);
+    expect(summarizeSecurityArtifact("assetmapper", asset)?.sections[0].items).toEqual([
+      { text: "EVID-001" }, { text: "EVID-002" },
+    ]);
+  });
+
   it("summarizes RequirementsPackage without ranking or rewriting requirements", () => {
     const summary = summarizeSecurityArtifact("reqelicitor", requirements);
     expect(summary?.metrics).toEqual([
@@ -84,6 +101,22 @@ describe("security artifact presentation extraction", () => {
     ]);
     expect(summary?.clarificationItems[0]).toEqual({ text: "Who approves access?", detail: "Determines ownership." });
     expect(summary?.title).toBe("Security requirements drafted");
+  });
+
+  it("preserves requirement IDs, exact SHALL wording, and optional acceptance criteria", () => {
+    const output = requirements.replace(
+      "shall_statement: The system SHALL protect profiles.}",
+      "shall_statement: The system SHALL protect profiles., acceptance_criteria: [A profile is unavailable to other users.]}",
+    );
+    const summary = summarizeSecurityArtifact("reqelicitor", output);
+    expect(summary?.sections).toEqual([{
+      heading: "Requirement excerpts",
+      items: [
+        { text: "REQ-001 — The system SHALL protect profiles.", detail: "A profile is unavailable to other users." },
+        { text: "REQ-002 — The system SHALL limit access." },
+      ],
+    }]);
+    expect(JSON.stringify(summary?.sections)).not.toMatch(/priority ranking|compliance score/i);
   });
 
   it("summarizes NIST findings and evidence-limited areas without a compliance score", () => {
@@ -98,6 +131,22 @@ describe("security artifact presentation extraction", () => {
       "Recovery planning", "Is monitoring active?", "Authentication test results",
     ]);
     expect(JSON.stringify(summary)).not.toMatch(/percentage|score|compliant/i);
+  });
+
+  it("uses the finding's own wording and evidence detail without inventing a ranking", () => {
+    const output = nist
+      .replace("- {id: GAP-001, missing_evidence: Authentication test results}", "- {id: GAP-001, gap_statement: Authentication evidence is missing., evidence_refs: [EVID-001]}")
+      .replace("- {id: GAP-002}", "- {id: GAP-002, observation: Recovery has not been evidenced.}");
+    const summary = summarizeSecurityArtifact("nistgap", output);
+    expect(summary?.sections).toEqual([{
+      heading: "Finding excerpts",
+      items: [
+        { text: "GAP-001 — Authentication evidence is missing.", detail: "EVID-001" },
+        { text: "GAP-002 — Recovery has not been evidenced." },
+      ],
+    }]);
+    expect(summarizeSecurityArtifact("nistgap", nist)?.sections[0].items[1]).toEqual({ text: "GAP-002" });
+    expect(JSON.stringify(summary?.sections)).not.toMatch(/priority|rank|score|percentage/i);
   });
 
   it("uses the Advisor's actual recommendation, reason, inputs and review guidance", () => {
