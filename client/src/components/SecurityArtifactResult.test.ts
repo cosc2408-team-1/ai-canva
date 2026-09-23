@@ -57,7 +57,6 @@ describe("SecurityArtifactResult", () => {
     expect(html).toContain("Who owns the system?");
     expect(html).toContain("How are sessions handled?");
     expect(html).not.toContain("Who can access boards?");
-    expect(html).toContain("+ 1 more");
     expect(html).toContain("Show all questions (4)");
   });
 

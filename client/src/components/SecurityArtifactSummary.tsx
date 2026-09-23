@@ -1,70 +1,38 @@
 import { useState } from "react";
-import type { SecurityArtifactSummary as Summary, SummaryItem } from "../lib/securityArtifactSummary.js";
+import type { SecurityArtifactSummary as Summary, SummarySection } from "../lib/securityArtifactSummary.js";
 
-function ClarificationList({ items, needsClarification }: { items: SummaryItem[]; needsClarification: boolean }) {
+function ExpandableSummarySection({ section, needsClarification }: {
+  section: SummarySection;
+  needsClarification: boolean;
+}) {
   const [showAll, setShowAll] = useState(false);
-  if (!items.length) return null;
-  const visible = showAll ? items : items.slice(0, 3);
-  const remaining = items.length - visible.length;
+  const heading = section.key === "questions" && needsClarification ? "More information needed" : section.heading;
+  const visible = showAll ? section.items : section.items.slice(0, 3);
+  const expandable = section.items.length > 3;
 
-  return (
-    <div className="mt-3 border-t border-slate-200 pt-2.5">
-      <p className="text-xs font-semibold text-slate-800">{needsClarification ? "More information needed" : "Open questions"}</p>
-      <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
-        {visible.map((item, index) => (
-          <li key={`${index}-${item.text}`}>
-            {item.text}
-            {item.detail && <span className="mt-0.5 block text-[11px] text-slate-500">{item.detail}</span>}
-          </li>
-        ))}
-      </ul>
-      {remaining > 0 && <p className="mt-1 text-xs text-slate-500">+ {remaining} more</p>}
-      {items.length > 3 && (
-        <button
-          type="button"
-          onClick={() => setShowAll((current) => !current)}
-          aria-expanded={showAll}
-          className="mt-1 min-h-9 rounded px-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          {showAll ? "Show less" : `Show all questions (${items.length})`}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function AssetList({ items }: { items: string[] }) {
-  const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? items : items.slice(0, 3);
-  return (
-    <div className="mt-3 border-t border-slate-200 pt-2.5">
-      <p className="text-xs font-semibold text-slate-800">Identified assets</p>
-      <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
-        {visible.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
-      </ul>
-      {items.length > 3 && (
-        <button
-          type="button"
-          onClick={() => setShowAll((current) => !current)}
-          aria-expanded={showAll}
-          className="mt-1 min-h-9 rounded px-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          {showAll ? "Show less" : `Show all assets (${items.length})`}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ShortList({ heading, items }: { heading: string; items: string[] }) {
-  if (!items.length) return null;
   return (
     <div className="mt-3 border-t border-slate-200 pt-2.5">
       <p className="text-xs font-semibold text-slate-800">{heading}</p>
-      <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
-        {items.slice(0, 3).map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}
-      </ul>
-      {items.length > 3 && <p className="mt-1 text-xs text-slate-500">+ {items.length - 3} more in Technical artifact</p>}
+      {visible.length ? (
+        <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
+          {visible.map((item, index) => (
+            <li key={`${index}-${item.text}`} className="break-words">
+              {item.text}
+              {item.detail && <span className="mt-0.5 block text-[11px] text-slate-500">{item.detail}</span>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-1.5 text-xs text-slate-500">{section.emptyText || "No items reported in this artifact."}</p>}
+      {expandable && (
+        <button
+          type="button"
+          onClick={() => setShowAll((current) => !current)}
+          aria-expanded={showAll}
+          className="mt-1 min-h-9 rounded px-1 text-xs font-medium text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          {showAll ? "Show less" : `${section.showAllLabel} (${section.items.length})`}
+        </button>
+      )}
     </div>
   );
 }
@@ -93,21 +61,8 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
         </dl>
       )}
 
-      {summary.examples.length > 0 && <AssetList items={summary.examples} />}
-
       {summary.sections.map((section) => (
-        <div key={section.heading} className="mt-3 border-t border-slate-200 pt-2.5">
-          <p className="text-xs font-semibold text-slate-800">{section.heading}</p>
-          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
-            {section.items.slice(0, 3).map((item, index) => (
-              <li key={`${index}-${item.text}`} className="break-words">
-                {item.text}
-                {item.detail && <span className="mt-0.5 block text-[11px] text-slate-500">{item.detail}</span>}
-              </li>
-            ))}
-          </ul>
-          {section.items.length > 3 && <p className="mt-1 text-xs text-slate-500">+ {section.items.length - 3} more in Technical artifact</p>}
-        </div>
+        <ExpandableSummarySection key={section.key} section={section} needsClarification={needsClarification} />
       ))}
 
       {advisor && summary.recommendedNextStep && (
@@ -121,9 +76,6 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
         </div>
       )}
 
-      {summary.clarificationItems.length > 0 && <ClarificationList items={summary.clarificationItems} needsClarification={needsClarification} />}
-      {advisor && <ShortList heading="Inputs to prepare" items={summary.inputsToPrepare} />}
-      {advisor && <ShortList heading="Human review from guidance" items={summary.humanReview} />}
       {advisor && summary.confidence && (
         <p className="mt-2 text-xs text-slate-600"><span className="font-semibold">Confidence:</span> {summary.confidence}</p>
       )}
