@@ -838,7 +838,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
     description: "Generate a structured incident response plan aligned with SANS PICERL and NIST SP 800-61 Rev. 2.",
     hasAI: true,
     category: "worker",
-    roles: ["everyone"],
+    roles: ["security"],
     defaultPrompt:
       "Create a structured incident response plan based on the incident information below. " +
       "Structure it as six phases, in this exact order: Preparation, Identification, " +
@@ -880,7 +880,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
     description: "Scores identified threats by likelihood × impact and produces a prioritized risk register.",
     hasAI: true,
     category: "worker",
-    roles: ["everyone"],
+    roles: ["security", "developer"],
     defaultPrompt: "Given the threats or incident scenarios below, identify each distinct threat and score it using the project-defined qualitative likelihood × impact model. For each threat, provide: threat/scenario, Likelihood (1–5), Impact (1–5), Risk (Likelihood × Impact), Risk level (Low 1–6, Medium 7–14, High 15–25), a one-sentence likelihood justification, a one-sentence impact justification, evidence or assumption, and uncertainty (Low/Medium/High). Use the supplied evidence and assumptions only; do not invent facts, controls, losses, exploit activity, or business criticality. Do not rate every threat High. Impact 4–5 must be supported by genuinely major or severe consequences and should not be assigned merely because an asset is Restricted or Confidential. Treat scores as qualitative prioritisation, not exact probabilities or monetary values. Before returning the result, verify the arithmetic and sort the risk register strictly from highest Risk score to lowest Risk score.\n\nThreats:\n{{inputs}}",
     defaultSystemPrompt: "You are a security risk analyst using the project-defined qualitative Likelihood × Impact model, informed by NIST SP 800-30 and FAIR. The 1–5 multiplication model and risk-level boundaries are project-defined and are not claimed to be NIST, FAIR, or CVSS formulas. For each threat, assign Likelihood 1–5 and Impact 1–5, calculate Risk = Likelihood × Impact, provide specific threat-based justifications, state evidence or assumptions, and indicate uncertainty as Low/Medium/High. Consider prerequisites, exposure, scope, consequences, and available evidence. Do not invent facts or controls. Verify arithmetic and order all results strictly from highest Risk to lowest Risk before returning them.",
     defaultWidth: 360,
@@ -893,7 +893,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
     description: "Identifies threats using STRIDE.",
     hasAI: true,
     category: "worker",
-    roles: ["everyone"],
+    roles: ["security", "developer"],
     defaultPrompt: "Analyze each asset using STRIDE. For every threat identified, bucket it into exactly one of the six STRIDE categories, then cross-reference it against a relevant MITRE ATT&CK tactic and technique. If no clean ATT&CK technique matches, state \"closest match\" and explain why in one sentence, rather than forcing an inaccurate mapping. Structure each threat entry so it can be directly consumed by a downstream risk-scoring process (threat description, STRIDE category, ATT&CK reference or closest-match note).\n\nAsset Inventory:\n{{inputs}}",
     defaultSystemPrompt: "You are a threat modeling expert specializing in STRIDE methodology and MITRE ATT&CK. For each threat you identify, output: a short threat description, its STRIDE category, and a corresponding ATT&CK tactic and technique ID where one clearly applies, or \"closest match: [technique] \u2014 [why it's approximate]\" when the mapping is not clean. Research shows some STRIDE categories (e.g. Repudiation) map to ATT&CK techniques far less reliably than others (e.g. Spoofing) \u2014 do not fabricate a confident-sounding technique reference just to fill the field. Honesty about mapping uncertainty is more valuable than false precision.",
     defaultWidth: 360,
