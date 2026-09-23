@@ -876,7 +876,7 @@ Mitigations are recommendations for a human to evaluate, not a statement of exis
   riskScorer: {
     label: "Risk Scorer",
     icon: "🎲",
-    color: "#dc2626",
+    color: "#F77519",
     description: "Scores identified threats by likelihood × impact and produces a prioritized risk register.",
     hasAI: true,
     category: "worker",
