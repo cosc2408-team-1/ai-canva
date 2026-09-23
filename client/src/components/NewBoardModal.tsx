@@ -16,12 +16,8 @@ interface NewBoardModalProps {
 
 const SECURITY_STAGES = securityWorkflowStages();
 
-export function boardNameAfterTemplateChange(
-  name: string,
-  nameDirty: boolean,
-  nextTemplateId: BoardTemplateId,
-): string {
-  return nameDirty ? name : defaultBoardName(nextTemplateId);
+export function resolveNewBoardName(name: string, templateId: BoardTemplateId): string {
+  return name.trim() || defaultBoardName(templateId);
 }
 
 export default function NewBoardModal({
@@ -30,15 +26,13 @@ export default function NewBoardModal({
   onClose,
   onCreate,
 }: NewBoardModalProps) {
-  const [name, setName] = useState(defaultBoardName(initialTemplateId));
-  const [nameDirty, setNameDirty] = useState(false);
+  const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState<BoardTemplateId>(initialTemplateId);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName(defaultBoardName(initialTemplateId));
-    setNameDirty(false);
+    setName("");
     setTemplateId(initialTemplateId);
     const timer = setTimeout(() => inputRef.current?.focus(), 100);
     return () => clearTimeout(timer);
@@ -57,7 +51,7 @@ export default function NewBoardModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreate(name.trim() || defaultBoardName(templateId), templateId);
+    onCreate(resolveNewBoardName(name, templateId), templateId);
   };
 
   return (
@@ -108,7 +102,6 @@ export default function NewBoardModal({
                       value={template.id}
                       checked={templateId === template.id}
                       onChange={() => {
-                        setName(boardNameAfterTemplateChange(name, nameDirty, template.id));
                         setTemplateId(template.id);
                       }}
                       className="mt-0.5 h-4 w-4 flex-shrink-0 accent-indigo-600"
@@ -163,10 +156,7 @@ export default function NewBoardModal({
               ref={inputRef}
               type="text"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setNameDirty(true);
-              }}
+              onChange={(e) => setName(e.target.value)}
               placeholder={defaultBoardName(templateId)}
               className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition"
             />
