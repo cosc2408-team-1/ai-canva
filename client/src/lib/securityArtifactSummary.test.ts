@@ -71,6 +71,7 @@ open_questions:
 const advisorReady = `artifact_type: NextStepGuidance
 schema_version: "1.0"
 status: recommendation_ready
+guidance_id: NEXT-001
 recommended_next_step: Review access controls with the project owner.
 reason: Ownership evidence is missing.
 inputs_to_prepare: [Access policy, User roles, Session design, Review notes]
@@ -94,8 +95,8 @@ describe("security artifact presentation extraction", () => {
       { label: "Questions", count: 4 },
     ]);
     expect(summary.sections.map(({ key }) => key)).toEqual(["assets", "evidence", "questions"]);
-    expect(summary.sections[0].items[0]).toEqual({ text: "AST-001 — Student profiles" });
-    expect(summary.sections[1].items[0]).toEqual({ text: "EVID-001 — Profiles are stored.", detail: "Project brief" });
+    expect(summary.sections[0].items[0]).toEqual({ traceId: "AST-001", text: "Student profiles" });
+    expect(summary.sections[1].items[0]).toEqual({ traceId: "EVID-001", text: "Profiles are stored.", detail: "Project brief" });
     expect(summary.sections[2].items[1]).toEqual({ text: "Where are documents stored?", detail: "Determines access." });
 
     const empty = summarizeSecurityArtifact("assetmapper", asset.replace(/^assets:[\s\S]*?evidence_register:/m, "assets: []\nevidence_register:").replace(/^evidence_register:[\s\S]*?open_questions:/m, "evidence_register: []\nopen_questions:").replace(/^open_questions:[\s\S]*$/m, "open_questions: []"))!;
@@ -115,9 +116,9 @@ describe("security artifact presentation extraction", () => {
       { label: "Questions", count: 4 },
     ]);
     expect(summary.sections.map(({ key }) => key)).toEqual(["assets", "requirements", "evidence", "questions"]);
-    expect(summary.sections[0].items[0].text).toBe("AST-001 — Student profiles");
-    expect(summary.sections[1].items[0]).toEqual({ text: "REQ-001 — The system SHALL protect profiles.", detail: "Profiles are private." });
-    expect(summary.sections[2].items[0].text).toBe("EVID-001 — Profiles are stored.");
+    expect(summary.sections[0].items[0]).toEqual({ traceId: "AST-001", text: "Student profiles" });
+    expect(summary.sections[1].items[0]).toEqual({ traceId: "REQ-001", text: "The system SHALL protect profiles.", detail: "Profiles are private." });
+    expect(summary.sections[2].items[0]).toEqual({ traceId: "EVID-001", text: "Profiles are stored." });
   });
 
   it("provides empty sections for zero-count Requirements collections", () => {
@@ -145,12 +146,12 @@ open_questions: []`;
       { label: "Unassessed areas", count: 4 },
     ]);
     expect(summary.sections.map(({ key }) => key)).toEqual(["findings", "unmapped", "unassessed", "questions"]);
-    expect(summary.sections[0].items[0]).toEqual({ text: "GAP-001 — Authentication test results are missing.", detail: "EVID-001" });
+    expect(summary.sections[0].items[0]).toEqual({ traceId: "GAP-001", text: "Authentication test results are missing.", detailTraceId: "EVID-001", detail: "EVID-001" });
     expect(summary.sections[1].items).toEqual([
-      { text: "REQ-001" },
-      { text: "REQ-002 — The system SHALL limit access." },
-      { text: "REQ-003 — The system SHALL retain records." },
-      { text: "REQ-004" },
+      { traceId: "REQ-001", text: "" },
+      { traceId: "REQ-002", text: "The system SHALL limit access." },
+      { traceId: "REQ-003", text: "The system SHALL retain records." },
+      { traceId: "REQ-004", text: "" },
     ]);
     expect(summary.sections[2].items.map(({ text }) => text)).toEqual([
       "Recovery planning", "Is monitoring active?", "Access ownership", "Incident response",
@@ -177,6 +178,7 @@ open_questions: []`;
 
   it("preserves Advisor guidance and supports the legacy questions field", () => {
     const summary = summarizeSecurityArtifact("securityadvisor", advisorReady)!;
+    expect(summary.guidanceId).toBe("NEXT-001");
     expect(summary.recommendedNextStep).toBe("Review access controls with the project owner.");
     expect(summary.reason).toBe("Ownership evidence is missing.");
     expect(summary.confidence).toBe("medium");

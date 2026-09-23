@@ -29,6 +29,21 @@ current state).
 
 ---
 
+## 2026-09-23 — Visual security traceability spotlight
+
+- **Done:** Added clickable stable IDs to security summaries and a compact inspector grouped by
+  explicit Phase 1 graph relations. Selecting an entity highlights its connected security boxes
+  and existing workflow edges while unrelated content recedes; Escape/Close clears the transient
+  selection. No artifact, board, or Firestore data is changed.
+- **Verified:** Server 69, client 422, and Functions 7 tests pass; client, server, and Functions
+  builds pass. Browser acceptance passed for AST, EVID, REQ, and NEXT; the test NIST artifact had
+  zero findings, so no GAP ID was available. `git diff --check` passes.
+- **In flight:** `feat/visual-traceability-spotlight` is ready for PR review; do not merge
+  automatically.
+- **Next steps:** Review the PR against `main`; no production deployment.
+
+---
+
 ## 2026-09-23 — Security traceability model
 
 - **Done:** Added a pure client-side graph builder for AST/EVID/REQ/GAP/NEXT IDs, preserving each

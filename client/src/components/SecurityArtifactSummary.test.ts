@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SecurityArtifactSummary as Summary } from "../lib/securityArtifactSummary.js";
+import { SecurityTraceContext } from "./SecurityTraceContext.js";
 import SecurityArtifactSummary from "./SecurityArtifactSummary.js";
 
 const summary: Summary = {
@@ -17,7 +18,10 @@ const summary: Summary = {
       heading: "Asset excerpts",
       showAllLabel: "Show all assets",
       emptyText: "No assets reported.",
-      items: ["Asset 1", "Asset 2", "Asset 3", "Asset 4"].map((text) => ({ text })),
+      items: ["Asset 1", "Asset 2", "Asset 3", "Asset 4"].map((text, index) => ({
+        ...(index === 0 ? { traceId: "AST-001" } : {}),
+        text,
+      })),
     },
     {
       key: "evidence",
@@ -39,12 +43,14 @@ const summary: Summary = {
 
 let container: HTMLDivElement;
 let root: Root;
+let selectedIds: string[];
 
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
+  selectedIds = [];
 });
 
 afterEach(async () => {
@@ -52,8 +58,17 @@ afterEach(async () => {
   container.remove();
 });
 
-async function render(needsClarification: boolean, value: Summary = summary) {
-  await act(async () => root.render(createElement(SecurityArtifactSummary, { summary: value, needsClarification })));
+async function render(
+  needsClarification: boolean,
+  value: Summary = summary,
+  traceableEntityIds: ReadonlySet<string> = new Set(["AST-001", "EVID-001"]),
+  parentEvents: { onClick?: () => void; onKeyDown?: () => void } = {},
+) {
+  await act(async () => root.render(createElement(
+    SecurityTraceContext.Provider,
+    { value: { traceableEntityIds, selectEntity: (id: string) => selectedIds.push(id) } },
+    createElement("div", parentEvents, createElement(SecurityArtifactSummary, { summary: value, needsClarification })),
+  )));
 }
 
 function sectionFor(heading: string): HTMLElement {
@@ -124,6 +139,50 @@ describe("SecurityArtifactSummary", () => {
     await render(false);
     const openQuestions = sectionFor("Open questions");
     expect(openQuestions.textContent).toContain("Show all questions (4)");
+  });
+
+  it("makes only graph-backed stable IDs accessible trace controls", async () => {
+    const bubbledClick = vi.fn();
+    const value: Summary = {
+      ...summary,
+      sections: [
+        {
+          key: "assets",
+          heading: "Asset excerpts",
+          showAllLabel: "Show all assets",
+          items: [
+            { traceId: "AST-001", text: "Student profiles", detailTraceId: "EVID-001", detail: "EVID-001" },
+            { traceId: "AST-002", text: "Shared boards" },
+            { text: "A prose-only mention of AST-001" },
+          ],
+        },
+      ],
+    };
+    await render(false, value, new Set(["AST-001", "EVID-001"]), { onClick: bubbledClick });
+
+    const active = container.querySelector<HTMLButtonElement>('button[data-trace-id="AST-001"]');
+    expect(active?.getAttribute("aria-label")).toBe("Open traceability for AST-001");
+    expect(container.querySelector('button[data-trace-id="AST-002"]')).toBeNull();
+    expect(sectionFor("Asset excerpts").querySelectorAll("button")).toHaveLength(2);
+    expect(sectionFor("Asset excerpts").querySelector('button[data-trace-id="EVID-001"]')).not.toBeNull();
+
+    await act(async () => active!.click());
+    expect(selectedIds).toEqual(["AST-001"]);
+    expect(bubbledClick).not.toHaveBeenCalled();
+  });
+
+  it.each(["Enter", " "])("activates trace controls with %s", async (key) => {
+    const bubbledKeyDown = vi.fn();
+    const value: Summary = {
+      ...summary,
+      sections: [{ key: "assets", heading: "Asset excerpts", showAllLabel: "Show all assets", items: [{ traceId: "AST-001", text: "Student profiles" }] }],
+    };
+    await render(false, value, new Set(["AST-001"]), { onKeyDown: bubbledKeyDown });
+    const button = container.querySelector<HTMLButtonElement>('button[data-trace-id="AST-001"]')!;
+
+    await act(async () => button.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })));
+    expect(selectedIds).toEqual(["AST-001"]);
+    expect(bubbledKeyDown).not.toHaveBeenCalled();
   });
 
   it("keeps Advisor guidance and applies independent expandable sections to its lists", async () => {

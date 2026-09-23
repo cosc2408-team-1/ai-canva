@@ -1,5 +1,35 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import type { SecurityArtifactSummary as Summary, SummarySection } from "../lib/securityArtifactSummary.js";
+import { SecurityTraceContext } from "./SecurityTraceContext.js";
+
+function TraceIdControl({ id }: { id: string }) {
+  const trace = useContext(SecurityTraceContext);
+  if (!trace?.traceableEntityIds.has(id)) {
+    return <span className="font-mono text-slate-600">{id}</span>;
+  }
+  return (
+    <button
+      type="button"
+      data-trace-id={id}
+      aria-label={`Open traceability for ${id}`}
+      title={`Trace ${id}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        trace.selectEntity(id);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          trace.selectEntity(id);
+        }
+      }}
+      className="nodrag nowheel rounded-sm font-mono font-semibold text-indigo-700 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+    >
+      {id}
+    </button>
+  );
+}
 
 function ExpandableSummarySection({ section, needsClarification }: {
   section: SummarySection;
@@ -17,8 +47,13 @@ function ExpandableSummarySection({ section, needsClarification }: {
         <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
           {visible.map((item, index) => (
             <li key={`${index}-${item.text}`} className="break-words">
-              {item.text}
-              {item.detail && <span className="mt-0.5 block text-[11px] text-slate-500">{item.detail}</span>}
+              {item.traceId && <TraceIdControl id={item.traceId} />}
+              {item.text && <>{item.traceId ? " — " : ""}{item.text}</>}
+              {item.detail && (
+                <span className="mt-0.5 block text-[11px] text-slate-500">
+                  {item.detailTraceId ? <TraceIdControl id={item.detailTraceId} /> : item.detail}
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -68,7 +103,10 @@ export default function SecurityArtifactSummary({ summary, needsClarification }:
       {advisor && summary.recommendedNextStep && (
         <div className="mt-3 border-t border-slate-200 pt-2.5 text-xs leading-relaxed">
           <p className="font-semibold text-slate-800">Recommended next step</p>
-          <p className="mt-1 text-slate-700">{summary.recommendedNextStep}</p>
+          <p className="mt-1 text-slate-700">
+            {summary.guidanceId && <><TraceIdControl id={summary.guidanceId} />{summary.recommendedNextStep ? " — " : ""}</>}
+            {summary.recommendedNextStep}
+          </p>
           {summary.reason && <>
             <p className="mt-2 font-semibold text-slate-800">Why this step</p>
             <p className="mt-1 text-slate-700">{summary.reason}</p>
