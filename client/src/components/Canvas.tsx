@@ -22,11 +22,15 @@ import { buildSecurityTraceGraph, traceBoxIds, traceEntity } from "../lib/securi
 import { deriveTraceEdgePresentation, deriveTraceNodePresentation } from "../lib/securityTraceabilityPresentation.js";
 import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
 import {
+  buildSecurityDemoTraceGraph,
   findDemoArtifactBox,
   findBestTraceEntity,
   findSecurityWorkflow,
+  isSecurityDemoOwnedSelection,
   resolveSecurityDemoFocus,
+  resolveSecurityDemoSelection,
   securityWorkflowStageIds,
+  type SecurityDemoSelectionOwner,
 } from "../lib/securityDemo.js";
 import { useBoardTraceSelection, useSecurityTraceStore } from "../store/securityTraceStore.js";
 import { useSecurityDemoStore } from "../store/securityDemoStore.js";
@@ -77,7 +81,8 @@ export default function Canvas() {
   const demoStep = useSecurityDemoStore((s) => s.step);
   const demoBoardId = useSecurityDemoStore((s) => s.boardId);
   const finishDemo = useSecurityDemoStore((s) => s.finish);
-  const demoSelectionRef = useRef<{ entityId: string; boardId: string | null } | null>(null);
+  const demoSelectionRef = useRef<SecurityDemoSelectionOwner | null>(null);
+  const [demoSelectionOwner, setDemoSelectionOwnerState] = useState<SecurityDemoSelectionOwner | null>(null);
   const orchestratedStepRef = useRef<string | null>(null);
   const [inspectorView, setInspectorView] = useState<"traceability" | "microsoft-security-lens">("traceability");
 
@@ -89,6 +94,10 @@ export default function Canvas() {
   }), [nodes, boxData]);
   const traceGraph = useMemo(() => buildSecurityTraceGraph(traceSources), [traceSources]);
   const securityWorkflow = useMemo(() => findSecurityWorkflow(nodes, edges), [nodes, edges]);
+  const demoTraceGraph = useMemo(
+    () => securityWorkflow ? buildSecurityDemoTraceGraph(securityWorkflow, boxData) : { entities: [], relations: [] },
+    [securityWorkflow, boxData],
+  );
   const demoArtifactBox = useMemo(
     () => securityWorkflow ? findDemoArtifactBox(securityWorkflow, boxData) : null,
     [securityWorkflow, boxData],
@@ -96,31 +105,53 @@ export default function Canvas() {
   const artifactOutputCount = useMemo(() => securityWorkflow && demoArtifactBox
     ? securityWorkflowStageIds(securityWorkflow).slice(1).filter((id) => Boolean(boxData[id]?.output?.trim())).length
     : 0, [securityWorkflow, demoArtifactBox, boxData]);
-  const hasTraceTarget = useMemo(() => Boolean(findBestTraceEntity(traceGraph)), [traceGraph]);
+  const hasTraceTarget = useMemo(() => Boolean(findBestTraceEntity(demoTraceGraph)), [demoTraceGraph]);
   const traceableEntityIds = useMemo(() => new Set(traceGraph.entities.map(({ id }) => id)), [traceGraph]);
+  const demoTraceableEntityIds = useMemo(
+    () => new Set(demoTraceGraph.entities.map(({ id }) => id)),
+    [demoTraceGraph],
+  );
+  const setDemoSelectionOwner = useCallback((owner: SecurityDemoSelectionOwner | null) => {
+    demoSelectionRef.current = owner;
+    setDemoSelectionOwnerState(owner);
+  }, []);
   const selectTraceableEntity = useCallback((id: string) => {
     if (!traceableEntityIds.has(id)) return;
-    const owner = demoSelectionRef.current;
-    if (owner && (owner.entityId !== id || owner.boardId !== currentBoardId)) demoSelectionRef.current = null;
-    selectTraceEntity(id, currentBoardId);
-  }, [selectTraceEntity, traceableEntityIds, currentBoardId]);
+    const selection = useSecurityTraceStore.getState();
+    const transition = resolveSecurityDemoSelection(
+      "manual",
+      id,
+      currentBoardId,
+      selection.selectedEntityId,
+      selection.selectedBoardId,
+      demoSelectionRef.current,
+    );
+    setDemoSelectionOwner(transition.owner);
+    if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
+  }, [selectTraceEntity, setDemoSelectionOwner, traceableEntityIds, currentBoardId]);
   const traceContext = useMemo(() => ({
     traceableEntityIds,
     selectEntity: selectTraceableEntity,
   }), [traceableEntityIds, selectTraceableEntity]);
-  const selectedTraceEntity = selectedTraceEntityId ? traceEntity(traceGraph, selectedTraceEntityId) : undefined;
+  const demoOwnsSelection = isSecurityDemoOwnedSelection(
+    demoSelectionOwner,
+    selectedTraceEntityId,
+    currentBoardId,
+  );
+  const activeTraceGraph = demoOwnsSelection ? demoTraceGraph : traceGraph;
+  const selectedTraceEntity = selectedTraceEntityId ? traceEntity(activeTraceGraph, selectedTraceEntityId) : undefined;
   const hasLensMatch = useMemo(() => selectedTraceEntity
-    ? deriveMicrosoftSecurityLens(traceGraph, selectedTraceEntity.id).matches.length > 0
-    : false, [traceGraph, selectedTraceEntity]);
+    ? deriveMicrosoftSecurityLens(activeTraceGraph, selectedTraceEntity.id).matches.length > 0
+    : false, [activeTraceGraph, selectedTraceEntity]);
 
   const clearDemoOwnedSelection = useCallback(() => {
     const owner = demoSelectionRef.current;
     const selection = useSecurityTraceStore.getState();
-    if (owner && selection.selectedEntityId === owner.entityId && selection.selectedBoardId === owner.boardId) {
+    if (isSecurityDemoOwnedSelection(owner, selection.selectedEntityId, selection.selectedBoardId)) {
       clearTraceSelection();
     }
-    demoSelectionRef.current = null;
-  }, [clearTraceSelection]);
+    setDemoSelectionOwner(null);
+  }, [clearTraceSelection, setDemoSelectionOwner]);
 
   const finishGuidedDemo = useCallback(() => {
     clearDemoOwnedSelection();
@@ -130,15 +161,29 @@ export default function Canvas() {
   }, [clearDemoOwnedSelection, finishDemo]);
 
   useEffect(() => () => {
-    clearDemoOwnedSelection();
+    const owner = demoSelectionRef.current;
+    const selection = useSecurityTraceStore.getState();
+    if (isSecurityDemoOwnedSelection(owner, selection.selectedEntityId, selection.selectedBoardId)) {
+      clearTraceSelection();
+    }
+    demoSelectionRef.current = null;
     finishDemo();
-  }, [clearDemoOwnedSelection, finishDemo]);
+  }, [clearTraceSelection, finishDemo]);
 
   const selectDemoEntity = useCallback((id: string) => {
-    if (!traceableEntityIds.has(id)) return;
-    demoSelectionRef.current = { entityId: id, boardId: currentBoardId };
-    selectTraceEntity(id, currentBoardId);
-  }, [currentBoardId, selectTraceEntity, traceableEntityIds]);
+    if (!demoTraceableEntityIds.has(id)) return;
+    const selection = useSecurityTraceStore.getState();
+    const transition = resolveSecurityDemoSelection(
+      "demo",
+      id,
+      currentBoardId,
+      selection.selectedEntityId,
+      selection.selectedBoardId,
+      demoSelectionRef.current,
+    );
+    setDemoSelectionOwner(transition.owner);
+    if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
+  }, [currentBoardId, demoTraceableEntityIds, selectTraceEntity, setDemoSelectionOwner]);
 
   useEffect(() => {
     if (!demoActive) {
@@ -154,7 +199,7 @@ export default function Canvas() {
     if (orchestratedStepRef.current === stepKey) return;
     orchestratedStepRef.current = stepKey;
 
-    const focus = resolveSecurityDemoFocus(demoStep, traceGraph, selectedTraceEntityId);
+    const focus = resolveSecurityDemoFocus(demoStep, demoTraceGraph, selectedTraceEntityId);
     setInspectorView(focus.view);
     if (!focus.entityId) {
       clearDemoOwnedSelection();
@@ -167,7 +212,7 @@ export default function Canvas() {
     demoStep,
     currentBoardId,
     securityWorkflow,
-    traceGraph,
+    demoTraceGraph,
     selectedTraceEntityId,
     selectDemoEntity,
     clearDemoOwnedSelection,
@@ -175,18 +220,18 @@ export default function Canvas() {
   ]);
 
   const closeInspector = useCallback(() => {
-    demoSelectionRef.current = null;
+    setDemoSelectionOwner(null);
     setInspectorView("traceability");
     clearTraceSelection();
-  }, [clearTraceSelection]);
+  }, [clearTraceSelection, setDemoSelectionOwner]);
 
   useEffect(() => {
     if (selectedTraceEntityId && !selectedTraceEntity) clearTraceSelection();
   }, [selectedTraceEntityId, selectedTraceEntity, clearTraceSelection]);
 
   const tracedBoxIds = useMemo(
-    () => new Set(selectedTraceEntityId && selectedTraceEntity ? traceBoxIds(traceGraph, selectedTraceEntityId) : []),
-    [selectedTraceEntityId, selectedTraceEntity, traceGraph],
+    () => new Set(selectedTraceEntityId && selectedTraceEntity ? traceBoxIds(activeTraceGraph, selectedTraceEntityId) : []),
+    [selectedTraceEntityId, selectedTraceEntity, activeTraceGraph],
   );
   const selectedEntityBoxIds = useMemo(
     () => new Set(selectedTraceEntity?.occurrences.map(({ boxId }) => boxId) || []),
@@ -198,8 +243,8 @@ export default function Canvas() {
   );
   const displayEdges = useMemo(
     () => selectedTraceEntity && selectedTraceEntityId
-      ? deriveTraceEdgePresentation(edges, traceGraph, selectedTraceEntityId) : edges,
-    [edges, selectedTraceEntity, selectedTraceEntityId, traceGraph],
+      ? deriveTraceEdgePresentation(edges, activeTraceGraph, selectedTraceEntityId) : edges,
+    [edges, selectedTraceEntity, selectedTraceEntityId, activeTraceGraph],
   );
 
   const { screenToFlowPosition } = useReactFlow();
@@ -408,7 +453,7 @@ export default function Canvas() {
             <Cursors />
             {selectedTraceEntity && selectedTraceEntityId && (
               <SecurityTraceabilityInspector
-                graph={traceGraph}
+                graph={activeTraceGraph}
                 selectedEntityId={selectedTraceEntityId}
                 onSelectEntity={selectTraceableEntity}
                 onClose={closeInspector}

@@ -1,4 +1,9 @@
-import type { SecurityTraceGraph, TraceEntity } from "./securityTraceability.js";
+import {
+  buildSecurityTraceGraph,
+  type SecurityTraceGraph,
+  type TraceArtifactSource,
+  type TraceEntity,
+} from "./securityTraceability.js";
 import { deriveMicrosoftSecurityLens } from "./microsoftSecurityLens.js";
 
 export interface SecurityDemoNode {
@@ -31,9 +36,25 @@ export interface SecurityDemoFocus {
   view: "traceability" | "microsoft-security-lens";
 }
 
+export interface SecurityDemoSelectionOwner {
+  entityId: string;
+  boardId: string | null;
+}
+
+export interface SecurityDemoSelectionTransition {
+  owner: SecurityDemoSelectionOwner | null;
+  shouldSelect: boolean;
+}
+
 type ArtifactOutputs = Record<string, { output?: string } | undefined>;
 
 const WORKFLOW_TYPES = ["idea", "assetmapper", "reqelicitor", "nistgap", "securityadvisor"] as const;
+const ARTIFACT_STAGES = [
+  ["assetMapperId", "assetmapper"],
+  ["requirementsElicitorId", "reqelicitor"],
+  ["nistGapCheckerId", "nistgap"],
+  ["securityAdvisorId", "securityadvisor"],
+] as const;
 function nodeType(node: SecurityDemoNode): string | undefined {
   const type = node.type || node.data?.boxType;
   return typeof type === "string" ? type : undefined;
@@ -79,17 +100,24 @@ export function findDemoArtifactBox(
   workflow: SecurityDemoWorkflow,
   outputs: ArtifactOutputs,
 ): SecurityDemoArtifactBox | null {
-  const stages = [
-    [workflow.assetMapperId, "assetmapper"],
-    [workflow.requirementsElicitorId, "reqelicitor"],
-    [workflow.nistGapCheckerId, "nistgap"],
-    [workflow.securityAdvisorId, "securityadvisor"],
-  ] as const;
-  for (const [boxId, boxType] of stages) {
+  for (const [idKey, boxType] of ARTIFACT_STAGES) {
+    const boxId = workflow[idKey];
     const output = outputs[boxId]?.output;
     if (typeof output === "string" && output.trim()) return { boxId, boxType, output };
   }
   return null;
+}
+
+export function buildSecurityDemoTraceGraph(
+  workflow: SecurityDemoWorkflow,
+  outputs: ArtifactOutputs,
+): SecurityTraceGraph {
+  const sources: TraceArtifactSource[] = ARTIFACT_STAGES.flatMap(([idKey, boxType]) => {
+    const boxId = workflow[idKey];
+    const output = outputs[boxId]?.output;
+    return typeof output === "string" && output.trim() ? [{ boxId, boxType, output }] : [];
+  });
+  return buildSecurityTraceGraph(sources);
 }
 
 function hasDirectRelation(graph: SecurityTraceGraph, id: string): boolean {
@@ -100,10 +128,41 @@ export function findBestTraceEntity(graph: SecurityTraceGraph): TraceEntity | nu
   const preferences: readonly ((entity: TraceEntity) => boolean)[] = [
     (entity) => entity.kind === "requirement" && hasDirectRelation(graph, entity.id),
     (entity) => entity.kind === "finding" && hasDirectRelation(graph, entity.id),
-    (entity) => entity.kind === "evidence" || entity.kind === "asset",
-    (entity) => entity.kind === "guidance",
+    (entity) => entity.kind === "evidence" && hasDirectRelation(graph, entity.id),
+    (entity) => entity.kind === "asset" && hasDirectRelation(graph, entity.id),
+    (entity) => entity.kind === "guidance" && hasDirectRelation(graph, entity.id),
   ];
   return preferences.flatMap((matches) => graph.entities.filter(matches))[0] || null;
+}
+
+export function resolveSecurityDemoSelection(
+  source: "demo" | "manual",
+  entityId: string,
+  boardId: string | null,
+  selectedEntityId: string | null,
+  selectedBoardId: string | null,
+  owner: SecurityDemoSelectionOwner | null,
+): SecurityDemoSelectionTransition {
+  if (source === "manual") return { owner: null, shouldSelect: true };
+
+  const alreadySelected = selectedEntityId === entityId && selectedBoardId === boardId;
+  const alreadyDemoOwned = owner?.entityId === entityId && owner.boardId === boardId;
+  if (alreadySelected) {
+    return { owner: alreadyDemoOwned ? owner : null, shouldSelect: false };
+  }
+  return { owner: { entityId, boardId }, shouldSelect: true };
+}
+
+export function isSecurityDemoOwnedSelection(
+  owner: SecurityDemoSelectionOwner | null,
+  selectedEntityId: string | null,
+  selectedBoardId: string | null,
+): boolean {
+  return Boolean(
+    owner
+    && owner.entityId === selectedEntityId
+    && owner.boardId === selectedBoardId,
+  );
 }
 
 export function findBestLensEntity(

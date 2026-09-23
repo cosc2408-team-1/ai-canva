@@ -29,6 +29,19 @@ current state).
 
 ---
 
+## 2026-09-24 — Guided demo merge-gate hardening
+
+- **Done:** Synced PR #39 with `main@7c53ea5`, scoped guided-demo trace and Microsoft Lens
+  targets to the detected Security Assessment workflow, made manual selection relinquish demo
+  ownership even for the same stable ID, and required a direct relation for the traceability step.
+  Added regressions for multiple workflows, unrelated outputs, manual ownership, and isolated IDs.
+- **Verified:** Server 69/69, client 471/471, and Functions 7/7 tests pass; client, server, and
+  Functions builds pass; `git diff --check` passes. The client build retains the existing
+  non-fatal chunk-size advisory.
+- **In flight:** PR #39 remains open and unmerged pending CI and re-review.
+- **Next steps:** Confirm PR #39 CI `verify` passes on the updated merge ref. Do not merge
+  automatically.
+
 ## 2026-09-23 — Guided Security Assessment demo
 
 - **Done:** Added a four-step, non-persistent presenter guide over the connected Security
