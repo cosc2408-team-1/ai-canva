@@ -9,6 +9,8 @@ export interface SummaryMetric {
 }
 
 export interface SummaryItem {
+  traceId?: string;
+  detailTraceId?: string;
   text: string;
   detail?: string;
 }
@@ -30,6 +32,7 @@ export interface SecurityArtifactSummary {
   sections: SummarySection[];
   nextAction?: string;
   frameworkVersion?: string;
+  guidanceId?: string;
   recommendedNextStep?: string;
   reason?: string;
   confidence?: string;
@@ -41,6 +44,12 @@ const ARTIFACT_TYPES: Record<SecurityArtifactBoxType, string> = {
   nistgap: "NISTAssessmentPackage",
   securityadvisor: "NextStepGuidance",
 };
+
+const TRACE_ID_PATTERN = /^(AST|EVID|REQ|GAP|NEXT)-0*[1-9]\d*$/;
+
+function traceId(value: string | undefined): string | undefined {
+  return value && TRACE_ID_PATTERN.test(value) ? value : undefined;
+}
 
 function record(value: unknown): ArtifactRecord | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -91,14 +100,24 @@ function excerptItems(
 ): SummaryItem[] {
   return (list(value) || []).flatMap((entry): SummaryItem[] => {
     const direct = text(entry);
-    if (direct) return [{ text: direct }];
+    if (direct) {
+      const id = traceId(direct);
+      return [{ ...(id ? { traceId: id } : {}), text: id ? "" : direct }];
+    }
     const item = record(entry);
     if (!item) return [];
     const id = idKeys.map((key) => text(item[key])).find(Boolean);
+    const stableId = traceId(id);
     const primary = primaryKeys.map((key) => excerptText(item[key])).find(Boolean);
     if (!id && !primary) return [];
     const detail = detailKeys.map((key) => excerptText(item[key])).find((candidate) => candidate && candidate !== primary);
-    return [{ text: id && primary ? `${id} — ${primary}` : (id || primary)!, ...(detail ? { detail } : {}) }];
+    const detailId = traceId(detail);
+    return [{
+      ...(stableId ? { traceId: stableId } : {}),
+      text: stableId ? (primary || "") : id && primary ? `${id} — ${primary}` : (id || primary)!,
+      ...(detailId ? { detailTraceId: detailId } : {}),
+      ...(detail ? { detail } : {}),
+    }];
   });
 }
 
@@ -269,6 +288,7 @@ export function summarizeSecurityArtifact(
       ? "A few project details could change the recommended route."
       : "Decision support based on the supplied security artifacts.",
     sections,
+    guidanceId: text(artifact.guidance_id),
     recommendedNextStep: ready ? text(artifact.recommended_next_step) : undefined,
     reason: ready ? text(artifact.reason) : undefined,
     confidence: ready ? firstItemText(artifact.confidence, ["level", "label", "value", "confidence"]) : undefined,

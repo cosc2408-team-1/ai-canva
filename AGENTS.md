@@ -147,6 +147,18 @@ from exact security artifact YAML. It canonicalizes preserved stable IDs across 
 different boxes and creates relations only from explicit reference fields; prose similarity is
 never a relation. The graph is not persisted and does not replace artifact validation or output.
 
+**Visual traceability spotlight:** `securityTraceStore.ts` holds a transient selected entity
+scoped to its board ID (no persistence middleware); board changes and Canvas unmount clear it.
+Summary rows expose explicit stable-ID metadata, and only IDs
+present in the current Phase 1 graph are interactive. `Canvas.tsx` builds that graph from the exact
+current outputs of security boxes, then derives temporary node/edge presentation for the connected
+component and displays `SecurityTraceabilityInspector.tsx`. This interaction is navigation and
+presentation only: it does not alter artifact YAML, `boxData.output`, board nodes/edges, or Firestore
+data. An existing React Flow edge is highlighted only when an explicit artifact relation's
+containing box is the edge target and the referenced entity occurs in the edge source box; unrelated
+edges remain dim. GAP `evidence_refs` and `related_evidence` both link to EVID entities. No
+entity-level canvas edges are created. Escape or Close clears the transient selection.
+
 ## Admin board
 
 Admins can view system-wide usage (total users, active users, new users/boards in 7 days, storage

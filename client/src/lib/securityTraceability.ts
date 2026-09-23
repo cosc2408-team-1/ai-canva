@@ -199,7 +199,7 @@ function relationForReference(
   }
   if (owner === "GAP") {
     if (field === "related_assets" && reference === "AST") return { from: "reference", to: "owner", kind: "assessed_by" };
-    if (field === "related_evidence" && reference === "EVID") return { from: "reference", to: "owner", kind: "assessed_by" };
+    if (["related_evidence", "evidence_refs"].includes(field) && reference === "EVID") return { from: "reference", to: "owner", kind: "assessed_by" };
     if (field === "related_requirements" && reference === "REQ") return { from: "reference", to: "owner", kind: "assessed_by" };
   }
   if (owner === "NEXT" && field === "relevant_upstream_references" && ["AST", "EVID", "REQ", "GAP"].includes(reference)) {
