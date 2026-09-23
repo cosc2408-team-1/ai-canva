@@ -29,6 +29,21 @@ current state).
 
 ---
 
+## 2026-09-23 — Guided Security Assessment demo
+
+- **Done:** Added a four-step, non-persistent presenter guide over the connected Security
+  Assessment workflow. It chooses real trace/Lens targets from current outputs, reuses the
+  existing Inspector, and never runs boxes or changes board data. Added preparation and fallback
+  guidance in `docs/DEMO.md`.
+- **Verified:** Focused helper, store, and coachmark tests plus the existing traceability, Lens,
+  and Summary regressions pass; full tests/builds and PR CI are pending.
+- **In flight:** `feat/security-guided-demo` is based on the merged PR #38 baseline; PR is not yet
+  opened.
+- **Next steps:** Run full verification, perform the available local browser walkthrough, push, and
+  open a PR against `main`. Do not merge.
+
+---
+
 ## 2026-09-23 — Microsoft Security Lens acceptance alignment
 
 - **Done:** Kept generic authentication as a no-match, retained MFA and conditional-access Entra

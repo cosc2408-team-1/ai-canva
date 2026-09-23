@@ -90,6 +90,24 @@ describe("SecurityTraceabilityInspector", () => {
     expect(container.textContent).toContain("No explicitly linked entities were found for this item.");
   });
 
+  it("opens the view requested by the guided demo and reports manual tab changes", async () => {
+    const onViewChange = vi.fn();
+    await act(async () => root.render(createElement(SecurityTraceabilityInspector, {
+      graph: lensGraph,
+      selectedEntityId: "REQ-001",
+      onSelectEntity,
+      onClose,
+      view: "microsoft-security-lens",
+      onViewChange,
+    })));
+
+    const lensTab = container.querySelector<HTMLButtonElement>("#microsoft-security-lens-tab")!;
+    expect(lensTab.getAttribute("aria-selected")).toBe("true");
+    expect(container.textContent).toContain("Microsoft Entra ID");
+    await act(async () => container.querySelector<HTMLButtonElement>("#traceability-tab")!.click());
+    expect(onViewChange).toHaveBeenCalledWith("traceability");
+  });
+
   it("opens the Microsoft Security Lens and shows evidence-linked capability matches", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     await render(lensGraph);
