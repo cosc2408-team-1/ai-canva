@@ -35,12 +35,14 @@ current state).
   Assessment workflow. It chooses real trace/Lens targets from current outputs, reuses the
   existing Inspector, and never runs boxes or changes board data. Added preparation and fallback
   guidance in `docs/DEMO.md`.
-- **Verified:** Focused helper, store, and coachmark tests plus the existing traceability, Lens,
-  and Summary regressions pass; full tests/builds and PR CI are pending.
-- **In flight:** `feat/security-guided-demo` is based on the merged PR #38 baseline; PR is not yet
-  opened.
-- **Next steps:** Run full verification, perform the available local browser walkthrough, push, and
-  open a PR against `main`. Do not merge.
+- **Verified:** Server 69/69, client 466/466, and Functions 7/7 tests pass; client, server, and
+  Functions builds pass; `git diff --check` passes. Client build retains the existing non-fatal
+  chunk-size advisory. A fresh local browser reached sign-in, not an authenticated populated board;
+  no timed four-step walkthrough was possible. The browser reported a missing favicon request.
+- **In flight:** PR #39 is open from `feat/security-guided-demo` against `main` and remains
+  unmerged; CI status is pending.
+- **Next steps:** Check PR CI and complete the timed walkthrough when an authenticated populated
+  board is available. Do not merge automatically.
 
 ---
 
