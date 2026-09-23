@@ -37,12 +37,13 @@ current state).
   guidance in `docs/DEMO.md`.
 - **Verified:** Server 69/69, client 466/466, and Functions 7/7 tests pass; client, server, and
   Functions builds pass; `git diff --check` passes. Client build retains the existing non-fatal
-  chunk-size advisory. A fresh local browser reached sign-in, not an authenticated populated board;
-  no timed four-step walkthrough was possible. The browser reported a missing favicon request.
+  chunk-size advisory. PR #39 CI `verify` passed at `9361de6`. A fresh local browser reached sign-in,
+  not an authenticated populated board; no timed four-step walkthrough was possible. The browser
+  reported a missing favicon request.
 - **In flight:** PR #39 is open from `feat/security-guided-demo` against `main` and remains
-  unmerged; CI status is pending.
-- **Next steps:** Check PR CI and complete the timed walkthrough when an authenticated populated
-  board is available. Do not merge automatically.
+  unmerged.
+- **Next steps:** Complete the timed walkthrough when an authenticated populated board is available.
+  Do not merge automatically.
 
 ---
 
