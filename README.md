@@ -18,8 +18,9 @@ A collaborative, AI-powered whiteboard where you compose visual pipelines of AI 
 | [Box Types](docs/BOX_TYPES.md) | Every box and how to add a new one |
 | [API](docs/API.md) | The backend endpoints and environment variables |
 | [Deployment](docs/DEPLOYMENT.md) | Ship it to Firebase Hosting + Functions |
-| [Testing](docs/TESTING.md) | Running and writing Vitest unit tests for server + client |
+| [Testing](docs/TESTING.md) | Server, client, and Functions tests plus the final verification command |
 | [Open-Source Readiness](docs/OSS_READINESS.md) | Pre-launch security and project checks |
+| [Final Handoff](docs/FINAL_HANDOFF.md) | Assignment evidence, demo, verification, limitations, and submission checklist |
 
 ### 📘 Course guides
 
@@ -64,6 +65,7 @@ Course materials for using AI Canva as a teaching/learning project. A complete s
 - **Modify an existing repo** — the **Code Edit** worker reads the files a change touches, proposes the
   edit as a reviewable diff, and hands you a `git apply`-able `.patch`. Nothing is pushed anywhere.
 - **AI-powered** — RMIT VAL or Ollama for text, fal.ai for image generation, Google Stitch for production-quality UI screens.
+- **Security Assessment** — a manually run, evidence-linked chain from Asset Mapper and Requirements Elicitor to NIST CSF Gap Checker and Security Advisor. The Security sidebar view is a discovery filter, not an access role.
 - **Real-time collaboration** — share boards by email, live cursors with names/colors, and live multi-user editing via Firestore.
 - **Cloud persistence** — boards auto-save to Firestore (with localStorage as an offline cache). Sign in with Google to use the app; your boards are stored per user.
 - **Editable prompt templates** — reference connected inputs by name (`{{Box Name}}`, `{{input_1}}`, `{{inputs}}`) right in the settings panel.
@@ -102,10 +104,18 @@ Course materials for using AI Canva as a teaching/learning project. A complete s
 | **Note / Label / Timer** | 🗒️ | Collab | Standalone annotation tools — no AI, no Run button, no connections. |
 | **Checklist** | ✅ | Collab | A shared team to-do list: anyone adds, assigns, reorders and ticks off tasks; everyone sees the same list live. |
 | **Chatbot** | 🧍 | Companion | A stick-figure companion that lives on the board and chats with the team. |
+| **Asset Mapper** | | Security | Inventories supplied assets and evidence as an AssetPackage. |
+| **Security Requirements Elicitor** | | Security | Produces evidence-linked, testable requirements. |
+| **NIST CSF Gap Checker** | | Security | Produces a preliminary NIST CSF 2.0 assessment, not certification. |
+| **Security Advisor** | | Security | Suggests a next step or asks focused clarification questions. |
 | **Custom** | ✨ | Custom | Your own saved AI box templates, created in the sidebar. |
 
 > The six **SDLC** boxes are also selectable as a View profile in the sidebar, next to Designer /
-> Developer / Product. The gated pipeline is described in `docs/BOX_TYPES.md`.
+> Developer / Product / Security. The gated pipeline is described in `docs/BOX_TYPES.md`.
+
+The Security Assessment new-board template connects Project Description → Asset Mapper →
+Requirements Elicitor → NIST CSF Gap Checker → Security Advisor. Run each AI box manually and
+review its YAML and validation status. See [Security Workflow](docs/SECURITY_WORKFLOW.md).
 
 ---
 
@@ -227,8 +237,8 @@ ai-canva/
 │       ├── App.tsx           # Shell / layout
 │       └── main.tsx          # Entry point
 ├── server/                   # Express API (local dev backend)
-│   └── src/                  # index.ts, ollama.ts, fal.ts, stitch.ts, findPort.ts
-├── functions/                # Firebase Cloud Functions (production backend)
+│   └── src/                  # Express routes, VAL/Ollama provider routing, image/UI adapters
+├── functions/                # Firebase Cloud Functions (deployed API backend)
 │   └── src/                  # Mirrors the server API
 ├── firestore.rules           # Firestore security rules
 ├── storage.rules             # Storage security rules
@@ -241,7 +251,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a deep dive, [docs/API.md](
 
 ## 🔐 Security rules
 
-The repo ships a `firestore.rules` and `storage.rules` intended to keep each user's boards private. **Note:** the current `firestore.rules` contain a permissive placeholder (any signed-in user can read/update any board) — see [docs/OSS_READINESS.md](docs/OSS_READINESS.md) for the recommended fix before deploying publicly.
+The current rules do **not** isolate board content: any signed-in user can read/update any board
+and read/write board files. AI generation endpoints also lack caller authentication and rate
+limiting. Do not use this deployment for sensitive project data; see
+[Known Limitations](docs/FINAL_KNOWN_LIMITATIONS.md) before any wider release. AI output is
+unverified decision support, not a security audit or compliance certification.
 
 ---
 

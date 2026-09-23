@@ -6,20 +6,16 @@ and real-time collaboration.
 
 ## High-level overview
 
-```
-+---------------------+         +--------------------+         +----------------------+
-|   Client (browser)  |  /api   |  Backend           |  SDK    |  AI providers        |
-|   React + Vite      | ------->|  Express or        | ------->|  AI providers        |
-|   React Flow canvas  |         |  Cloud Functions   |         |  Ollama Cloud (LLM)   |
-|   Zustand store      |         |                    |         |  fal.ai (images)     |
-|   Zustand store      |         |                    |         |  Google Stitch (UI)  |
-+---------------------+         +--------------------+         +----------------------+
-        |  Firebase SDK
-        v
-+----------------------------------------------+
-| Firebase: Auth (Google) · Firestore (boards, |
-| presence) · Storage (board images)           |
-+----------------------------------------------+
+```mermaid
+flowchart LR
+  Browser[React/Vite + React Flow + Zustand] -->|text /api/generate| API[Express locally or Firebase Function]
+  Browser --> Auth[Firebase Auth]
+  Browser --> DB[Firestore boards/presence]
+  Browser --> Storage[Firebase Storage]
+  API --> VAL[RMIT VAL]
+  API --> Ollama[Ollama]
+  API --> Fal[fal.ai images]
+  API --> Stitch[Google Stitch UI]
 ```
 
 ### Two backends
@@ -41,8 +37,8 @@ environment while the local server runs in Node. Both use the same SDKs.
 
 ### State management — `store/boardStore.ts`
 
-A single [Zustand](https://zustand-demo.pmnd.rs/) store (persisted to localStorage) owns the
-entire board:
+A [Zustand](https://zustand-demo.pmnd.rs/) store owns the board, with Firestore
+persistence when signed in and localStorage for local/offline state:
 
 - **`nodes` / `edges`** — the React Flow graph.
 - **`boxData`** — a `Record<boxId, BoxData>` holding per-box content, prompts, status, output,
@@ -56,8 +52,9 @@ Key behaviors:
 - **`runBox(id)`** is the orchestrator. It:
   1. Gathers upstream inputs from incoming edges (text + optional image).
   2. Builds a `NamedInput[]` (name + output) for prompt templating.
-  3. Branches by box type — `cartoon` → fal.ai, `stitch` → Google Stitch,
-     `slides` → Ollama + JSON parsing, `code`/`ui` → Ollama + code extraction, else Ollama text.
+  3. Routes image and Stitch boxes to their services; text boxes use the selected
+     `AI_PROVIDER` through the existing `/api/generate` contract (RMIT VAL or Ollama).
+     Security boxes also enforce input and upstream validation gates.
   4. Updates the box's `status` (`idle → running → done | error`).
 - **Debounced autosave**: every mutation calls `scheduleSave()`, which fires
   `saveToFirestore()` ~1s after the last change.
@@ -99,10 +96,10 @@ App.tsx                     Shell: header, board actions, sign-in, modals
 
 ### Box definitions — `types.ts`
 
-`BOX_TYPES: Record<BoxType, BoxTypeMeta>` is the single source of truth for every box's label,
-icon, color, category (`input` / `worker`), default prompt, default system prompt, and default
-size. Adding a box type means adding an entry here, registering it in `Canvas.tsx`'s
-`nodeTypes`, and adding a render branch in `BoxNode.tsx`.
+`BOX_TYPES: Record<BoxType, BoxTypeMeta>` is the source of truth for labels, colors,
+roles and default prompts. `Canvas.tsx` derives normal `NODE_TYPES` and MiniMap colors
+from it; `AreaNode` is the exception. `Sidebar.tsx` filters by role, including the
+Security view. This view is discovery-only, not an authorization role.
 
 ### Code rendering — `lib/code.ts`
 
@@ -136,6 +133,9 @@ hoisted ahead of `dotenv.config()`:
   endpoint. It targets **Ollama Cloud** at `https://ollama.com` by default (Bearer auth with
   `OLLAMA_API_KEY`), but respects `OLLAMA_HOST` so a local daemon also works. The model is set by
   `OLLAMA_MODEL` (default `deepseek-v4.1-flash`).
+- **`provider.ts` / `val.ts`** — select Ollama by default or RMIT VAL with
+  `AI_PROVIDER=val`; VAL uses chat/completions and `VAL_MODEL`. Secrets stay on the
+  backend, and both providers return the same `content`, `model`, and `usage` shape.
 - **`fal.ts`** — `generateCartoonImage({ prompt, imageUrl })`:
   - Image present → upload to fal storage (if base64), then `fal-ai/qwen-image-edit`
     (image-to-image).
@@ -207,3 +207,46 @@ code for a Firebase **custom token** bound to a durable per-code guest uid — g
 login, pick a name, land on their team board (via the board's `memberUids`), and can create their
 own boards. The local dev server proxies the join endpoint to the deployed function.
 
+## Security Engineering workflow
+
+```mermaid
+flowchart LR
+  P[Project Description] --> A[Asset Mapper<br/>AssetPackage: AST/EVID]
+  A --> R[Requirements Elicitor<br/>RequirementsPackage: REQ + AST/EVID]
+  R --> N[NIST CSF Gap Checker<br/>NISTAssessmentPackage: GAP + upstream]
+  N --> S[Security Advisor<br/>NextStepGuidance: NEXT + references]
+```
+
+`boardTemplates.ts` creates this five-box, four-edge board but never runs AI boxes.
+`boardStore.ts` fills `{{inputs}}`, checks required input and invalid upstream status,
+then sends the user-triggered generation request. `securityArtifacts.ts` parses YAML,
+checks canonical artifact type/schema, required fields and references, and persists a
+validation summary alongside the unchanged raw `boxData.output`. Invalid upstream
+artifacts block the next security generation; warnings are visible but do not
+automatically block. `clarification_required` is a structurally valid request for
+human information; it is not the same as `invalid`.
+
+```mermaid
+flowchart LR
+  L[LLM response] --> Raw[Visible raw output]
+  L --> Parse[YAML parse]
+  Parse --> Contract[Contract + reference checks]
+  Contract --> Summary[Persisted validation summary]
+  Summary --> Badge[Valid / Warning / Invalid / Needs clarification]
+```
+
+For NIST, `applicationAssessmentDate()` supplies runtime `assessment_date` in the
+prompt; validation compares the output date against that trusted value. A model's
+own historical date is not trusted. Structural validity does not prove that a CIA
+impact or NIST mapping is correct. Human review remains mandatory.
+
+## Text API routing and demo boundary
+
+`client/src/lib/apiTarget.ts` resolves text generation in this order: valid runtime
+localStorage override, then public `VITE_AI_API_BASE_URL` build configuration,
+then `/api/generate`. Only text generation uses this override. Normal Firebase
+Hosting rewrites `/api/**` to Functions; local Vite proxies it to Express.
+`scripts/deploy-demo-preview.sh` embeds a temporary Cloudflare Quick Tunnel URL
+in a Firebase Preview build after checking `/api/health`; the tunnel reaches the
+local Express backend and its backend-only provider key. Firebase Auth, Firestore,
+and Storage remain on Firebase. This route is for supervised demos, not production.

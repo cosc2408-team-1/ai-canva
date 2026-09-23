@@ -1,153 +1,18 @@
-# Open-source readiness checklist
+# Open-source and public-deployment readiness
 
-The repo is functional, but there are a few items to address before running it as a healthy open
-**source** and open **deployment**. This page documents them as actionable issues — nothing here
-changes the code automatically. Each item maps to a recommended GitHub issue.
+This is an audit of the current repository, not an assertion that the deployed
+instance is production-safe. Check again after each rules/API change.
 
-> **Why these matter:** AI Canva has paid AI backends (Ollama / fal.ai / Stitch) and a Firebase
-> backend with auth and shared boards. Left as-is, a public instance could let anyone burn your
-> API quota, read other users' boards, or write to your storage bucket.
+| Status | Current state and evidence | Risk | Post-assignment action |
+| --- | --- | --- | --- |
+| **OPEN** | `firestore.rules` permits any authenticated user to read/update any `boards/{boardId}`. | Cross-board disclosure and edits. | Design and Firebase-emulator-test owner/collaborator/guest/team access, then deploy reviewed rules. |
+| **OPEN** | `storage.rules` permits any authenticated user to read/write board images and documents. | Cross-board file access and modification. | Align Storage checks with tested board membership. |
+| **OPEN** | `server/src/app.ts` and `functions/src/index.ts` generation routes do not require a caller token or rate limit. | Public callers may consume provider quota/cost. | Add verified authentication, authorization and quotas before public use; test direct API calls. |
+| **PARTIALLY ADDRESSED** | `client/src/lib/firebase.ts` embeds the current `ai-canva-e9dff` Firebase web config. This is public configuration, not a secret. | Forks may unintentionally target the team project. | Make project selection explicit at build time and document it; never put server secrets in `VITE_*`. |
+| **PARTIALLY ADDRESSED** | `scripts/deploy-demo-preview.sh` uses a temporary Cloudflare Quick Tunnel to a local Mac backend. | Depends on local host/network; unsuitable as production API. | Use only for assessed demos; use an authenticated, managed backend for wider release. |
+| **RESOLVED for verification** | `npm test` covers server/client/Functions; `.github/workflows/ci.yml` runs tests and three builds without secrets. | CI does not cover browser E2E, Firebase rules, real provider calls. | Add emulator and browser tests before production claim. |
+| **PARTIALLY ADDRESSED** | `.firebaserc` defaults to `ai-canva-e9dff`; existing Hosting workflow deploys on relevant `main` changes, Functions deployment is manual. | Wrong-target deploy remains possible without operator review. | Confirm project, channel, and rules before every deploy. |
 
----
-
-## 🔴 1. Firestore rules allow any signed-in user to read/update any board
-
-**File:** `firestore.rules`
-
-Current state:
-
-```
-match /boards/{boardId} {
-  // TEMPORARY: allow any authenticated user to read/update for debugging
-  allow read, update: if request.auth != null;
-  ...
-}
-```
-
-This means **every logged-in user can read and edit every board** — including boards they were
-never shared with. It's marked "TEMPORARY" in the file, likely left over from debugging
-real-time sync.
-
-**Recommended replacement** — ownership + collaborator gating (board creators can edit; users
-invited by email as collaborators can edit; presence is self-scoped):
-
-```c
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /boards/{boardId} {
-      // Owner or an invited collaborator can read/update.
-      allow read: if request.auth != null &&
-        (request.auth.uid == resource.data.ownerId ||
-         request.auth.token.email in (resource.data.collaborators || []));
-      allow create: if request.auth != null &&
-        request.auth.uid == request.resource.data.ownerId;
-      allow update: if request.auth != null &&
-        (request.auth.uid == resource.data.ownerId ||
-         request.auth.token.email in (resource.data.collaborators || []));
-      // Only the owner can delete.
-      allow delete: if request.auth != null &&
-        request.auth.uid == resource.data.ownerId;
-
-      match /presence/{userId} {
-        allow read: if request.auth != null;
-        allow create, update, delete: if request.auth != null &&
-          request.auth.uid == userId;
-      }
-    }
-  }
-}
-```
-
-> Note: a collaborator must be a **Firebase-authenticated** user whose email matches a value in
-> `collaborators`. Because Google sign-in is used, `request.auth.token.email` will be populated.
-> Test carefully — collaborators are matched by email, and the app writes `ownerEmail` for the
-> owner.
-
-**Issues to file:** "Harden Firestore security rules to enforce board ownership + collaborators".
-
----
-
-## 🔴 2. Hardcoded Firebase configuration in the client
-
-**File:** `client/src/lib/firebase.ts`
-
-`firebaseConfig` is hardcoded to a real project (`carbondocs`), including its web API key. While
-Firebase **web API keys are public identifiers** (not secrets), hardcoding a specific project
-means every fork runs against the original author's Firebase project, and it's not configurable
-per-deployment.
-
-**Recommended change:** read the config from environment variables at build time
-(`VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, etc.) via Vite's `import.meta.env`, with
-documented fallbacks. Update [DEPLOYMENT.md](DEPLOYMENT.md) accordingly.
-
-**Issues to file:** "Make Firebase client config env-driven (VITE_FIREBASE_* vars)"
-
----
-
-## 🟠 3. API endpoints are unauthenticated and not rate-limited
-
-**Files:** `server/src/index.ts`, `functions/src/index.ts`, `docs/API.md`
-
-`/api/generate`, `/api/generate-image`, and `/api/stitch-generate` are open to anyone who can
-reach the server/function. Each call costs money (Ollama usage, fal.ai credits, Stitch quota).
-There's no auth, no quota, and no rate limiting.
-
-**Action:** For any public deployment, add (at minimum) API-key auth or user-ID checks plus rate
-limiting before exposing the API.
-
-**Issues to file:** "Authenticate + rate-limit AI generation endpoints"
-
----
-
-## 🟠 4. Storage rules are permissive
-
-**File:** `storage.rules`
-
-`storage.rules` allow **any signed-in user** to read/write any `boards/{boardId}/images/...`.
-Tighten path ownership (only the board owner or a collaborator) if you deploy publicly.
-
-**Issues to file:** "Restrict Storage rules to board owners/collaborators"
-
----
-
-## 🟡 5. Version metadata and project identity
-
-- `package.json` version is `0.1.0`; the CHANGELOG uses `[Unreleased]`. The project has never
-  made a tagged release.
-- The `.firebaserc` default project (`carbondocs`) is a personal project. A published fork should
-  either remove it or make it clearly a placeholder.
-- Consider a `repository` / `homepage` / `bugs` field in `package.json` so npm badges and
-  contributor flows resolve correctly.
-
-**Issues to file:** "Prepare first tagged release + package metadata"
-
----
-
-## 🟡 6. No automated tests, linter, or CI
-
-There is currently no test suite, ESLint, Prettier, or CI workflow. For a healthy OSS project,
-add at least a basic CI (e.g. GitHub Actions) that type-checks and builds `client`, `server`, and
-`functions`.
-
-**Issues to file:** "Add CI (typecheck + build), linter, and initial tests"
-
----
-
-## ✅ Already good for OSS
-
-- `.env` files and secrets are git-ignored; `.env.example` templates are committed.
-- `.gitignore` excludes `node_modules/`, `dist/`, `.server-port`, `.DS_Store`, `.firebase/`.
-- Sensitive default prompts and box metadata are centralized and documented.
-- README + docs now describe the current architecture, box types, and deployment.
-
----
-
-## Suggested issue labels
-
-- `security` — items 1–4
-- `good first issue` — item 6
-- `documentation` — item 5
-
-File these as GitHub issues and track them as you prepare the first public release.
+No generic rule snippet is provided here: the current app has owners, collaborators,
+workshop guests, teams, and facilitators. A simplistic replacement could break those
+flows while appearing more secure. See [Known Limitations](FINAL_KNOWN_LIMITATIONS.md).
