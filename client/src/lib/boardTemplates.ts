@@ -2,6 +2,11 @@ import type { Edge, Node } from "@xyflow/react";
 import { BOX_TYPES, type BoxData, type BoxType } from "../types.js";
 
 export type BoardTemplateId = "blank" | "security-assessment";
+export const DEFAULT_BOARD_TEMPLATE_ID: BoardTemplateId = "security-assessment";
+
+export function defaultBoardName(templateId: BoardTemplateId): string {
+  return templateId === "security-assessment" ? "Security Assessment" : "Untitled Board";
+}
 
 export interface BoardTemplateOption {
   id: BoardTemplateId;
@@ -11,14 +16,14 @@ export interface BoardTemplateOption {
 
 export const BOARD_TEMPLATE_OPTIONS: readonly BoardTemplateOption[] = [
   {
-    id: "blank",
-    label: "Blank board",
-    description: "Start with an empty canvas.",
-  },
-  {
     id: "security-assessment",
     label: "Security Assessment",
     description: "Discover assets → specify security requirements → assess NIST CSF gaps → get evidence-linked next-step guidance.",
+  },
+  {
+    id: "blank",
+    label: "Blank board",
+    description: "Start with an empty canvas.",
   },
 ];
 

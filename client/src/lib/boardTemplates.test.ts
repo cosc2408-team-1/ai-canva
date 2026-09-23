@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BOX_TYPES, type BoxData, type BoxType } from "../types.js";
 import { cleanBoxDataForFirestore } from "./serialization.js";
-import { BOARD_TEMPLATE_OPTIONS, createBoardTemplate } from "./boardTemplates.js";
+import {
+  BOARD_TEMPLATE_OPTIONS,
+  DEFAULT_BOARD_TEMPLATE_ID,
+  createBoardTemplate,
+  defaultBoardName,
+} from "./boardTemplates.js";
 
 function ids() {
   let count = 0;
@@ -19,6 +24,16 @@ function defaultBoxData(type: BoxType): BoxData {
 }
 
 describe("Security Assessment board template", () => {
+  it("features Security Assessment first while keeping Blank Board available", () => {
+    expect(DEFAULT_BOARD_TEMPLATE_ID).toBe("security-assessment");
+    expect(BOARD_TEMPLATE_OPTIONS.map((option) => option.id)).toEqual([
+      "security-assessment",
+      "blank",
+    ]);
+    expect(defaultBoardName("security-assessment")).toBe("Security Assessment");
+    expect(defaultBoardName("blank")).toBe("Untitled Board");
+  });
+
   it("keeps the blank template empty", () => {
     expect(createBoardTemplate("blank", ids(), defaultBoxData)).toEqual({
       nodes: [],

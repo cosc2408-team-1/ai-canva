@@ -29,6 +29,16 @@ current state).
 
 ---
 
+## 2026-09-23 — Board-first demo onboarding
+
+- **Done:** Added a visible New Board action, Security Assessment-first empty-board onboarding,
+  contextual Get Started/Add Box sidebar, and Security-first New Board modal. Kept the five-box
+  template idle with no AI auto-run. Added focused UI contract tests and checked desktop/iPad
+  layout in a local browser using synthetic auth and a local board-creation mock.
+- **In flight:** Branch `feature/demo-ux-polish` pending PR review; real Firestore board creation
+  was not exercised by the synthetic browser smoke check.
+- **Next steps:** Review the UX PR and verify board creation with a signed-in test account.
+
 ## 2026-09-19 — Security-box input guard prepared for merge
 
 - **Done:** Reviewed PR #17, merged current `main` into its branch, and added the missing-input

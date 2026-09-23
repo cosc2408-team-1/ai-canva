@@ -11,7 +11,7 @@ import PresenceRoster from "./PresenceRoster.js";
  *
  * Decluttered from the original ~12 inline controls to a calm two-group bar:
  *   left  — brand, board title, save status
- *   right — collaboration (roster / Share), board actions (Boards menu),
+ *   right — collaboration (roster / Share), New Board, Add Box, Boards menu,
  *           usage badge, role-gated views, account menu
  *
  * Rare + destructive actions (Clear / Delete board, Sign out) live inside
@@ -30,8 +30,7 @@ const SAVE_LABEL: Record<string, string> = {
 
 interface HeaderProps {
   user: User;
-  sidebarOpen: boolean;
-  onToggleSidebar: () => void;
+  onAddBox: () => void;
   onShare: () => void;
   onNewBoard: () => void;
   onLoadBoard: (boardId: string) => void;
@@ -48,8 +47,7 @@ interface HeaderProps {
 
 function Header({
   user,
-  sidebarOpen,
-  onToggleSidebar,
+  onAddBox,
   onShare,
   onNewBoard,
   onLoadBoard,
@@ -78,9 +76,9 @@ function Header({
   const avatarInitials = (user.displayName || user.email || "?").slice(0, 2).toUpperCase();
 
   return (
-    <header className="app-bar flex items-center justify-between gap-3 px-4 h-14 relative z-20">
+    <header className="app-bar relative z-20 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 lg:flex-nowrap lg:py-0">
       {/* ---- Left: brand + board identity ---- */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex w-full min-w-0 items-center gap-3 lg:w-auto">
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="logo-tile" aria-hidden>
             🎨
@@ -99,7 +97,7 @@ function Header({
               value={boardTitle}
               onChange={(e) => setBoardTitle(e.target.value)}
               placeholder="Untitled board"
-              className="h-8 w-48 md:w-56 rounded-lg border border-transparent bg-slate-100/70 px-2.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-100 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="h-8 w-36 sm:w-48 lg:w-56 rounded-lg border border-transparent bg-slate-100/70 px-2.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-100 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
             {saveLabel && (
               <span
@@ -117,20 +115,23 @@ function Header({
       </div>
 
       {/* ---- Right: actions ---- */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex w-full flex-wrap items-center justify-between gap-1.5 lg:w-auto lg:flex-nowrap lg:justify-end">
         {/* Collaboration group */}
         {currentBoardId && (
           <>
             <PresenceRoster />
-            <Button variant="primary" onClick={onShare} className="ml-1">
-              👥 Share
+            <Button variant="secondary" onClick={onShare} className="ml-1" title="Share board">
+              👥 <span className="hidden sm:inline">Share</span>
             </Button>
             <div className="h-6 w-px bg-slate-200 mx-1.5" />
           </>
         )}
 
         {/* Board tools */}
-        <Button onClick={onToggleSidebar} active={sidebarOpen} title="Toggle the add-box panel">
+        <Button variant="primary" onClick={onNewBoard} title="Create a new board">
+          + New Board
+        </Button>
+        <Button onClick={onAddBox} title="Open the add-box palette">
           {"+ Add Box"}
         </Button>
 
@@ -218,7 +219,7 @@ function Header({
 
         {/* Usage + role views + account */}
         <div
-          className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-slate-100/80 text-[11px] text-slate-500 tabular-nums"
+          className="hidden sm:flex items-center gap-1 h-8 px-2.5 rounded-lg bg-slate-100/80 text-[11px] text-slate-500 tabular-nums"
           title={"Your total LLM tokens used: " + fmtTokens(totalTokens)}
         >
           ⚡ <span className="font-semibold text-slate-600">{fmtTokens(totalTokens)}</span>

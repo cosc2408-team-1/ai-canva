@@ -4,12 +4,19 @@ import { useUserBoxesStore } from "../store/userBoxesStore.js";
 import { BOX_TYPES } from "../types.js";
 import type { BoxType, BoxCategory } from "../types.js";
 import { boxVisibleForRole, ROLE_LABELS, SIDEBAR_ROLES, sidebarRoleFromStored, type SidebarRole } from "../lib/boxRoles.js";
+import { securityWorkflowStages } from "../lib/securityWorkflow.js";
 import SecurityWorkflowGuide from "./SecurityWorkflowGuide.js";
 import CustomBoxModal from "./CustomBoxModal.js";
 
 interface SidebarProps {
   open: boolean;
   onToggle: () => void;
+  isEmpty: boolean;
+  emptyBoardMode: "onboarding" | "manual";
+  onCreateSecurityAssessment: () => void;
+  onBrowseTemplates: () => void;
+  onBuildManually: () => void;
+  onBackToGetStarted: () => void;
 }
 
 const SECTIONS: { title: string; category: BoxCategory }[] = [
@@ -25,9 +32,19 @@ const SECTIONS: { title: string; category: BoxCategory }[] = [
 
 /** Role filters shown as a dropdown at the top of the palette. */
 const ROLE_STORAGE_KEY = "ai-canva:sidebar-role";
+const SECURITY_STAGES = securityWorkflowStages();
 
 /** The selectable role profiles (must stay in sync with the <option> list). */
-export default function Sidebar({ open, onToggle }: SidebarProps) {
+export default function Sidebar({
+  open,
+  onToggle,
+  isEmpty,
+  emptyBoardMode,
+  onCreateSecurityAssessment,
+  onBrowseTemplates,
+  onBuildManually,
+  onBackToGetStarted,
+}: SidebarProps) {
   const addBox = useBoardStore((s) => s.addBox);
   const addCustomBox = useBoardStore((s) => s.addCustomBox);
   const customDefs = useUserBoxesStore((s) => s.defs);
@@ -54,6 +71,7 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const boxesByCategory = (cat: BoxCategory) =>
     (Object.entries(BOX_TYPES) as [BoxType, typeof BOX_TYPES[BoxType]][])
       .filter(([, meta]) => meta.category === cat && boxVisibleForRole(meta, role));
+  const showGetStarted = isEmpty && emptyBoardMode === "onboarding";
 
   return (
     <>
@@ -79,15 +97,66 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 flex-shrink-0">
-          <span className="text-[13px] font-semibold text-slate-700">Add Box</span>
+          <span className="text-[13px] font-semibold text-slate-700">
+            {showGetStarted ? "Get Started" : "Add Box"}
+          </span>
           <button
             onClick={onToggle}
+            aria-label="Hide panel"
             className="text-slate-400 hover:text-slate-600 transition w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100"
             title="Hide panel"
           >
             ✕
           </button>
         </div>
+
+        {showGetStarted ? (
+          <div className="flex-1 min-h-0 overflow-y-auto p-4">
+            <p className="text-[11px] leading-relaxed text-slate-500">
+              Choose a workflow to begin.
+            </p>
+            <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
+              <span aria-hidden="true" className="text-lg">🔐</span>
+              <h3 className="mt-1 text-[13px] font-semibold text-slate-900">
+                Security Assessment
+              </h3>
+              <p className="mt-2 text-[11px] font-medium leading-relaxed text-teal-800">
+                {SECURITY_STAGES.map((stage) => stage.shortLabel).join(" → ")}
+              </p>
+              <button
+                type="button"
+                onClick={onCreateSecurityAssessment}
+                className="mt-3 w-full min-h-9 rounded-lg bg-indigo-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+              >
+                Create Security Assessment
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={onBrowseTemplates}
+              className="mt-4 block w-full min-h-9 rounded-lg border border-slate-200 px-2 py-2 text-left text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              Browse templates
+            </button>
+            <button
+              type="button"
+              onClick={onBuildManually}
+              className="mt-2 block w-full min-h-9 rounded-lg px-2 py-2 text-left text-xs font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              Build manually →
+            </button>
+          </div>
+        ) : (
+          <>
+        {isEmpty && emptyBoardMode === "manual" && (
+          <button
+            type="button"
+            onClick={onBackToGetStarted}
+            className="mx-3 mt-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-indigo-700 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            ← Back to Get Started
+          </button>
+        )}
 
         {/* Role filter */}
         <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/60 flex-shrink-0">
@@ -198,6 +267,8 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
             );
           })}
         </div>
+          </>
+        )}
       </div>
 
       {/* Create Custom Box dialog */}
