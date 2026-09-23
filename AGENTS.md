@@ -98,7 +98,7 @@ The app chrome (header, sidebar, canvas tools) follows a consistent "enterprise 
 modern" language, built on two shared primitives:
 
 - **`client/src/components/ui/Button.tsx`** — the only button styling in the chrome.
-  Variants: `primary` (indigo-600 — the single loud color, used for Share and the
+  Variants: `primary` (indigo-600 — the single loud color, used for New Board and the
   area tool's active state), `secondary` (white + 1px slate border — the default),
   `ghost` (transparent, for role-gated views), `danger`; sizes `xs/sm/md`; `active`
   renders the pressed state (dark). Every button gets a keyboard focus ring. Use it
@@ -123,8 +123,15 @@ slices — otherwise every keystroke in the board-title input re-renders the who
 Canvas tree (this was the case before the header extraction). App passes only
 stable `useCallback` handlers across the memo boundary. Destructive/rare actions
 (Clear/Delete board, Sign out) live inside the header menus, not on the bar; the
-visible bar is ~5 controls for a regular user (roster, Share, + Add Box, Boards,
-account) plus role-gated Admin/Facilitator buttons.
+visible bar includes the roster, Share, + New Board, + Add Box, Boards, and account controls,
+plus role-gated Admin/Facilitator buttons.
+
+**Board-first onboarding:** the header exposes `+ New Board` as the primary action while
+retaining `+ Add Box` and the Boards menu. Empty boards show a Security Assessment-first
+onboarding view in `BoardEmptyState.tsx` and the contextual Sidebar; choosing Add Box or Build
+manually switches to the normal palette. `NewBoardModal.tsx` selects Security Assessment by
+default, while Blank Board remains available. App keeps this presentation mode locally, never
+in board persistence; populated boards continue to use the normal canvas and palette.
 
 ## Admin board
 
@@ -250,8 +257,8 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 - **UI text markers the E2E clicks by** (keep these EXACT strings when restyling — the suite
   finds buttons by `textContent`, not selectors): header `Boards (` and `New Board` (capital B)
   and `🧑‍🏫 Facilitator`; palette rows keep the box label as the button's trailing text
-  (`textContent.trim().endsWith(label)` — a leading icon tile is fine); the help card keeps the
-  text `How to use` inside a div whose class includes `rounded-xl`; canvas buttons `▶ Run`,
+  (`textContent.trim().endsWith(label)` — a leading icon tile is fine); the canvas Quick Guide
+  starts collapsed, so the suite no longer dismisses the old help card; canvas buttons `▶ Run`,
   `▶ Start`, `⏹ Stop`, and `▭ Area` (exact suffix match when inactive); the join modal's `Join`
   button (`trim() === "Join"`), the landing pill `Have a workshop code?`, and `Join my team`;
   the roster test ids `roster-popover`/`roster-row`/`you-chip`; the idea textarea placeholder

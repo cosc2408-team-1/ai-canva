@@ -186,15 +186,7 @@ await safe("T6 timer flow", async () => {
 
 // ---------- TA: Area drawing tool end-to-end ----------
 await safe("TA areas flow", async () => {
-  // Dismiss the "How to use" panel so it doesn't block canvas drags.
-  await page.evaluate(() => {
-    const panel = Array.from(document.querySelectorAll("div")).find((d) =>
-      (d.textContent || "").includes("How to use") && d.className.includes("rounded-xl")
-    );
-    const x = panel && panel.querySelector("button");
-    x && x.click();
-  });
-  await page.waitForTimeout(300);
+  // Quick Guide starts collapsed, leaving the canvas clear for drags.
 
   // Activate the area tool via the real toolbar button.
   const activated = await page.evaluate(() => {

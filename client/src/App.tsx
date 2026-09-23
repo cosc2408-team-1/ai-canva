@@ -4,6 +4,7 @@ import Canvas from "./components/Canvas.js";
 import Header from "./components/Header.js";
 import Toolbar from "./components/Toolbar.js";
 import Sidebar from "./components/Sidebar.js";
+import BoardEmptyState from "./components/BoardEmptyState.js";
 import NewBoardModal from "./components/NewBoardModal.js";
 import ShareModal from "./components/ShareModal.js";
 import LandingPage from "./components/landing/LandingPage.js";
@@ -24,7 +25,7 @@ import { isAdmin, updateUserProfile, heartbeat } from "./lib/admin.js";
 import { fetchUserTokenTotal } from "./lib/firestore.js";
 import { BOX_TYPES } from "./types.js";
 import type { BoxType } from "./types.js";
-import type { BoardTemplateId } from "./lib/boardTemplates.js";
+import { DEFAULT_BOARD_TEMPLATE_ID, type BoardTemplateId } from "./lib/boardTemplates.js";
 
 export default function App() {
   const addBox = useBoardStore((s) => s.addBox);
@@ -39,6 +40,7 @@ export default function App() {
   // subscribes to them itself — App must NOT subscribe, or every keystroke in
   // the board-title input would re-render the whole Canvas tree.
   const currentBoardId = useBoardStore((s) => s.currentBoardId);
+  const nodeCount = useBoardStore((s) => s.nodes.length);
   const createNewBoard = useBoardStore((s) => s.createNewBoard);
   const loadBoardFromFirestore = useBoardStore((s) => s.loadBoardFromFirestore);
   const refreshBoardList = useBoardStore((s) => s.refreshBoardList);
@@ -65,6 +67,8 @@ export default function App() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNewBoardModal, setShowNewBoardModal] = useState(false);
+  const [initialTemplateId, setInitialTemplateId] = useState<BoardTemplateId>(DEFAULT_BOARD_TEMPLATE_ID);
+  const [manualBoardId, setManualBoardId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [adminView, setAdminView] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
@@ -206,6 +210,7 @@ export default function App() {
     if (!confirm("Clear the entire board? This removes all boxes.")) return;
     useBoardStore.setState({ nodes: [], edges: [], boxData: {} });
     clearBoard();
+    setManualBoardId(null);
   }, [clearBoard]);
 
   const handleLogout = useCallback(async () => {
@@ -213,16 +218,21 @@ export default function App() {
     await signOutUser();
   }, [unsubscribeFromBoard]);
 
-  const handleNewBoard = useCallback(() => {
+  const openNewBoard = useCallback((templateId: BoardTemplateId = DEFAULT_BOARD_TEMPLATE_ID) => {
+    setInitialTemplateId(templateId);
     setShowNewBoardModal(true);
   }, []);
+  const handleNewBoard = useCallback(() => openNewBoard(), [openNewBoard]);
 
   const handleCreateBoard = async (name: string, templateId: BoardTemplateId) => {
     await createNewBoard(name, templateId);
+    setManualBoardId(templateId === "blank" ? useBoardStore.getState().currentBoardId : null);
+    setSidebarOpen(templateId === "blank");
     setShowNewBoardModal(false);
   };
 
   const handleLoadBoard = useCallback(async (boardId: string) => {
+    setManualBoardId(null);
     await loadBoardFromFirestore(boardId);
   }, [loadBoardFromFirestore]);
 
@@ -235,9 +245,24 @@ export default function App() {
     setShowShareModal(true);
   }, []);
 
-  const handleToggleSidebar = useCallback(() => {
-    setSidebarOpen((o) => !o);
-  }, []);
+  const handleAddBoxAction = useCallback(() => {
+    if (useBoardStore.getState().nodes.length === 0) {
+      setManualBoardId(currentBoardId);
+      setSidebarOpen(true);
+    } else {
+      setSidebarOpen((open) => !open);
+    }
+  }, [currentBoardId]);
+
+  const handleBuildManually = useCallback(() => {
+    setManualBoardId(currentBoardId);
+    setSidebarOpen(true);
+  }, [currentBoardId]);
+
+  const emptyBoardMode = currentBoardId && manualBoardId === currentBoardId
+    ? "manual"
+    : "onboarding";
+  const showBoardOnboarding = Boolean(currentBoardId) && nodeCount === 0 && emptyBoardMode === "onboarding";
 
   const handleToggleAdminView = useCallback(() => {
     setFacilitatorView(false);
@@ -359,8 +384,7 @@ export default function App() {
     <div className="flex flex-col h-full w-full">
       <Header
         user={user}
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={handleToggleSidebar}
+        onAddBox={handleAddBoxAction}
         onShare={handleShare}
         onNewBoard={handleNewBoard}
         onLoadBoard={handleLoadBoard}
@@ -390,8 +414,24 @@ export default function App() {
         ) : (
           <ReactFlowProvider>
             <Canvas />
-            <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
-            <Toolbar />
+            <BoardEmptyState
+              visible={showBoardOnboarding}
+              sidebarOpen={sidebarOpen}
+              onCreateSecurityAssessment={() => openNewBoard("security-assessment")}
+              onBrowseTemplates={() => openNewBoard()}
+              onBuildManually={handleBuildManually}
+            />
+            <Sidebar
+              open={sidebarOpen}
+              onToggle={() => setSidebarOpen((open) => !open)}
+              isEmpty={nodeCount === 0}
+              emptyBoardMode={emptyBoardMode}
+              onCreateSecurityAssessment={() => openNewBoard("security-assessment")}
+              onBrowseTemplates={() => openNewBoard()}
+              onBuildManually={handleBuildManually}
+              onBackToGetStarted={() => setManualBoardId(null)}
+            />
+            {!showBoardOnboarding && <Toolbar />}
           </ReactFlowProvider>
         )}
       </div>
@@ -405,6 +445,7 @@ export default function App() {
       )}
       <NewBoardModal
         open={showNewBoardModal}
+        initialTemplateId={initialTemplateId}
         onClose={() => setShowNewBoardModal(false)}
         onCreate={handleCreateBoard}
       />
