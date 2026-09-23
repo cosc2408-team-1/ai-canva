@@ -29,6 +29,15 @@ current state).
 
 ---
 
+## 2026-09-23 — Security traceability model
+
+- **Done:** Added a pure client-side graph builder for AST/EVID/REQ/GAP/NEXT IDs, preserving each
+  box/path occurrence and deriving typed relations only from explicit reference collections.
+  Added cycle-safe connected-entity and source-box traversal helpers; no graph is persisted.
+- **In flight:** `feat/security-traceability-model` is verified from main baseline `b426057` and
+  ready for PR review.
+- **Next steps:** Review the PR against `main`; do not merge automatically.
+
 ## 2026-09-23 — Unified expandable security summaries
 
 - **Done:** Replaced separate asset, excerpt, question, and Advisor list renderers with independent
