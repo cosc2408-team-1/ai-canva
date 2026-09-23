@@ -165,7 +165,11 @@ Every match retains its matched phrase and source entity ID, uses a predefined r
 links to official product documentation. The Lens is a read-only client presentation: it does not
 create another graph, call Microsoft/Azure APIs, use credentials, invoke AI, persist view state, or
 change artifact output or traceability semantics. Do not present a mapping as a recommendation,
-fix, compliance result, or Microsoft endorsement; prefer no match when evidence is weak.
+fix, compliance result, or Microsoft endorsement; prefer no match when evidence is weak. Capability
+matches use neutral catalogue order, not inferred signal-strength ranking. Generic authentication,
+authorization, identity, incident response, data privacy, secure development, and data-retention
+language do not independently identify a Microsoft product; explicit signals such as MFA or
+conditional access may support an Entra ID match.
 
 ## Admin board
 

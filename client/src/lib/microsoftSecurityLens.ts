@@ -104,7 +104,7 @@ const CATALOGUE: readonly CapabilityRule[] = [
     rationale: "Data classification, governance, or sensitive-information signals make Microsoft Purview a relevant capability to evaluate.",
     signals: [
       "data classification", "data governance", "sensitive information", "sensitive data",
-      "information protection", "data lifecycle", "data retention", "data loss prevention", "dlp",
+      "information protection", "data loss prevention", "dlp",
     ],
   },
   {
@@ -137,10 +137,6 @@ function matchedPhrase(text: string, phrase: string): string | undefined {
   return match?.[1];
 }
 
-function compareText(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-
 function directContext(graph: SecurityTraceGraph, selectedEntityId: string): TraceEntity[] {
   const selected = graph.entities.find(({ id }) => id === selectedEntityId);
   if (!selected) return [];
@@ -154,17 +150,12 @@ function directContext(graph: SecurityTraceGraph, selectedEntityId: string): Tra
   return [selected, ...graph.entities.filter(({ id }) => id !== selectedEntityId && directIds.has(id))];
 }
 
-function signalStrength(signal: string): number {
-  const normalized = normalize(signal);
-  return normalized.split(" ").length * 100 + normalized.length;
-}
-
 export function deriveMicrosoftSecurityLens(
   graph: SecurityTraceGraph,
   selectedEntityId: string,
 ): MicrosoftSecurityLensResult {
   const context = directContext(graph, selectedEntityId);
-  const matches = CATALOGUE.flatMap((rule, catalogueIndex) => {
+  const matches = CATALOGUE.flatMap((rule) => {
     const matchedEvidence: MicrosoftSecurityLensSignal[] = [];
     for (const signal of rule.signals) {
       for (const entity of context) {
@@ -176,39 +167,25 @@ export function deriveMicrosoftSecurityLens(
     }
     if (!matchedEvidence.length) return [];
 
-    matchedEvidence.sort((a, b) =>
-      signalStrength(b.signal) - signalStrength(a.signal)
-      || compareText(a.sourceEntityId, b.sourceEntityId)
-      || compareText(a.signal, b.signal));
-
     return [{
-      catalogueIndex,
-      match: {
-        capability: {
-          id: rule.id,
-          name: rule.name,
-          description: rule.description,
-          officialUrl: rule.officialUrl,
-        },
-        matchedSignals: matchedEvidence.reduce<string[]>((signals, { signal }) => {
-          if (!signals.some((existing) => normalize(existing) === normalize(signal))) signals.push(signal);
-          return signals;
-        }, []),
-        sourceEntityIds: [...new Set(matchedEvidence.map(({ sourceEntityId }) => sourceEntityId))],
-        matchedEvidence,
-        rationale: rule.rationale,
-        strongestSignal: signalStrength(matchedEvidence[0].signal),
+      capability: {
+        id: rule.id,
+        name: rule.name,
+        description: rule.description,
+        officialUrl: rule.officialUrl,
       },
+      matchedSignals: matchedEvidence.reduce<string[]>((signals, { signal }) => {
+        if (!signals.some((existing) => normalize(existing) === normalize(signal))) signals.push(signal);
+        return signals;
+      }, []),
+      sourceEntityIds: [...new Set(matchedEvidence.map(({ sourceEntityId }) => sourceEntityId))],
+      matchedEvidence,
+      rationale: rule.rationale,
     }];
   });
 
-  matches.sort((a, b) => b.match.strongestSignal - a.match.strongestSignal || a.catalogueIndex - b.catalogueIndex);
-
   return {
     selectedEntityId,
-    matches: matches.map(({ match }) => {
-      const { strongestSignal: _strongestSignal, ...publicMatch } = match;
-      return publicMatch;
-    }),
+    matches,
   };
 }

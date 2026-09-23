@@ -24,14 +24,14 @@ describe("Microsoft Security Lens", () => {
     expect(result.matches.map(({ capability }) => capability.id)).toContain(capabilityId);
   });
 
-  it("can return multiple capabilities in deterministic strongest-signal order", () => {
+  it("returns multiple capabilities in deterministic catalogue order", () => {
     const result = deriveMicrosoftSecurityLens(graph([
       entity("REQ-001", "Use MFA and store the API key in a vault."),
     ]), "REQ-001");
 
     expect(result.matches.map(({ capability }) => capability.id)).toEqual([
-      "key-vault",
       "entra-id",
+      "key-vault",
     ]);
   });
 
@@ -47,8 +47,8 @@ describe("Microsoft Security Lens", () => {
 
     expect(result.matches).toHaveLength(1);
     expect(result.matches[0].matchedEvidence).toEqual([
-      { sourceEntityId: "EVID-001", signal: "API key" },
       { sourceEntityId: "REQ-001", signal: "API key" },
+      { sourceEntityId: "EVID-001", signal: "API key" },
     ]);
   });
 
@@ -90,6 +90,31 @@ describe("Microsoft Security Lens", () => {
     ]), "REQ-001");
 
     expect(result.matches.map(({ capability }) => capability.id)).toEqual(["entra-id"]);
+  });
+
+  it("maps conditional access to Microsoft Entra ID", () => {
+    const result = deriveMicrosoftSecurityLens(graph([
+      entity("REQ-001", "Use conditional access for member sign-in."),
+    ]), "REQ-001");
+
+    expect(result.matches.map(({ capability }) => capability.id)).toEqual(["entra-id"]);
+  });
+
+  it("does not map generic data retention wording to Purview", () => {
+    const result = deriveMicrosoftSecurityLens(graph([
+      entity("REQ-001", "Retain customer data for seven years."),
+    ]), "REQ-001");
+
+    expect(result.matches).toEqual([]);
+  });
+
+  it.each([
+    "Apply data classification to sensitive information.",
+    "Use DLP controls for sensitive data.",
+  ])("maps strong Purview signals: %s", (label) => {
+    const result = deriveMicrosoftSecurityLens(graph([entity("REQ-001", label)]), "REQ-001");
+
+    expect(result.matches.map(({ capability }) => capability.id)).toEqual(["purview"]);
   });
 
   it("does not join separate entity fields to create a phrase match", () => {

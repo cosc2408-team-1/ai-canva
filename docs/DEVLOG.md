@@ -29,6 +29,20 @@ current state).
 
 ---
 
+## 2026-09-23 — Microsoft Security Lens acceptance alignment
+
+- **Done:** Kept generic authentication as a no-match, retained MFA and conditional-access Entra
+  signals, removed signal-strength ranking in favor of catalogue order, and removed broad Purview
+  data-retention/lifecycle triggers. Added focused regression coverage and documented the acceptance
+  boundary.
+- **Verified:** Focused Lens/Inspector tests 35/35; full server 69, client 458, and Functions 7
+  tests pass. Client, server, and Functions builds pass; `git diff --check` passes. The client build
+  retains the existing non-fatal Vite chunk-size advisory.
+- **In flight:** PR #38 remains open and unmerged for re-review.
+- **Next steps:** Push this follow-up to PR #38, update its acceptance notes, and confirm CI passes.
+
+---
+
 ## 2026-09-23 — Microsoft Security Lens
 
 - **Done:** Added a deterministic, client-side Microsoft Security Lens tab to the existing
