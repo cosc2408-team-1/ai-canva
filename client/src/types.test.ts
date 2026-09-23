@@ -141,4 +141,25 @@ describe("Security Advisor box", () => {
     }
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
   });
+
+  it("defines numeric guidance IDs and list-shaped recommendation fields without changing interviews", () => {
+    const { defaultPrompt, defaultSystemPrompt } = BOX_TYPES.securityadvisor;
+
+    for (const prompt of [defaultPrompt, defaultSystemPrompt]) {
+      expect(prompt).toContain("NEXT-001");
+      const listRule = prompt.match(/(?:Write|Emit) ([^.]+) as YAML lists/);
+      for (const field of ["inputs_to_prepare", "human_review", "assumptions", "limitations", "relevant_upstream_references"]) {
+        expect(listRule?.[1]).toContain(field);
+      }
+      expect(prompt).toContain("interview_required");
+      expect(prompt).toContain("focused_questions");
+      expect(prompt).toMatch(/recommendation fields are not required for interview_required/i);
+    }
+    expect(defaultPrompt).toContain('human_review:\n  - "Project owner confirms scope."');
+    expect(defaultSystemPrompt).toContain("positive numeric suffix");
+    for (const invalidId of ["NEXT-security", "NEXT-review", "NEXT-1A"]) {
+      expect(defaultSystemPrompt).toContain(invalidId);
+    }
+    expect(defaultSystemPrompt).toMatch(/never emit human_review as a scalar string/i);
+  });
 });
