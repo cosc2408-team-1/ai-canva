@@ -109,6 +109,80 @@ describe("security traceability graph", () => {
     });
   });
 
+  it("does not infer a requirement relationship from a wrong reference namespace", () => {
+    const output = `artifact_type: RequirementsPackage
+schema_version: "1.0"
+assets: []
+requirements:
+  - id: REQ-001
+    shall_statement: The system SHALL authenticate members.
+    evidence_refs: [REQ-002]
+  - id: REQ-002
+    shall_statement: The system SHALL record authentication events.
+evidence_register: []`;
+    const graph = buildSecurityTraceGraph([source("requirements-box", "reqelicitor", output)]);
+
+    expect(graph.relations).toEqual([]);
+  });
+
+  it("does not relate valid entities when their IDs appear in the wrong field", () => {
+    const output = `artifact_type: RequirementsPackage
+schema_version: "1.0"
+assets: []
+requirements:
+  - id: REQ-001
+    shall_statement: The system SHALL authenticate members.
+    evidence_refs: [EVID-001]
+evidence_register:
+  - id: EVID-001
+    statement: Members use university accounts.`;
+    const graph = buildSecurityTraceGraph([source("requirements-box", "reqelicitor", output)]);
+
+    expect(graph.entities.map(({ id }) => id)).toEqual(expect.arrayContaining(["REQ-001", "EVID-001"]));
+    expect(graph.relations).toEqual([]);
+  });
+
+  it("applies the same field whitelist to Advisor references", () => {
+    const advisorWithWrongField = advisorOutput.replace(
+      "relevant_upstream_references: [AST-001, EVID-001, REQ-001, GAP-001]",
+      "evidence_refs: [EVID-001]",
+    );
+    const graph = buildSecurityTraceGraph([
+      fullWorkflow[0],
+      source("advisor-box", "securityadvisor", advisorWithWrongField),
+    ]);
+
+    expect(graph.relations.filter(({ sourceBoxId }) => sourceBoxId === "advisor-box")).toEqual([]);
+  });
+
+  it("creates every allowed relation only for its whitelisted field and namespace", () => {
+    const relatedRequirements = source("related-requirements-box", "reqelicitor", `artifact_type: RequirementsPackage
+schema_version: "1.0"
+assets: []
+requirements:
+  - id: REQ-001
+    shall_statement: The system SHALL authenticate members.
+    related_requirements: [REQ-002]
+  - id: REQ-002
+    shall_statement: The system SHALL record authentication events.
+evidence_register: []`);
+    const graph = buildSecurityTraceGraph([...fullWorkflow, relatedRequirements]);
+
+    expect(graph.relations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ from: "EVID-001", to: "AST-001", kind: "supports", sourceBoxId: "asset-box" }),
+      expect.objectContaining({ from: "EVID-001", to: "REQ-001", kind: "supports", sourceBoxId: "requirements-box" }),
+      expect.objectContaining({ from: "AST-001", to: "REQ-001", kind: "supports", sourceBoxId: "requirements-box" }),
+      expect.objectContaining({ from: "REQ-002", to: "REQ-001", kind: "related_to", sourceBoxId: "related-requirements-box" }),
+      expect.objectContaining({ from: "AST-001", to: "GAP-001", kind: "assessed_by", sourceBoxId: "nist-box" }),
+      expect.objectContaining({ from: "EVID-001", to: "GAP-001", kind: "assessed_by", sourceBoxId: "nist-box" }),
+      expect.objectContaining({ from: "REQ-001", to: "GAP-001", kind: "assessed_by", sourceBoxId: "nist-box" }),
+      expect.objectContaining({ from: "AST-001", to: "NEXT-001", kind: "informs_guidance", sourceBoxId: "advisor-box" }),
+      expect.objectContaining({ from: "EVID-001", to: "NEXT-001", kind: "informs_guidance", sourceBoxId: "advisor-box" }),
+      expect.objectContaining({ from: "REQ-001", to: "NEXT-001", kind: "informs_guidance", sourceBoxId: "advisor-box" }),
+      expect.objectContaining({ from: "GAP-001", to: "NEXT-001", kind: "informs_guidance", sourceBoxId: "advisor-box" }),
+    ]));
+  });
+
   it("creates upstream-to-GAP and upstream-to-NEXT relations from reference arrays", () => {
     const graph = buildSecurityTraceGraph(fullWorkflow);
     expect(graph.relations).toEqual(expect.arrayContaining([
@@ -125,6 +199,9 @@ describe("security traceability graph", () => {
     expect(traceConnectedEntityIds(graph, "AST-001")).toEqual([
       "AST-001", "EVID-001", "REQ-001", "GAP-001", "NEXT-001",
     ]);
+    expect(traceConnectedEntityIds(graph, "REQ-001")).toEqual(expect.arrayContaining([
+      "REQ-001", "EVID-001", "AST-001", "GAP-001", "NEXT-001",
+    ]));
     expect(traceBoxIds(graph, "AST-001")).toEqual([
       "asset-box", "requirements-box", "nist-box", "advisor-box",
     ]);

@@ -184,13 +184,27 @@ function collectRefs(value: unknown, path: string, output: Array<{ field: string
   return output;
 }
 
-function relationForOwner(owner: IdPrefix, reference: IdPrefix): { from: string; to: string; kind: TraceRelationKind } | null {
-  if (owner === "AST" && reference === "EVID") return { from: "reference", to: "owner", kind: "supports" };
-  if (owner === "REQ" && reference === "EVID") return { from: "reference", to: "owner", kind: "supports" };
-  if (owner === "REQ" && reference === "AST") return { from: "reference", to: "owner", kind: "supports" };
-  if (owner === "REQ" && reference === "REQ") return { from: "reference", to: "owner", kind: "related_to" };
-  if (owner === "GAP" && ["AST", "EVID", "REQ"].includes(reference)) return { from: "reference", to: "owner", kind: "assessed_by" };
-  if (owner === "NEXT" && ["AST", "EVID", "REQ", "GAP"].includes(reference)) return { from: "reference", to: "owner", kind: "informs_guidance" };
+function relationForReference(
+  owner: IdPrefix,
+  field: string,
+  reference: IdPrefix,
+): { from: "reference" | "owner"; to: "reference" | "owner"; kind: TraceRelationKind } | null {
+  if (owner === "AST" && field === "evidence_refs" && reference === "EVID") {
+    return { from: "reference", to: "owner", kind: "supports" };
+  }
+  if (owner === "REQ") {
+    if (field === "source_refs" && reference === "EVID") return { from: "reference", to: "owner", kind: "supports" };
+    if (field === "asset_refs" && reference === "AST") return { from: "reference", to: "owner", kind: "supports" };
+    if (field === "related_requirements" && reference === "REQ") return { from: "reference", to: "owner", kind: "related_to" };
+  }
+  if (owner === "GAP") {
+    if (field === "related_assets" && reference === "AST") return { from: "reference", to: "owner", kind: "assessed_by" };
+    if (field === "related_evidence" && reference === "EVID") return { from: "reference", to: "owner", kind: "assessed_by" };
+    if (field === "related_requirements" && reference === "REQ") return { from: "reference", to: "owner", kind: "assessed_by" };
+  }
+  if (owner === "NEXT" && field === "relevant_upstream_references" && ["AST", "EVID", "REQ", "GAP"].includes(reference)) {
+    return { from: "reference", to: "owner", kind: "informs_guidance" };
+  }
   return null;
 }
 
@@ -209,9 +223,9 @@ function addRelationsFromDefinitions(
     const ownerId = item && identifier(item, ownerKeys, ownerPrefix);
     if (!item || !ownerId) return;
     const refs = collectRefs(item, `${basePath}${field}[${index}]`);
-    refs.forEach(({ id, path }) => {
+    refs.forEach(({ field: referenceField, id, path }) => {
       const referencePrefix = prefix(id)!;
-      const relation = relationForOwner(ownerPrefix, referencePrefix);
+      const relation = relationForReference(ownerPrefix, referenceField, referencePrefix);
       if (!relation) return;
       relations.push({
         from: relation.from === "owner" ? ownerId : id,
@@ -259,10 +273,17 @@ function collectSource(
   } else {
     addAdvisorDefinition(entities, source, artifact);
     if (prefix(typeof artifact.guidance_id === "string" ? artifact.guidance_id : "") === "NEXT") {
-      collectRefs(artifact, "").forEach(({ id, path }) => {
+      collectRefs(artifact, "").forEach(({ field, id, path }) => {
         const referencePrefix = prefix(id)!;
-        if (!["AST", "EVID", "REQ", "GAP"].includes(referencePrefix)) return;
-        relations.push({ from: id, to: artifact.guidance_id as string, kind: "informs_guidance", sourceBoxId: source.boxId, sourcePath: path });
+        const relation = relationForReference("NEXT", field, referencePrefix);
+        if (!relation) return;
+        relations.push({
+          from: relation.from === "owner" ? artifact.guidance_id as string : id,
+          to: relation.to === "owner" ? artifact.guidance_id as string : id,
+          kind: relation.kind,
+          sourceBoxId: source.boxId,
+          sourcePath: path,
+        });
       });
     }
   }
