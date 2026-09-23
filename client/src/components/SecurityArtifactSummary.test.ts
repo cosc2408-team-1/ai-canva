@@ -12,6 +12,15 @@ const summary: Summary = {
   description: "Based on supplied information.",
   metrics: [],
   examples: ["Asset 1", "Asset 2", "Asset 3", "Asset 4", "Asset 5"],
+  sections: [{
+    heading: "Evidence excerpts",
+    items: [
+      { text: "EVID-001 — First statement", detail: "Project brief" },
+      { text: "EVID-002 — Second statement" },
+      { text: "EVID-003 — Third statement" },
+      { text: "EVID-004 — Fourth statement" },
+    ],
+  }],
   clarificationItems: [1, 2, 3, 4, 5].map((n) => ({ text: `Question ${n}?` })),
   inputsToPrepare: [],
   humanReview: [],
@@ -43,6 +52,17 @@ async function click(label: string) {
 }
 
 describe("SecurityArtifactSummary", () => {
+  it("shows three ordered excerpts, optional detail, and Technical artifact overflow", async () => {
+    await render(true);
+    expect(container.textContent).toContain("Evidence excerpts");
+    expect(container.textContent).toContain("EVID-001 — First statement");
+    expect(container.textContent).toContain("Project brief");
+    expect(container.textContent).toContain("EVID-003 — Third statement");
+    expect(container.textContent).not.toContain("EVID-004 — Fourth statement");
+    expect(container.textContent).toContain("+ 1 more in Technical artifact");
+    expect(container.querySelectorAll("section ul")[1]?.children).toHaveLength(3);
+  });
+
   it("shows three assets by default and expands and collapses all asset names", async () => {
     await render(true);
     expect(container.textContent).toContain("Asset 3");
