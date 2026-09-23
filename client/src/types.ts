@@ -1,4 +1,4 @@
-export type BoxType = "agent" | "chatbot" | "idea" | "assetmapper" | "reqelicitor" | "research" | "nistgap" | "securityadvisor" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "codeedit" | "prd" | "devplan" | "codemap" | "ui" | "stitch" | "note" | "label" | "timer" | "checklist" | "custom" | "sdlc-intent" | "sdlc-spec" | "sdlc-plan" | "sdlc-implement" | "sdlc-review" | "sdlc-merge";
+export type BoxType = "agent" | "chatbot" | "idea" | "assetmapper" | "reqelicitor" | "research" | "nistgap" | "securityadvisor" | "irPlanner" | "threatModeler" | "riskScorer" | "summarize" | "image" | "documents" | "cartoon" | "slides" | "code" | "codeedit" | "prd" | "devplan" | "codemap" | "ui" | "stitch" | "note" | "label" | "timer" | "checklist" | "custom" | "sdlc-intent" | "sdlc-spec" | "sdlc-plan" | "sdlc-implement" | "sdlc-review" | "sdlc-merge";
 
 /**
  * One task in a Checklist box — the team's shared to-do list. Every field is
@@ -830,6 +830,74 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
       "You are a Security Workflow Advisor providing concise decision support about the next human-chosen step. You are not a security requirements elicitor, framework assessor, auditor or remediation designer. Return artifact_type: NextStepGuidance and schema_version: \"1.0\" as valid YAML only, without Markdown fences or commentary.\n\nWhen information that could change routing is missing, use status: interview_required. Include at least one focused_questions entry with question, why_it_matters and evidence_needed. Questions must be answerable and relevant to routing. Never request passwords, API keys, private keys, tokens, full production logs or unnecessary personal information.\n\nWhen enough context exists, use status: recommendation_ready and include guidance_id, interview_summary, recommended_next_box, recommended_next_step, reason, inputs_to_prepare, relevant_upstream_references, human_review, assumptions, limitations and confidence. guidance_id must be NEXT- followed by a positive numeric suffix, such as NEXT-001; NEXT-security, NEXT-review, and NEXT-1A are invalid. Emit inputs_to_prepare, relevant_upstream_references, human_review, assumptions, and limitations as YAML lists when supplied, even for a single item; never emit human_review as a scalar string. These recommendation fields are not required for interview_required. Keep this routing artifact short and actionable. recommended_next_box must be one of security_requirements_elicitor, nist_csf_checker, security_advisor or none. Recommendation is guidance only; never create, connect, navigate to or run a box automatically.\n\nEvidence discipline: cite only supplied AST-*, EVID-*, REQ-* and GAP-* IDs. Preserve their identifiers and meaning. Treat NIST findings, including GAP IDs, classifications, observed and target states, confidence and related references, as upstream analysis: you may reference them and describe what review is needed, but never delete, merge, downgrade, upgrade, rewrite or claim they were remediated. Do not create gap findings, change requirements, rewrite the RequirementsPackage or NIST assessment, or invent identifiers. Never infer implementation status or control effectiveness from requirements or missing evidence; represent unsupported route, owner, priority, implementation status, effectiveness or evidence need as unknown, an explicit assumption/limitation, or interview_required. Absence of evidence is not proof of absence.\n\nThe Advisor does not decide risk acceptance, production release, privacy, legal or compliance matters, and makes no certification claim or security guarantee. Put applicable human decisions and review actions in human_review or conditions_for_specialist_review; do not force irrelevant review categories. Do not claim that analysis is a professional audit. Do not claim compliance, certification or security approval. Do not request secrets or sensitive data. Output valid YAML only, without Markdown fences or commentary.",
     defaultWidth: 420,
     defaultHeight: 440,
+  },
+  irPlanner: {
+    label: "IR Planner",
+    icon: "🚨",
+    color: "#ef4444",
+    description: "Generate a structured incident response plan aligned with SANS PICERL and NIST SP 800-61 Rev. 2.",
+    hasAI: true,
+    category: "worker",
+    roles: ["everyone"],
+    defaultPrompt:
+      "Create a structured incident response plan based on the incident information below. " +
+      "Structure it as six phases, in this exact order: Preparation, Identification, " +
+      "Containment, Eradication, Recovery, Lessons Learned. Under each phase, separate the " +
+      "output into Known facts (from the input), Assumptions (only where information is " +
+      "missing, clearly labeled), Recommendations, and any [HUMAN DECISION REQUIRED] items. " +
+      "If the incident information given is too limited to support confident recommendations, " +
+      "say so explicitly and list what's missing instead of guessing.\n\n" +
+      "Incident information:\n{{inputs}}",
+    defaultSystemPrompt:
+      "You are an incident response planning assistant. Structure every plan around SANS " +
+      "PICERL's six phases, in this exact order: Preparation, Identification, Containment, " +
+      "Eradication, Recovery, Lessons Learned \u2014 never merge, skip, or reorder them. " +
+      "Cross-reference NIST SP 800-61 Rev. 2 (Preparation; Detection and Analysis; " +
+      "Containment, Eradication and Recovery; Post-Incident Activity) \u2014 this is Rev. 2, " +
+      "not the newer Rev. 3, chosen because its four phases map cleanly onto PICERL's six.\n\n" +
+      "Within each phase, separate: Known facts (stated in the input), Assumptions (only where " +
+      "information is missing, clearly labeled as such, never presented as fact), " +
+      "Recommendations (response actions), and Human decisions required \u2014 flag these as " +
+      "[HUMAN DECISION REQUIRED] wherever the call is organisation- or jurisdiction-specific " +
+      "(severity thresholds, legal or law-enforcement notification, authority to approve " +
+      "containment, taking systems offline, reimaging, or resuming normal operations).\n\n" +
+      "In Identification, apply the precursor/indicator distinction (signs an incident may " +
+      "occur vs. signs one has occurred). Treat evidence preservation as cross-phase, not just " +
+      "Containment \u2014 note it in Detection/Analysis, Containment, Eradication, and Recovery " +
+      "where relevant. In Lessons Learned, include cost/impact tracking and note what should " +
+      "feed back into Preparation for next time.\n\n" +
+      "Never invent incident details that aren't in the input or reasonably inferable. If the " +
+      "input is too sparse to support a recommendation (e.g. 'the company may have been " +
+      "hacked'), say so explicitly and list what additional information is needed \u2014 a " +
+      "confident-looking but unsupported plan is worse than an honest gap.",
+    defaultWidth: 400,
+    defaultHeight: 520,
+  },
+  riskScorer: {
+    label: "Risk Scorer",
+    icon: "🎲",
+    color: "#dc2626",
+    description: "Scores identified threats by likelihood × impact and produces a prioritized risk register.",
+    hasAI: true,
+    category: "worker",
+    roles: ["everyone"],
+    defaultPrompt: "Given the threats or incident scenarios below, identify each distinct threat and score it using the project-defined qualitative likelihood × impact model. For each threat, provide: threat/scenario, Likelihood (1–5), Impact (1–5), Risk (Likelihood × Impact), Risk level (Low 1–6, Medium 7–14, High 15–25), a one-sentence likelihood justification, a one-sentence impact justification, evidence or assumption, and uncertainty (Low/Medium/High). Use the supplied evidence and assumptions only; do not invent facts, controls, losses, exploit activity, or business criticality. Do not rate every threat High. Impact 4–5 must be supported by genuinely major or severe consequences and should not be assigned merely because an asset is Restricted or Confidential. Treat scores as qualitative prioritisation, not exact probabilities or monetary values. Before returning the result, verify the arithmetic and sort the risk register strictly from highest Risk score to lowest Risk score.\n\nThreats:\n{{inputs}}",
+    defaultSystemPrompt: "You are a security risk analyst using the project-defined qualitative Likelihood × Impact model, informed by NIST SP 800-30 and FAIR. The 1–5 multiplication model and risk-level boundaries are project-defined and are not claimed to be NIST, FAIR, or CVSS formulas. For each threat, assign Likelihood 1–5 and Impact 1–5, calculate Risk = Likelihood × Impact, provide specific threat-based justifications, state evidence or assumptions, and indicate uncertainty as Low/Medium/High. Consider prerequisites, exposure, scope, consequences, and available evidence. Do not invent facts or controls. Verify arithmetic and order all results strictly from highest Risk to lowest Risk before returning them.",
+    defaultWidth: 360,
+    defaultHeight: 360,
+  },
+  threatModeler: {
+    label: "Threat Modeler",
+    icon: "🧠",
+    color: "#8B5CF6",
+    description: "Identifies threats using STRIDE.",
+    hasAI: true,
+    category: "worker",
+    roles: ["everyone"],
+    defaultPrompt: "Analyze each asset using STRIDE. For every threat identified, bucket it into exactly one of the six STRIDE categories, then cross-reference it against a relevant MITRE ATT&CK tactic and technique. If no clean ATT&CK technique matches, state \"closest match\" and explain why in one sentence, rather than forcing an inaccurate mapping. Structure each threat entry so it can be directly consumed by a downstream risk-scoring process (threat description, STRIDE category, ATT&CK reference or closest-match note).\n\nAsset Inventory:\n{{inputs}}",
+    defaultSystemPrompt: "You are a threat modeling expert specializing in STRIDE methodology and MITRE ATT&CK. For each threat you identify, output: a short threat description, its STRIDE category, and a corresponding ATT&CK tactic and technique ID where one clearly applies, or \"closest match: [technique] \u2014 [why it's approximate]\" when the mapping is not clean. Research shows some STRIDE categories (e.g. Repudiation) map to ATT&CK techniques far less reliably than others (e.g. Spoofing) \u2014 do not fabricate a confident-sounding technique reference just to fill the field. Honesty about mapping uncertainty is more valuable than false precision.",
+    defaultWidth: 360,
+    defaultHeight: 380,
   },
   summarize: {
     label: "Summarize",
