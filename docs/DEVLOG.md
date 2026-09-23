@@ -42,8 +42,9 @@ current state).
   the existing non-fatal chunk-size advisory.
 - **In flight:** PR #39 remains open and unmerged. The authenticated live walkthrough remains
   unverified; automated Canvas interaction tests cover the reported ownership and Lens cases.
-- **Next steps:** Confirm CI `verify` passes on the latest PR merge ref and complete the live
-  walkthrough when an authenticated board is available. Do not merge automatically.
+  CI `verify` passed on the updated merge ref for `0e9da35`.
+- **Next steps:** Complete the live walkthrough when an authenticated board is available. Do not
+  merge automatically.
 
 ## 2026-09-23 — Guided Security Assessment demo
 
