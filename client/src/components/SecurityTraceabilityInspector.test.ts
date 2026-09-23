@@ -53,8 +53,9 @@ async function render(value: SecurityTraceGraph = graph, selectedEntityId = "REQ
 const lensGraph: SecurityTraceGraph = {
   ...graph,
   entities: graph.entities.map((item) => {
-    if (item.id === "REQ-001") return { ...item, label: "Member authentication requirement" };
+    if (item.id === "REQ-001") return { ...item, label: "Require MFA for member authentication" };
     if (item.id === "EVID-001") return { ...item, detail: "The provider API key is stored server-side." };
+    if (item.id === "GAP-001") return { ...item, label: "Review MFA controls" };
     return item;
   }),
 };
@@ -111,7 +112,7 @@ describe("SecurityTraceabilityInspector", () => {
     expect(container.textContent).toContain("Microsoft Entra ID");
     expect(container.textContent).toContain("Azure Key Vault");
     expect(container.textContent).toContain("Matched because");
-    expect(container.textContent).toContain("REQ-001 · authentication");
+    expect(container.textContent).toContain("REQ-001 · MFA");
     expect(container.textContent).toContain("EVID-001 · API key");
     expect(container.textContent).toContain("not a compliance determination or Microsoft endorsement");
     expect(container.querySelector('a[target="_blank"][rel="noopener noreferrer"]')).not.toBeNull();
@@ -119,7 +120,7 @@ describe("SecurityTraceabilityInspector", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     await act(async () => traceabilityTab.click());
-    expect(container.textContent).toContain("Member authentication requirement");
+    expect(container.textContent).toContain("Require MFA for member authentication");
     expect(container.textContent).toContain("Evidence");
     expect(onSelectEntity).not.toHaveBeenCalled();
     fetchSpy.mockRestore();

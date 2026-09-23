@@ -48,7 +48,7 @@ const CATALOGUE: readonly CapabilityRule[] = [
     rationale: "Identity and access signals in this trace context make Microsoft Entra ID a relevant capability to evaluate.",
     signals: [
       "conditional access", "multifactor authentication", "multi factor authentication",
-      "multi-factor authentication", "mfa", "authentication", "authorization", "access control", "identity",
+      "multi-factor authentication", "mfa",
     ],
   },
   {
@@ -60,7 +60,6 @@ const CATALOGUE: readonly CapabilityRule[] = [
     signals: [
       "credential storage", "secret management", "secrets management", "secret storage",
       "cryptographic keys", "encryption keys", "api keys", "api key", "access keys", "access key",
-      "certificates", "certificate", "credentials", "credential", "secrets", "secret",
     ],
   },
   {
@@ -93,7 +92,7 @@ const CATALOGUE: readonly CapabilityRule[] = [
     officialUrl: "https://learn.microsoft.com/en-us/azure/sentinel/sentinel-overview",
     rationale: "Security logging, threat detection, or incident-response signals make Microsoft Sentinel a relevant capability to evaluate.",
     signals: [
-      "incident response", "threat detection", "security analytics", "security monitoring", "security logging",
+      "threat detection", "security analytics", "security monitoring", "security logging",
       "security logs", "security events", "log management", "siem", "soar",
     ],
   },
@@ -105,7 +104,7 @@ const CATALOGUE: readonly CapabilityRule[] = [
     rationale: "Data classification, governance, or sensitive-information signals make Microsoft Purview a relevant capability to evaluate.",
     signals: [
       "data classification", "data governance", "sensitive information", "sensitive data",
-      "information protection", "data lifecycle", "data retention", "data loss prevention", "data privacy", "dlp",
+      "information protection", "data lifecycle", "data retention", "data loss prevention", "dlp",
     ],
   },
   {
@@ -116,7 +115,7 @@ const CATALOGUE: readonly CapabilityRule[] = [
     rationale: "Repository, code-scanning, or dependency-security signals make GitHub Advanced Security a relevant capability to evaluate.",
     signals: [
       "github advanced security", "software supply chain security", "dependency scanning", "dependency review",
-      "secret scanning", "code scanning", "repository security", "repo security", "secure development", "code security",
+      "secret scanning", "code scanning", "repository security", "repo security", "code security",
     ],
   },
 ];

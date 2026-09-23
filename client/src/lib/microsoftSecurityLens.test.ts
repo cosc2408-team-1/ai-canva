@@ -57,6 +57,41 @@ describe("Microsoft Security Lens", () => {
     expect(result.matches).toEqual([]);
   });
 
+  it.each([
+    "Authentication is required.",
+    "The application must enforce authorization.",
+    "Prepare an incident response plan.",
+    "Perform a data privacy review.",
+    "Follow secure development practices.",
+  ])("does not map a weak security signal: %s", (label) => {
+    const result = deriveMicrosoftSecurityLens(graph([entity("REQ-001", label)]), "REQ-001");
+    expect(result.matches).toEqual([]);
+  });
+
+  it("maps secret scanning only to GitHub Advanced Security", () => {
+    const result = deriveMicrosoftSecurityLens(graph([
+      entity("REQ-001", "Enable secret scanning for repositories."),
+    ]), "REQ-001");
+
+    expect(result.matches.map(({ capability }) => capability.id)).toEqual(["github-advanced-security"]);
+  });
+
+  it("maps secure API-key storage to Azure Key Vault", () => {
+    const result = deriveMicrosoftSecurityLens(graph([
+      entity("REQ-001", "Store API keys in secure secret storage."),
+    ]), "REQ-001");
+
+    expect(result.matches.map(({ capability }) => capability.id)).toEqual(["key-vault"]);
+  });
+
+  it("maps explicit MFA requirements to Microsoft Entra ID", () => {
+    const result = deriveMicrosoftSecurityLens(graph([
+      entity("REQ-001", "Require MFA for member authentication."),
+    ]), "REQ-001");
+
+    expect(result.matches.map(({ capability }) => capability.id)).toEqual(["entra-id"]);
+  });
+
   it("does not join separate entity fields to create a phrase match", () => {
     const result = deriveMicrosoftSecurityLens(graph([
       entity("REQ-001", "cloud", "security posture"),
