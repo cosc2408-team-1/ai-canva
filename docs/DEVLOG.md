@@ -38,9 +38,9 @@ current state).
 - **Verified:** Server 69/69, client 471/471, and Functions 7/7 tests pass; client, server, and
   Functions builds pass; `git diff --check` passes. The client build retains the existing
   non-fatal chunk-size advisory.
-- **In flight:** PR #39 remains open and unmerged pending CI and re-review.
-- **Next steps:** Confirm PR #39 CI `verify` passes on the updated merge ref. Do not merge
-  automatically.
+- **In flight:** PR #39 remains open and unmerged for re-review. CI `verify` passed on the
+  updated merge ref for implementation commit `ea88729`.
+- **Next steps:** Re-review PR #39. Do not merge automatically.
 
 ## 2026-09-23 — Guided Security Assessment demo
 
