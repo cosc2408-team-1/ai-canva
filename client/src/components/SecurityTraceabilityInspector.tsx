@@ -9,7 +9,7 @@ import {
   traceRelationshipLabel,
 } from "../lib/securityTraceabilityPresentation.js";
 
-type InspectorView = "traceability" | "microsoft-security-lens";
+export type InspectorView = "traceability" | "microsoft-security-lens";
 const INSPECTOR_VIEWS: InspectorView[] = ["traceability", "microsoft-security-lens"];
 
 export default function SecurityTraceabilityInspector({
@@ -17,23 +17,35 @@ export default function SecurityTraceabilityInspector({
   selectedEntityId,
   onSelectEntity,
   onClose,
+  escapeEnabled = true,
+  view,
+  onViewChange,
 }: {
   graph: SecurityTraceGraph;
   selectedEntityId: string;
   onSelectEntity: (id: string) => void;
   onClose: () => void;
+  escapeEnabled?: boolean;
+  view?: InspectorView;
+  onViewChange?: (view: InspectorView) => void;
 }) {
   const entity = traceEntity(graph, selectedEntityId);
   const groups = traceabilityGroups(graph, selectedEntityId);
   const lens = deriveMicrosoftSecurityLens(graph, selectedEntityId);
-  const [activeView, setActiveView] = useState<InspectorView>("traceability");
+  const [localView, setLocalView] = useState<InspectorView>("traceability");
+  const activeView = view ?? localView;
   const tabRefs = useRef<Record<InspectorView, HTMLButtonElement | null>>({
     traceability: null,
     "microsoft-security-lens": null,
   });
 
+  const changeView = (nextView: InspectorView) => {
+    setLocalView(nextView);
+    onViewChange?.(nextView);
+  };
+
   const activateView = (view: InspectorView) => {
-    setActiveView(view);
+    changeView(view);
     tabRefs.current[view]?.focus();
   };
 
@@ -50,12 +62,13 @@ export default function SecurityTraceabilityInspector({
   };
 
   useEffect(() => {
+    if (!escapeEnabled) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [escapeEnabled, onClose]);
 
   if (!entity) return null;
 
@@ -92,7 +105,7 @@ export default function SecurityTraceabilityInspector({
                 aria-selected={selected}
                 aria-controls={`${view}-panel`}
                 tabIndex={selected ? 0 : -1}
-                onClick={() => setActiveView(view)}
+                onClick={() => changeView(view)}
                 onKeyDown={onTabKeyDown}
                 className={`min-h-8 truncate rounded px-1 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selected ? "bg-indigo-50 text-indigo-800" : "text-slate-600 hover:bg-slate-50"}`}
               >

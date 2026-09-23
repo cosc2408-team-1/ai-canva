@@ -29,6 +29,41 @@ current state).
 
 ---
 
+## 2026-09-24 — Guided demo merge-gate hardening
+
+- **Done:** Synced PR #39 with `main@7c53ea5`, scoped guided-demo trace and Microsoft Lens
+  targets to the detected Security Assessment workflow, made manual selection relinquish demo
+  ownership even for the same stable ID, and required a direct relation for visual traceability.
+  Fixed Escape ownership between the Coachmark and Inspector, added a working Inspector reopen
+  action, corrected Lens-step guidance, and included `.test.tsx` files in default Vitest discovery.
+  Added Canvas/Coachmark/Inspector integration regressions.
+- **Verified:** Server 69/69, client 484/484 across 45 files, and Functions 7/7 tests pass;
+  client, server, and Functions builds pass; `git diff --check` passes. The client build retains
+  the existing non-fatal chunk-size advisory.
+- **In flight:** PR #39 remains open and unmerged. The authenticated live walkthrough remains
+  unverified; automated Canvas interaction tests cover the reported ownership and Lens cases.
+  CI `verify` passed on the updated merge ref for `0e9da35`.
+- **Next steps:** Complete the live walkthrough when an authenticated board is available. Do not
+  merge automatically.
+
+## 2026-09-23 — Guided Security Assessment demo
+
+- **Done:** Added a four-step, non-persistent presenter guide over the connected Security
+  Assessment workflow. It chooses real trace/Lens targets from current outputs, reuses the
+  existing Inspector, and never runs boxes or changes board data. Added preparation and fallback
+  guidance in `docs/DEMO.md`.
+- **Verified:** Server 69/69, client 466/466, and Functions 7/7 tests pass; client, server, and
+  Functions builds pass; `git diff --check` passes. Client build retains the existing non-fatal
+  chunk-size advisory. PR #39 CI `verify` passed at `9361de6`. A fresh local browser reached sign-in,
+  not an authenticated populated board; no timed four-step walkthrough was possible. The browser
+  reported a missing favicon request.
+- **In flight:** PR #39 is open from `feat/security-guided-demo` against `main` and remains
+  unmerged.
+- **Next steps:** Complete the timed walkthrough when an authenticated populated board is available.
+  Do not merge automatically.
+
+---
+
 ## 2026-09-23 — Microsoft Security Lens acceptance alignment
 
 - **Done:** Kept generic authentication as a no-match, retained MFA and conditional-access Entra

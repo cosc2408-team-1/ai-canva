@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 // (getServerPort()) and production manualChunks — neither is needed in tests.
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
     environment: "node",
   },
 });

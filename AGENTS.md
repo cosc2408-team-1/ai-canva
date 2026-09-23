@@ -171,6 +171,14 @@ authorization, identity, incident response, data privacy, secure development, an
 language do not independently identify a Microsoft product; explicit signals such as MFA or
 conditional access may support an Entra ID match.
 
+**Guided Security Assessment demo:** `securityDemo.ts` detects the connected Project Description ->
+Asset Mapper -> Requirements Elicitor -> NIST CSF Gap Checker -> Security Advisor path and chooses
+current trace/Lens targets deterministically. `securityDemoStore.ts` is transient and has no
+persistence middleware. The Canvas coachmark only navigates existing outputs, the trace graph, and
+the Inspector; it must never run boxes, call AI, mutate board data, or alter trace/Lens semantics.
+It clears only a trace selection created by the demo on Finish/Escape, board changes, or Canvas unmount.
+See `docs/DEMO.md` for presenter preparation and fallbacks.
+
 ## Admin board
 
 Admins can view system-wide usage (total users, active users, new users/boards in 7 days, storage
