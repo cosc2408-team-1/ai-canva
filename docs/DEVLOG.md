@@ -38,9 +38,10 @@ current state).
   three builds pass, with the existing non-fatal Vite chunk-size advisory. Browser checks covered
   Lens reset/reopen, active Guided Demo preservation, and sequential Documents/Asset Mapper/Research
   additions on the saved PR#29 board; no console errors. No saved Custom Box template was available.
-- **In flight:** Changes are prepared for the existing PR #41 branch; check CI after pushing. The
-  three manual placement test boxes remain on PR#29 because the app has no recoverable deletion flow.
-- **Next steps:** Commit and push to `fix/final-demo-polish`, confirm PR #41 CI, and leave it open.
+  PR #41 CI `verify` passed on `edf2fbb` (run 35942414508).
+- **In flight:** PR #41 remains open and unmerged. The three manual placement test boxes remain on
+  PR#29 because the app has no recoverable deletion flow.
+- **Next steps:** Leave PR #41 open for review; do not merge automatically.
 
 ---
 
