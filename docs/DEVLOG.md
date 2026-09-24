@@ -29,6 +29,21 @@ current state).
 
 ---
 
+## 2026-09-24 — PR #41 Add Box placement and trace reset
+
+- **Done:** Made Add Box clear the transient trace selection and reset the local Inspector to
+  Traceability without ending Guided Demo. Added deterministic row-major box placement with a
+  fixed 32px gap, measured-size handling, and exclusions for Area and pending Chatbot nodes.
+- **Verified:** Server 69/69, client 517/517 across 50 files, and Functions 7/7 tests pass; all
+  three builds pass, with the existing non-fatal Vite chunk-size advisory. Browser checks covered
+  Lens reset/reopen, active Guided Demo preservation, and sequential Documents/Asset Mapper/Research
+  additions on the saved PR#29 board; no console errors. No saved Custom Box template was available.
+- **In flight:** Changes are prepared for the existing PR #41 branch; check CI after pushing. The
+  three manual placement test boxes remain on PR#29 because the app has no recoverable deletion flow.
+- **Next steps:** Commit and push to `fix/final-demo-polish`, confirm PR #41 CI, and leave it open.
+
+---
+
 ## 2026-09-24 — PR #41 final acceptance cleanup
 
 - **Done:** Added an explicit `Status:` heading to the Security Engineering guide; moved the

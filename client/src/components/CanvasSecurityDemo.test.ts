@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, createElement, useContext, type ReactNode } from "react";
+import { act, createElement, useContext, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBoardStore } from "../store/boardStore.js";
@@ -7,13 +7,21 @@ import { useSecurityDemoStore } from "../store/securityDemoStore.js";
 import { useSecurityTraceStore } from "../store/securityTraceStore.js";
 import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
 import { buildSecurityDemoTraceGraph, findSecurityWorkflow } from "../lib/securityDemo.js";
+import { openAddBoxPanel } from "../lib/sidebarActions.js";
 
 vi.mock("@xyflow/react", async () => {
   const React = await import("react");
   const { SecurityTraceContext } = await import("./SecurityTraceContext.js");
-  function ReactFlow({ children }: { children?: ReactNode }) {
+  function ReactFlow({ children, nodes = [] }: {
+    children?: ReactNode;
+    nodes?: Array<{ style?: { opacity?: number } }>;
+  }) {
     const traceContext = useContext(SecurityTraceContext);
-    return React.createElement("div", { className: "react-flow" },
+    return React.createElement("div", {
+      className: "react-flow",
+      "data-testid": "flow-nodes",
+      "data-opacities": JSON.stringify(nodes.map((node) => node.style?.opacity ?? 1)),
+    },
       children,
       React.createElement("button", {
         type: "button",
@@ -77,6 +85,24 @@ evidence_register:
 });
 
 import Canvas from "./Canvas.js";
+
+function CanvasWithAddBoxAction() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  return createElement("div", {},
+    createElement("button", {
+      type: "button",
+      onClick: () => openAddBoxPanel(
+        useBoardStore.getState().nodes.length,
+        "board-a",
+        setSidebarOpen,
+        vi.fn(),
+        () => useSecurityTraceStore.getState().clearSelection(),
+      ),
+    }, "+ Add Box"),
+    createElement("span", { "data-testid": "add-box-open" }, String(sidebarOpen)),
+    createElement(Canvas),
+  );
+}
 
 let container: HTMLDivElement;
 let root: Root;
@@ -152,6 +178,57 @@ async function selectEntity(label: string) {
 }
 
 describe("Canvas guided demo ownership and Lens state", () => {
+  it("closes Traceability and clears spotlight when Add Box opens, then permits reopening", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await selectEntity("Select REQ-001");
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+    expect(JSON.parse(container.querySelector<HTMLElement>("[data-testid='flow-nodes']")!.dataset.opacities!)).toContain(0.42);
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "+ Add Box")!.click());
+
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBeNull();
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).toBeNull();
+    expect(JSON.parse(container.querySelector<HTMLElement>("[data-testid='flow-nodes']")!.dataset.opacities!)).toEqual([1, 1, 1, 1, 1]);
+
+    await selectEntity("Select REQ-001");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+  });
+
+  it("resets Lens to Traceability when Add Box clears the selection", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await selectEntity("Select REQ-001");
+    await act(async () => container.querySelector<HTMLButtonElement>("#microsoft-security-lens-tab")!.click());
+    expect(container.querySelector("#microsoft-security-lens-tab")?.getAttribute("aria-selected")).toBe("true");
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "+ Add Box")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBeNull();
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).toBeNull();
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+
+    await selectEntity("Select REQ-001");
+    expect(container.querySelector("#traceability-tab")?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector("#microsoft-security-lens-tab")?.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("keeps the Guided Demo active while Add Box clears its transient trace selection", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await startAtTraceStep();
+    expect(useSecurityDemoStore.getState().active).toBe(true);
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "+ Add Box")!.click());
+
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBeNull();
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).toBeNull();
+    expect(useSecurityDemoStore.getState().active).toBe(true);
+  });
+
   it("clears a demo-owned selection when Escape ends the demo", async () => {
     await mountCanvas();
     await startAtTraceStep();

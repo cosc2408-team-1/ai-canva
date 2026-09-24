@@ -18,6 +18,7 @@ import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore";
 import { db } from "./lib/firebase.js";
 import { useUserBoxesStore } from "./store/userBoxesStore.js";
 import { useBoardStore } from "./store/boardStore.js";
+import { useSecurityTraceStore } from "./store/securityTraceStore.js";
 import { openAddBoxPanel } from "./lib/sidebarActions.js";
 import { useAuthStore } from "./store/authStore.js";
 import { useTokenStore } from "./store/tokenStore.js";
@@ -252,6 +253,7 @@ export default function App() {
       currentBoardId,
       setSidebarOpen,
       setManualBoardId,
+      () => useSecurityTraceStore.getState().clearSelection(),
     );
   }, [currentBoardId]);
 

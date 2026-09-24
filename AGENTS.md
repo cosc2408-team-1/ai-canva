@@ -58,6 +58,11 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
 - **Single Zustand store** (`client/src/store/boardStore.ts`) owns the whole board: `nodes`/`edges`
   (React Flow graph), `boxData` (per-box content/prompts/status/output — kept separate from the
   graph objects so it serializes cleanly to Firestore), and board/collaboration metadata.
+- `addBox(type)` and `addCustomBox(def)` use `lib/boxPlacement.ts` for deterministic row-major
+  default placement with `DEFAULT_BOX_GAP = 32` (measured/node/style dimensions are resolved
+  independently before BoxType defaults; Area and pending auto-placed Chatbot nodes do not block).
+  Explicit positions bypass placement. Chatbot nodes still carry `autoPlace` and are moved by Canvas
+  to the viewport bottom.
 - **`runBox(id)`** is the orchestrator: gathers upstream inputs from incoming edges, builds
   `NamedInput[]` for prompt templating, then branches by box type (cartoon → fal.ai, stitch →
   Google Stitch, slides → Ollama + JSON parsing, code/ui → Ollama + code extraction, else Ollama
@@ -133,8 +138,10 @@ manually switches to the normal palette. `NewBoardModal.tsx` selects Security As
 default, while Blank Board remains available. App keeps this presentation mode locally, never
 in board persistence; populated boards continue to use the normal canvas and palette. The header's
 `+ Add Box` action is open-only: repeated clicks leave the palette open, while its explicit close
-control closes it. The canvas Quick Guide prioritizes an active Guided Demo (hidden), an open Add
-Box panel, a selected box, a connected Security Assessment workflow, then a general board.
+control closes it. Opening Add Box clears the transient trace selection, resets the local Inspector
+view to Traceability, and closes the spotlight; it does not stop the Guided Demo. The canvas Quick
+Guide prioritizes an active Guided Demo (hidden), an open Add Box panel, a selected box, a connected
+Security Assessment workflow, then a general board.
 During a Guided Demo, the Coachmark is the sole guidance surface; suppressing Quick Guide is
 intentional to avoid competing panels.
 

@@ -250,6 +250,12 @@ export default function Canvas() {
     if (selectedTraceEntityId && !selectedTraceEntity) clearTraceSelection();
   }, [selectedTraceEntityId, selectedTraceEntity, clearTraceSelection]);
 
+  useEffect(() => {
+    if (selectedTraceEntityId) return;
+    setInspectorView("traceability");
+    setDemoSelectionOwner(null);
+  }, [selectedTraceEntityId, setDemoSelectionOwner]);
+
   const tracedBoxIds = useMemo(
     () => new Set(selectedTraceEntityId && selectedTraceEntity ? traceBoxIds(activeTraceGraph, selectedTraceEntityId) : []),
     [selectedTraceEntityId, selectedTraceEntity, activeTraceGraph],

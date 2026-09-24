@@ -77,6 +77,7 @@ import { parseSlidesResponse } from "../lib/slides.js";
 import { cleanBoxDataForFirestore } from "../lib/serialization.js";
 import { createBoardTemplate, type BoardTemplateId } from "../lib/boardTemplates.js";
 import { DEFAULT_TIMER_MS } from "../lib/timer.js";
+import { findAvailableBoxPosition } from "../lib/boxPlacement.js";
 import type { CustomBoxDef } from "../lib/customBoxes.js";
 import {
   saveBoard, loadBoard, listBoards, listSharedBoards, deleteBoard,
@@ -414,13 +415,15 @@ export const useBoardStore = create<BoardState>()(
       addBox: (type, position) => {
         const id = makeId();
         const meta = BOX_TYPES[type];
+        const newPosition = position || findAvailableBoxPosition({
+          existingNodes: get().nodes,
+          width: meta.defaultWidth,
+          height: meta.defaultHeight,
+        });
         const node: Node = {
           id,
           type,
-          position: position || {
-            x: 200 + Math.random() * 200,
-            y: 150 + Math.random() * 100,
-          },
+          position: newPosition,
           data: {
             boxType: type,
             // Chatbots get a friendly companion name instead of "… Box",
@@ -496,13 +499,15 @@ export const useBoardStore = create<BoardState>()(
       addCustomBox: (def, position) => {
         const id = makeId();
         const meta = BOX_TYPES.custom;
+        const newPosition = position || findAvailableBoxPosition({
+          existingNodes: get().nodes,
+          width: meta.defaultWidth,
+          height: meta.defaultHeight,
+        });
         const node: Node = {
           id,
           type: "custom",
-          position: position || {
-            x: 200 + Math.random() * 200,
-            y: 150 + Math.random() * 100,
-          },
+          position: newPosition,
           data: {
             boxType: "custom",
             title: def.label + " Box",
