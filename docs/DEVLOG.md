@@ -29,6 +29,55 @@ current state).
 
 ---
 
+## 2026-09-24 — PR #41 Add Box placement and trace reset
+
+- **Done:** Made Add Box clear the transient trace selection and reset the local Inspector to
+  Traceability without ending Guided Demo. Added deterministic row-major box placement with a
+  fixed 32px gap, measured-size handling, and exclusions for Area and pending Chatbot nodes.
+- **Verified:** Server 69/69, client 517/517 across 50 files, and Functions 7/7 tests pass; all
+  three builds pass, with the existing non-fatal Vite chunk-size advisory. Browser checks covered
+  Lens reset/reopen, active Guided Demo preservation, and sequential Documents/Asset Mapper/Research
+  additions on the saved PR#29 board; no console errors. No saved Custom Box template was available.
+  PR #41 CI `verify` passed on `edf2fbb` (run 35942414508).
+- **In flight:** PR #41 remains open and unmerged. The three manual placement test boxes remain on
+  PR#29 because the app has no recoverable deletion flow.
+- **Next steps:** Leave PR #41 open for review; do not merge automatically.
+
+---
+
+## 2026-09-24 — PR #41 final acceptance cleanup
+
+- **Done:** Added an explicit `Status:` heading to the Security Engineering guide; moved the
+  Toolbar test's Guided Demo state update inside React `act`; clarified that the Guided Demo
+  Coachmark intentionally suppresses Quick Guide, and that manual trace selection is preserved
+  through the Lens step and demo completion.
+- **Verified:** Focused Toolbar/Sidebar tests 10/10; full suite server 69/69, client 501/501 across
+  48 files, Functions 7/7. Client, server, and Functions builds pass; `git diff --check` passes.
+  No React `act` warning remains. The reviewed prior PR HEAD `59a7627` passed CI #44; this commit
+  requires its own CI run. Check GitHub Actions for the current head. The existing Vite chunk-size
+  advisory is non-fatal.
+- **In flight:** PR #41 remains open and unmerged; checks are tracked against each pushed head.
+- **Next steps:** Keep the PR open for review; do not merge automatically.
+
+---
+
+## 2026-09-24 — Final guided-demo and Quick Guide polish
+
+- **Done:** Made manual trace selection take ownership even when it targets the demo's current
+  stable ID; made the Lens step preserve manual selection. Added contextual Quick Guide guidance,
+  numbered canonical Security Assessment sidebar stages, and made Add Box reliably open its panel.
+  Documented these behaviors in `AGENTS.md` and `docs/DEMO.md`; no backend or AI behavior changed.
+- **Verified:** Focused tests 31/31; server 69/69, client 501/501 across 48 files, and Functions
+  7/7. Client, server, and Functions builds pass; `git diff --check` passes. Browser checks covered
+  board/Add Box/Asset Mapper guidance, sidebar numbering, same-ID and different-ID manual takeover,
+  Lens preservation, Finish/Escape, Saved state, and no console errors. Documents-specific browser
+  guidance was covered by automated tests; the populated board had no Documents box. Existing
+  browser warnings and the non-fatal client chunk-size advisory remain.
+- **In flight:** PR #41 is open against `main`; CI #44 passed on commit `59a7627`.
+- **Next steps:** Keep the PR open for review; do not merge automatically.
+
+---
+
 ## 2026-09-24 — Guided demo merge-gate hardening
 
 - **Done:** Synced PR #39 with `main@7c53ea5`, scoped guided-demo trace and Microsoft Lens

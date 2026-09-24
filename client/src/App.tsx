@@ -18,6 +18,8 @@ import { doc, getDoc, setDoc, getFirestore } from "firebase/firestore";
 import { db } from "./lib/firebase.js";
 import { useUserBoxesStore } from "./store/userBoxesStore.js";
 import { useBoardStore } from "./store/boardStore.js";
+import { useSecurityTraceStore } from "./store/securityTraceStore.js";
+import { openAddBoxPanel } from "./lib/sidebarActions.js";
 import { useAuthStore } from "./store/authStore.js";
 import { useTokenStore } from "./store/tokenStore.js";
 import { signInWithGoogle, signOutUser } from "./lib/auth.js";
@@ -246,12 +248,13 @@ export default function App() {
   }, []);
 
   const handleAddBoxAction = useCallback(() => {
-    if (useBoardStore.getState().nodes.length === 0) {
-      setManualBoardId(currentBoardId);
-      setSidebarOpen(true);
-    } else {
-      setSidebarOpen((open) => !open);
-    }
+    openAddBoxPanel(
+      useBoardStore.getState().nodes.length,
+      currentBoardId,
+      setSidebarOpen,
+      setManualBoardId,
+      () => useSecurityTraceStore.getState().clearSelection(),
+    );
   }, [currentBoardId]);
 
   const handleBuildManually = useCallback(() => {
@@ -431,7 +434,7 @@ export default function App() {
               onBuildManually={handleBuildManually}
               onBackToGetStarted={() => setManualBoardId(null)}
             />
-            {!showBoardOnboarding && <Toolbar />}
+            {!showBoardOnboarding && <Toolbar sidebarOpen={sidebarOpen} />}
           </ReactFlowProvider>
         )}
       </div>

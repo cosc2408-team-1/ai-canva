@@ -4,7 +4,7 @@ import { useUserBoxesStore } from "../store/userBoxesStore.js";
 import { BOX_TYPES } from "../types.js";
 import type { BoxType, BoxCategory } from "../types.js";
 import { boxVisibleForRole, ROLE_LABELS, SIDEBAR_ROLES, sidebarRoleFromStored, type SidebarRole } from "../lib/boxRoles.js";
-import { securityWorkflowStages } from "../lib/securityWorkflow.js";
+import { securityWorkflowStages, securityWorkflowStageNumber } from "../lib/securityWorkflow.js";
 import SecurityWorkflowGuide from "./SecurityWorkflowGuide.js";
 import CustomBoxModal from "./CustomBoxModal.js";
 
@@ -194,24 +194,37 @@ export default function Sidebar({
                   {section.title}
                 </h3>
                 <div className="space-y-1">
-                  {boxes.map(([type, meta]) => (
-                    <button
-                      key={type}
-                      onClick={() => handleAdd(type)}
-                      className="palette-row w-full flex items-center gap-2.5 pl-2 pr-2.5 py-1.5 rounded-lg border border-slate-200/70 bg-white text-left transition hover:border-slate-300 hover:shadow-sm"
-                      title={meta.description}
-                    >
-                      <span
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
-                        style={{ backgroundColor: meta.color + "1F" }}
+                  {boxes.map(([type, meta]) => {
+                    const stageNumber = role === "security" ? securityWorkflowStageNumber(type) : undefined;
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => handleAdd(type)}
+                        data-workflow-stage={stageNumber}
+                        className="palette-row w-full flex items-start gap-2.5 pl-2 pr-2.5 py-1.5 rounded-lg border border-slate-200/70 bg-white text-left transition hover:border-slate-300 hover:shadow-sm"
+                        title={meta.description}
                       >
-                        {meta.icon}
-                      </span>
-                      <span className="flex-1 text-[13px] font-medium text-slate-700 truncate">
-                        {meta.label}
-                      </span>
-                    </button>
-                  ))}
+                        {stageNumber ? (
+                          <span
+                            className="mt-1 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full border border-teal-200 bg-teal-50 text-[10px] font-semibold text-teal-800"
+                            aria-label={`Workflow step ${stageNumber}`}
+                          >
+                            {stageNumber}
+                          </span>
+                        ) : (
+                          <span
+                            className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-sm"
+                            style={{ backgroundColor: meta.color + "1F" }}
+                          >
+                            {meta.icon}
+                          </span>
+                        )}
+                        <span className={`flex-1 text-[13px] font-medium leading-snug text-slate-700 ${stageNumber ? "line-clamp-2 break-words" : "truncate"}`}>
+                          {meta.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                   {isCustom && (
                     <>
                       {/* The user's saved custom box templates — click to add

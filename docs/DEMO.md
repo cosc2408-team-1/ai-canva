@@ -6,6 +6,8 @@ Use a Security Assessment board with existing project context and generated outp
 
 The guide is presentation-only. It does not run boxes, call AI services, change board content, or save tour state. Prepare or repair outputs before the presentation, not during it.
 
+While the Guided Demo is active, the Quick Guide is intentionally hidden because the Coachmark is the single guidance surface. Outside the demo, Quick Guide adapts to the open Add Box panel, selected box, connected Security Assessment workflow, or ordinary board.
+
 ## Presenter script (3-5 minutes)
 
 1. Select **Start demo** on a connected Security Assessment workflow.
@@ -16,6 +18,10 @@ The guide is presentation-only. It does not run boxes, call AI services, change 
 6. Finish or close the guide. "AI assists the analysis, but people remain responsible for security and compliance decisions."
 
 Use **Previous** and **Next** to move through the guide. **Close**, **Finish**, or **Escape** exits it. No typing or fresh generation is needed.
+
+## Manual trace selection
+
+Selecting a stable ID while the demo is active gives that item manual ownership, even when it is the same ID the demo already selected. The Lens step can switch the Inspector to Microsoft Security Lens, but it keeps the manually selected ID and shows its legitimate no-match state when appropriate. Finish, guided-demo Close, and Escape leave a manual selection in the Inspector. Closing the Inspector itself explicitly clears that selection.
 
 ## Fallbacks
 

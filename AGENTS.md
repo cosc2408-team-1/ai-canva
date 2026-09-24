@@ -58,6 +58,11 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
 - **Single Zustand store** (`client/src/store/boardStore.ts`) owns the whole board: `nodes`/`edges`
   (React Flow graph), `boxData` (per-box content/prompts/status/output — kept separate from the
   graph objects so it serializes cleanly to Firestore), and board/collaboration metadata.
+- `addBox(type)` and `addCustomBox(def)` use `lib/boxPlacement.ts` for deterministic row-major
+  default placement with `DEFAULT_BOX_GAP = 32` (measured/node/style dimensions are resolved
+  independently before BoxType defaults; Area and pending auto-placed Chatbot nodes do not block).
+  Explicit positions bypass placement. Chatbot nodes still carry `autoPlace` and are moved by Canvas
+  to the viewport bottom.
 - **`runBox(id)`** is the orchestrator: gathers upstream inputs from incoming edges, builds
   `NamedInput[]` for prompt templating, then branches by box type (cartoon → fal.ai, stitch →
   Google Stitch, slides → Ollama + JSON parsing, code/ui → Ollama + code extraction, else Ollama
@@ -131,7 +136,14 @@ retaining `+ Add Box` and the Boards menu. Empty boards show a Security Assessme
 onboarding view in `BoardEmptyState.tsx` and the contextual Sidebar; choosing Add Box or Build
 manually switches to the normal palette. `NewBoardModal.tsx` selects Security Assessment by
 default, while Blank Board remains available. App keeps this presentation mode locally, never
-in board persistence; populated boards continue to use the normal canvas and palette.
+in board persistence; populated boards continue to use the normal canvas and palette. The header's
+`+ Add Box` action is open-only: repeated clicks leave the palette open, while its explicit close
+control closes it. Opening Add Box clears the transient trace selection, resets the local Inspector
+view to Traceability, and closes the spotlight; it does not stop the Guided Demo. The canvas Quick
+Guide prioritizes an active Guided Demo (hidden), an open Add Box panel, a selected box, a connected
+Security Assessment workflow, then a general board.
+During a Guided Demo, the Coachmark is the sole guidance surface; suppressing Quick Guide is
+intentional to avoid competing panels.
 
 **Summary-first security results:** the four Security Assessment worker boxes use
 `SecurityArtifactResult.tsx` in `BoxNode.tsx`. `securityArtifactSummary.ts` derives a display-only
@@ -158,6 +170,11 @@ data. An existing React Flow edge is highlighted only when an explicit artifact 
 containing box is the edge target and the referenced entity occurs in the edge source box; unrelated
 edges remain dim. GAP `evidence_refs` and `related_evidence` both link to EVID entities. No
 entity-level canvas edges are created. Escape or Close clears the transient selection.
+During an active Guided Demo, any explicit manual trace selection relinquishes demo ownership,
+including selecting the same stable ID already highlighted by the demo. The Lens step may change
+the Inspector tab but does not retarget that selection; Finish, guided-demo Close, and Escape clear
+only a selection still owned by the demo. Explicitly closing the Inspector remains a user action
+that clears the current trace selection.
 
 **Microsoft Security Lens:** `microsoftSecurityLens.ts` deterministically maps only the selected
 trace entity and its direct graph neighbors to a small, explicit Microsoft capability catalogue.
@@ -176,8 +193,10 @@ Asset Mapper -> Requirements Elicitor -> NIST CSF Gap Checker -> Security Adviso
 current trace/Lens targets deterministically. `securityDemoStore.ts` is transient and has no
 persistence middleware. The Canvas coachmark only navigates existing outputs, the trace graph, and
 the Inspector; it must never run boxes, call AI, mutate board data, or alter trace/Lens semantics.
-It clears only a trace selection created by the demo on Finish/Escape, board changes, or Canvas unmount.
-See `docs/DEMO.md` for presenter preparation and fallbacks.
+It clears only a trace selection created by the demo on Finish/Escape, board changes, or Canvas
+unmount. Once the user makes an explicit manual trace selection during the demo, the demo no longer
+retargets that selection during the Lens step; Finish/Escape preserve it. Explicit Inspector Close
+clears the selection. See `docs/DEMO.md` for presenter preparation and fallbacks.
 
 ## Admin board
 
@@ -233,7 +252,7 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 
 ## Testing (Vitest)
 
-- **Run all:** `npm test` (server then client). **Watch:** `npm run test:watch`.
+- **Run all:** `npm test` (server, client, then Functions). **Watch:** `npm run test:watch`.
 - **Server tests** (`server/src/*.test.ts`, supertest + Vitest): hit `createApp()` from
   `server/src/app.ts` with the AI modules (`provider`/`fal`/`stitch`) mocked via `vi.mock`; VAL
   tests mock global `fetch` to cover its Chat Completions request and end-to-end generate-route
@@ -241,11 +260,13 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   flow, and text-provider token parsing.
   Server test files are excluded from the `tsc` build via `exclude` in `server/tsconfig.json` — do
   not remove that.
-- **Client tests** (`client/src/lib/*.test.ts`): pure functions only (prompts, code, slides,
-  serialization) — no DOM, no Firebase. `client/vitest.config.ts` (node env) loads instead of
-  `vite.config.ts` to avoid the dev-server proxy + build chunks.
-- **No functions/ tests yet** — they need the Firebase emulator / Admin SDK; keep API logic in sync
-  between `server` and `functions` by hand and cover the shared logic via `server` tests.
+- **Client tests** use `client/vitest.config.ts`, which discovers both `.test.ts` and `.test.tsx`
+  files and defaults to node rather than loading `vite.config.ts` (which wires the dev-server proxy
+  and production build chunks). Pure library tests avoid Firebase; interactive component tests opt
+  into `happy-dom` at the file level.
+- **Functions tests** (`functions/src/app.test.ts`) use supertest against the exported app and mock
+  external provider calls. They do not require the Firebase emulator or a real VAL key. Keep API
+  logic in sync between `server` and `functions` and cover route behavior in both suites.
 - **E2E suite:** `client/e2e.mjs` (playwright-core + system Chrome) drives the **real dev app** on
   `localhost:5173` with the real backend. Part 1 (fake user via dev-only `window.__dsh` store hooks
   in `main.tsx`, `import.meta.env.DEV`-guarded, stripped from prod): landing → login → palette adds
