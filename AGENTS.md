@@ -135,6 +135,8 @@ in board persistence; populated boards continue to use the normal canvas and pal
 `+ Add Box` action is open-only: repeated clicks leave the palette open, while its explicit close
 control closes it. The canvas Quick Guide prioritizes an active Guided Demo (hidden), an open Add
 Box panel, a selected box, a connected Security Assessment workflow, then a general board.
+During a Guided Demo, the Coachmark is the sole guidance surface; suppressing Quick Guide is
+intentional to avoid competing panels.
 
 **Summary-first security results:** the four Security Assessment worker boxes use
 `SecurityArtifactResult.tsx` in `BoxNode.tsx`. `securityArtifactSummary.ts` derives a display-only
@@ -185,8 +187,9 @@ current trace/Lens targets deterministically. `securityDemoStore.ts` is transien
 persistence middleware. The Canvas coachmark only navigates existing outputs, the trace graph, and
 the Inspector; it must never run boxes, call AI, mutate board data, or alter trace/Lens semantics.
 It clears only a trace selection created by the demo on Finish/Escape, board changes, or Canvas
-unmount. A manual selection, including a same-ID click, takes ownership until the user changes or
-explicitly closes the Inspector. See `docs/DEMO.md` for presenter preparation and fallbacks.
+unmount. Once the user makes an explicit manual trace selection during the demo, the demo no longer
+retargets that selection during the Lens step; Finish/Escape preserve it. Explicit Inspector Close
+clears the selection. See `docs/DEMO.md` for presenter preparation and fallbacks.
 
 ## Admin board
 

@@ -60,6 +60,7 @@ describe("Security sidebar guidance", () => {
     await renderSidebar();
     expect(container.textContent).toContain("Stable IDs show where information came from, not whether it is true.");
     expect(container.textContent).toContain("people make security and release decisions");
+    expect(container.textContent).toContain("Status:");
     expect(container.textContent).toContain("Valid — structure and references checked");
     expect(container.textContent).toContain("Needs clarification — more input required");
     expect(container.textContent).toContain("Invalid — fix before downstream use");

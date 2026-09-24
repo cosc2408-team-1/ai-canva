@@ -35,6 +35,7 @@ export default function SecurityWorkflowGuide() {
         <p className="text-slate-600"><strong className="font-semibold text-slate-800">Traceability:</strong> Stable IDs show where information came from, not whether it is true.</p>
         <p className="text-slate-600"><strong className="font-semibold text-slate-800">Human review:</strong> AI assists analysis; people make security and release decisions.</p>
         <div aria-label="Artifact status meanings" className="space-y-0.5 text-slate-600">
+          <p className="font-semibold text-slate-800">Status:</p>
           <p>✓ Valid — structure and references checked</p>
           <p>? Needs clarification — more input required</p>
           <p>✕ Invalid — fix before downstream use</p>

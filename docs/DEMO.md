@@ -6,6 +6,8 @@ Use a Security Assessment board with existing project context and generated outp
 
 The guide is presentation-only. It does not run boxes, call AI services, change board content, or save tour state. Prepare or repair outputs before the presentation, not during it.
 
+While the Guided Demo is active, the Quick Guide is intentionally hidden because the Coachmark is the single guidance surface. Outside the demo, Quick Guide adapts to the open Add Box panel, selected box, connected Security Assessment workflow, or ordinary board.
+
 ## Presenter script (3-5 minutes)
 
 1. Select **Start demo** on a connected Security Assessment workflow.

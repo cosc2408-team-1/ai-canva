@@ -43,8 +43,7 @@ describe("Quick Guide", () => {
     demoRoot = createRoot(demoContainer);
     await act(async () => demoRoot?.render(createElement(Toolbar, { sidebarOpen: false })));
     expect(demoContainer.textContent).toContain("Guide");
-    useSecurityDemoStore.getState().start("board-a");
-    await act(async () => {});
+    await act(async () => useSecurityDemoStore.getState().start("board-a"));
     expect(demoContainer.textContent).toBe("");
   });
 

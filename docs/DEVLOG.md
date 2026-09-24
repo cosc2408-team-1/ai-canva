@@ -29,6 +29,22 @@ current state).
 
 ---
 
+## 2026-09-24 — PR #41 final acceptance cleanup
+
+- **Done:** Added an explicit `Status:` heading to the Security Engineering guide; moved the
+  Toolbar test's Guided Demo state update inside React `act`; clarified that the Guided Demo
+  Coachmark intentionally suppresses Quick Guide, and that manual trace selection is preserved
+  through the Lens step and demo completion.
+- **Verified:** Focused Toolbar/Sidebar tests 10/10; full suite server 69/69, client 501/501 across
+  48 files, Functions 7/7. Client, server, and Functions builds pass; `git diff --check` passes.
+  No React `act` warning remains. The reviewed prior PR HEAD `59a7627` passed CI #44; this commit
+  requires its own CI run. Check GitHub Actions for the current head. The existing Vite chunk-size
+  advisory is non-fatal.
+- **In flight:** PR #41 remains open and unmerged; checks are tracked against each pushed head.
+- **Next steps:** Keep the PR open for review; do not merge automatically.
+
+---
+
 ## 2026-09-24 — Final guided-demo and Quick Guide polish
 
 - **Done:** Made manual trace selection take ownership even when it targets the demo's current
@@ -41,8 +57,8 @@ current state).
   Lens preservation, Finish/Escape, Saved state, and no console errors. Documents-specific browser
   guidance was covered by automated tests; the populated board had no Documents box. Existing
   browser warnings and the non-fatal client chunk-size advisory remain.
-- **In flight:** Changes are being prepared for PR #41; commit, push, and PR CI are pending.
-- **Next steps:** Open PR #41 against `main`, confirm CI, and leave it open for review.
+- **In flight:** PR #41 is open against `main`; CI #44 passed on commit `59a7627`.
+- **Next steps:** Keep the PR open for review; do not merge automatically.
 
 ---
 
