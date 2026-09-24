@@ -17,6 +17,10 @@ The guide is presentation-only. It does not run boxes, call AI services, change 
 
 Use **Previous** and **Next** to move through the guide. **Close**, **Finish**, or **Escape** exits it. No typing or fresh generation is needed.
 
+## Manual trace selection
+
+Selecting a stable ID while the demo is active gives that item manual ownership, even when it is the same ID the demo already selected. The Lens step can switch the Inspector to Microsoft Security Lens, but it keeps the manually selected ID and shows its legitimate no-match state when appropriate. Finish, guided-demo Close, and Escape leave a manual selection in the Inspector. Closing the Inspector itself explicitly clears that selection.
+
 ## Fallbacks
 
 - **No generated output:** The guide says to run the assessment stages first and offers Skip. Finish the board setup before presenting; the guide will not generate content.

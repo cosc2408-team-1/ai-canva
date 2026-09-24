@@ -80,6 +80,8 @@ export default function Canvas() {
   const demoActive = useSecurityDemoStore((s) => s.active);
   const demoStep = useSecurityDemoStore((s) => s.step);
   const demoBoardId = useSecurityDemoStore((s) => s.boardId);
+  const manualTakeover = useSecurityDemoStore((s) => s.manualTakeover);
+  const markManualTakeover = useSecurityDemoStore((s) => s.markManualTakeover);
   const finishDemo = useSecurityDemoStore((s) => s.finish);
   const demoSelectionRef = useRef<SecurityDemoSelectionOwner | null>(null);
   const [demoSelectionOwner, setDemoSelectionOwnerState] = useState<SecurityDemoSelectionOwner | null>(null);
@@ -117,6 +119,7 @@ export default function Canvas() {
   }, []);
   const selectTraceableEntity = useCallback((id: string) => {
     if (!traceableEntityIds.has(id)) return;
+    if (demoActive) markManualTakeover();
     const selection = useSecurityTraceStore.getState();
     const transition = resolveSecurityDemoSelection(
       "manual",
@@ -128,7 +131,7 @@ export default function Canvas() {
     );
     setDemoSelectionOwner(transition.owner);
     if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
-  }, [selectTraceEntity, setDemoSelectionOwner, traceableEntityIds, currentBoardId]);
+  }, [selectTraceEntity, setDemoSelectionOwner, traceableEntityIds, currentBoardId, demoActive, markManualTakeover]);
   const traceContext = useMemo(() => ({
     traceableEntityIds,
     selectEntity: selectTraceableEntity,
@@ -144,8 +147,10 @@ export default function Canvas() {
     ? deriveMicrosoftSecurityLens(activeTraceGraph, selectedTraceEntity.id).matches.length > 0
     : false, [activeTraceGraph, selectedTraceEntity]);
   const lensFocus = useMemo(
-    () => resolveSecurityDemoFocus(3, demoTraceGraph, selectedTraceEntityId),
-    [demoTraceGraph, selectedTraceEntityId],
+    () => manualTakeover
+      ? { entityId: selectedTraceEntityId, view: "microsoft-security-lens" as const }
+      : resolveSecurityDemoFocus(3, demoTraceGraph, selectedTraceEntityId),
+    [manualTakeover, demoTraceGraph, selectedTraceEntityId],
   );
 
   const clearDemoOwnedSelection = useCallback(() => {
@@ -192,8 +197,8 @@ export default function Canvas() {
   const reopenLensInspector = useCallback(() => {
     if (!lensFocus.entityId) return;
     setInspectorView(lensFocus.view);
-    selectDemoEntity(lensFocus.entityId);
-  }, [lensFocus, selectDemoEntity]);
+    if (!manualTakeover) selectDemoEntity(lensFocus.entityId);
+  }, [lensFocus, manualTakeover, selectDemoEntity]);
 
   useEffect(() => {
     if (!demoActive) {
@@ -209,6 +214,11 @@ export default function Canvas() {
     if (orchestratedStepRef.current === stepKey) return;
     orchestratedStepRef.current = stepKey;
 
+    if (demoStep === 3 && manualTakeover) {
+      setInspectorView("microsoft-security-lens");
+      return;
+    }
+
     const focus = resolveSecurityDemoFocus(demoStep, demoTraceGraph, selectedTraceEntityId);
     setInspectorView(focus.view);
     if (!focus.entityId) {
@@ -220,6 +230,7 @@ export default function Canvas() {
     demoActive,
     demoBoardId,
     demoStep,
+    manualTakeover,
     currentBoardId,
     securityWorkflow,
     demoTraceGraph,

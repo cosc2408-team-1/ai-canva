@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBoardStore } from "../store/boardStore.js";
 import { useSecurityDemoStore } from "../store/securityDemoStore.js";
 import { useSecurityTraceStore } from "../store/securityTraceStore.js";
+import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
+import { buildSecurityDemoTraceGraph, findSecurityWorkflow } from "../lib/securityDemo.js";
 
 vi.mock("@xyflow/react", async () => {
   const React = await import("react");
@@ -79,6 +81,36 @@ import Canvas from "./Canvas.js";
 let container: HTMLDivElement;
 let root: Root;
 const initialBoxData = useBoardStore.getState().boxData;
+const noMatchRequirementsOutput = `artifact_type: RequirementsPackage
+schema_version: "1.0"
+requirements:
+  - id: REQ-001
+    shall_statement: "Authentication is required."
+    source_refs: [EVID-002]
+evidence_register:
+  - id: EVID-002
+    statement: "The system uses authentication."`;
+const keyVaultAssetOutput = `artifact_type: AssetPackage
+schema_version: "1.0"
+assets:
+  - id: AST-001
+    name: API key store
+    description: "Stores API keys in secure secret storage."
+    evidence_refs: [EVID-001]
+evidence_register:
+  - id: EVID-001
+    statement: "API keys are stored in secure secret storage."`;
+
+function setRetargetFixture() {
+  const boxData = useBoardStore.getState().boxData;
+  useBoardStore.setState({
+    boxData: {
+      ...boxData,
+      "box-1": { ...boxData["box-1"], output: keyVaultAssetOutput },
+      "box-2": { ...boxData["box-2"], output: noMatchRequirementsOutput },
+    },
+  });
+}
 
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -153,6 +185,63 @@ describe("Canvas guided demo ownership and Lens state", () => {
     expect(useSecurityDemoStore.getState().active).toBe(false);
     expect(useSecurityTraceStore.getState().selectedEntityId).toBe("EVID-001");
     expect(container.querySelector('[data-testid="traceability-inspector"]')?.textContent).toContain("EVID-001");
+  });
+
+  it("keeps a same-ID manual takeover through Lens without retargeting to a matching asset", async () => {
+    setRetargetFixture();
+    await mountCanvas();
+    await startAtTraceStep();
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+
+    const workflow = findSecurityWorkflow(useBoardStore.getState().nodes, useBoardStore.getState().edges)!;
+    const graph = buildSecurityDemoTraceGraph(workflow, useBoardStore.getState().boxData);
+    expect(deriveMicrosoftSecurityLens(graph, "REQ-001").matches).toHaveLength(0);
+    expect(deriveMicrosoftSecurityLens(graph, "AST-001").matches.map(({ capability }) => capability.name)).toContain("Azure Key Vault");
+
+    await selectEntity("Select REQ-001");
+    expect(useSecurityDemoStore.getState().manualTakeover).toBe(true);
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Next")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(container.querySelector("#microsoft-security-lens-tab")?.getAttribute("aria-selected")).toBe("true");
+    expect(container.textContent).toContain("No Microsoft capability mapping is shown for this item");
+    expect(useSecurityDemoStore.getState().manualTakeover).toBe(true);
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Finish")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(useSecurityDemoStore.getState().manualTakeover).toBe(false);
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+  });
+
+  it("keeps a different manually selected entity through Lens and Finish", async () => {
+    await mountCanvas();
+    await startAtTraceStep();
+    await selectEntity("Select EVID-001");
+    expect(useSecurityDemoStore.getState().manualTakeover).toBe(true);
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Next")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("EVID-001");
+    expect(container.querySelector("#microsoft-security-lens-tab")?.getAttribute("aria-selected")).toBe("true");
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Finish")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("EVID-001");
+  });
+
+  it("retargets an untouched demo to a Lens match and clears the demo-owned selection on Finish", async () => {
+    setRetargetFixture();
+    await mountCanvas();
+    await startAtTraceStep();
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Next")!.click());
+
+    expect(useSecurityDemoStore.getState().manualTakeover).toBe(false);
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("AST-001");
+    await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent === "Finish")!.click());
+
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBeNull();
   });
 
   it("keeps Inspector Escape close behavior when the demo is inactive", async () => {
