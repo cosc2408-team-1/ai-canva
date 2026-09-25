@@ -256,6 +256,7 @@ export default function App() {
       () => useSecurityTraceStore.getState().clearSelection(),
     );
   }, [currentBoardId]);
+  const handleTraceModeEnter = useCallback(() => setSidebarOpen(false), []);
 
   const handleBuildManually = useCallback(() => {
     setManualBoardId(currentBoardId);
@@ -416,7 +417,7 @@ export default function App() {
           />
         ) : (
           <ReactFlowProvider>
-            <Canvas />
+            <Canvas onTraceModeEnter={handleTraceModeEnter} />
             <BoardEmptyState
               visible={showBoardOnboarding}
               sidebarOpen={sidebarOpen}

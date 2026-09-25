@@ -36,6 +36,30 @@ current state).
 - **In flight:** The sample has not been exercised against the live AI provider; generated outputs still need a presenter review and should be saved before the showcase.
 - **Next steps:** Create a Jennie board in the deployed app after this change is released, run it once, check outputs and timing, and keep a pre-run board as the demo fallback.
 
+## 2026-09-25 — PR #42 trace sidebar exclusivity
+
+- **Done:** PR #41 was merged into `main` as
+  `dc7fafb30e21fc946adc19d70e6f10f9d4ac2409`. PR #42 starts from that merged baseline.
+  Close Add Box when a valid manual or Guided Demo trace context opens the Inspector, while
+  keeping the existing Add Box-to-Inspector reset behavior.
+- **Verified:** Focused Guided Demo tests 19/19; full suite server 69/69, client 522/522,
+  Functions 7/7; client, server, and Functions builds pass. `git diff --check` passes.
+  Browser acceptance used Chrome profile `marshall` with Google Translate, MetaMask, and
+  ChatGPT extensions enabled and DevTools Responsive emulation at 614x712. Flow A opened the
+  REQ-001 Inspector and closed Add Box; Flow B closed the Inspector and opened Add Box. Guided
+  Demo steps 1-4 and Finish completed; the Step 3 Inspector and Step 4 Lens remained visible
+  without the sidebar obscuring them. The board showed `Saved` after the flow. No Run action
+  occurred; the four displayed box token counts remained 4,119, 7,010, 9,411, and 7,169
+  (27,709 combined). After clearing DevTools Console, the tested flows produced zero
+  error-level exceptions and zero warnings; the browser log error/warning query was empty.
+  Before clearing, tab switching had produced a Firebase Auth IndexedDB `Database is
+  closing/hidden` message and Firestore `ERR_BLOCKED_BY_CLIENT` transport entries. These did
+  not recur during acceptance; the blocked-client source was not conclusively attributed to
+  an extension. Flow D was covered by automated same-ID manual-takeover tests, including
+  preservation through Lens and Finish, rather than repeated manually.
+- **In flight:** PR #42 is prepared for review and remains unmerged.
+- **Next steps:** Review PR #42; do not merge automatically.
+
 ---
 
 ## 2026-09-24 — PR #41 Add Box placement and trace reset

@@ -14,9 +14,10 @@ import { BOX_TYPES, type BoxType } from "../types.js";
 vi.mock("@xyflow/react", async () => {
   const React = await import("react");
   const { SecurityTraceContext } = await import("./SecurityTraceContext.js");
-  function ReactFlow({ children, nodes = [] }: {
+  function ReactFlow({ children, nodes = [], onNodesChange }: {
     children?: ReactNode;
     nodes?: Array<{ style?: { opacity?: number } }>;
+    onNodesChange?: (changes: Array<{ id: string; type: string; selected?: boolean }>) => void;
   }) {
     const traceContext = useContext(SecurityTraceContext);
     return React.createElement("div", {
@@ -33,6 +34,10 @@ vi.mock("@xyflow/react", async () => {
         type: "button",
         onClick: () => traceContext?.selectEntity("EVID-001"),
       }, "Select EVID-001"),
+      React.createElement("button", {
+        type: "button",
+        onClick: () => onNodesChange?.([{ id: "box-0", type: "select", selected: true }]),
+      }, "Select ordinary node"),
     );
   }
   const Container = ({ children }: { children?: ReactNode }) => React.createElement("div", {}, children);
@@ -88,8 +93,8 @@ evidence_register:
 
 import Canvas from "./Canvas.js";
 
-function CanvasWithAddBoxAction() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function CanvasWithAddBoxAction({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
+  const [sidebarOpen, setSidebarOpen] = useState(initiallyOpen);
   return createElement("div", {},
     createElement("button", {
       type: "button",
@@ -101,8 +106,12 @@ function CanvasWithAddBoxAction() {
         () => useSecurityTraceStore.getState().clearSelection(),
       ),
     }, "+ Add Box"),
+    createElement("button", {
+      type: "button",
+      onClick: () => setSidebarOpen(true),
+    }, "Reopen sidebar"),
     createElement("span", { "data-testid": "add-box-open" }, String(sidebarOpen)),
-    createElement(Canvas),
+    createElement(Canvas, { onTraceModeEnter: () => setSidebarOpen(false) }),
   );
 }
 
@@ -187,6 +196,62 @@ async function selectEntity(label: string) {
 }
 
 describe("Canvas guided demo ownership and Lens state", () => {
+  it("closes Add Box for a manual trace selection without changing ordinary node selection", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction, { initiallyOpen: true })));
+    await selectEntity("Select ordinary node");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+
+    await selectEntity("Select REQ-001");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+  });
+
+  it("closes Add Box when the already selected trace ID is clicked again", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await selectEntity("Select REQ-001");
+    await selectEntity("Reopen sidebar");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+
+    await selectEntity("Select REQ-001");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+  });
+
+  it("closes Add Box when the Guided Demo enters visual traceability", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction, { initiallyOpen: true })));
+    await startAtTraceStep();
+
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(useSecurityDemoStore.getState().active).toBe(true);
+  });
+
+  it("closes Add Box when the Guided Demo enters Lens and keeps the demo active", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await startAtTraceStep();
+    await selectEntity("+ Add Box");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("true");
+
+    await selectEntity("Next");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
+    expect(container.querySelector("#microsoft-security-lens-tab")?.getAttribute("aria-selected")).toBe("true");
+    expect(useSecurityDemoStore.getState().active).toBe(true);
+  });
+
+  it("closes Add Box on the manual-takeover Lens step without retargeting", async () => {
+    await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
+    await startAtTraceStep();
+    await selectEntity("Select REQ-001");
+    await selectEntity("Reopen sidebar");
+
+    await selectEntity("Next");
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
+    expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
+    expect(useSecurityDemoStore.getState().active).toBe(true);
+  });
+
   it("closes Traceability and clears spotlight when Add Box opens, then permits reopening", async () => {
     await act(async () => root.render(createElement(CanvasWithAddBoxAction)));
     await selectEntity("Select REQ-001");
@@ -205,6 +270,7 @@ describe("Canvas guided demo ownership and Lens state", () => {
     await selectEntity("Select REQ-001");
     expect(useSecurityTraceStore.getState().selectedEntityId).toBe("REQ-001");
     expect(container.querySelector('[data-testid="traceability-inspector"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="add-box-open"]')?.textContent).toBe("false");
   });
 
   it("resets Lens to Traceability when Add Box clears the selection", async () => {

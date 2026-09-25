@@ -65,7 +65,7 @@ export function resolveMiniMapNodeColor(node: Pick<Node, "type" | "data">): stri
   return isBoxType(node.type) ? BOX_TYPES[node.type].color : UNKNOWN_MINIMAP_NODE_COLOR;
 }
 
-export default function Canvas() {
+export default function Canvas({ onTraceModeEnter }: { onTraceModeEnter?: () => void }) {
   const nodes = useBoardStore((s) => s.nodes);
   const edges = useBoardStore((s) => s.edges);
   const boxData = useBoardStore((s) => s.boxData);
@@ -157,6 +157,7 @@ export default function Canvas() {
   }, []);
   const selectTraceableEntity = useCallback((id: string) => {
     if (!traceableEntityIds.has(id)) return;
+    onTraceModeEnter?.();
     if (demoActive) markManualTakeover();
     const selection = useSecurityTraceStore.getState();
     const transition = resolveSecurityDemoSelection(
@@ -169,7 +170,7 @@ export default function Canvas() {
     );
     setDemoSelectionOwner(transition.owner);
     if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
-  }, [selectTraceEntity, setDemoSelectionOwner, traceableEntityIds, currentBoardId, demoActive, markManualTakeover]);
+  }, [selectTraceEntity, setDemoSelectionOwner, traceableEntityIds, currentBoardId, demoActive, markManualTakeover, onTraceModeEnter]);
   const traceContext = useMemo(() => ({
     traceableEntityIds,
     selectEntity: selectTraceableEntity,
@@ -219,6 +220,7 @@ export default function Canvas() {
 
   const selectDemoEntity = useCallback((id: string) => {
     if (!demoTraceableEntityIds.has(id)) return;
+    onTraceModeEnter?.();
     const selection = useSecurityTraceStore.getState();
     const transition = resolveSecurityDemoSelection(
       "demo",
@@ -230,13 +232,14 @@ export default function Canvas() {
     );
     setDemoSelectionOwner(transition.owner);
     if (transition.shouldSelect) selectTraceEntity(id, currentBoardId);
-  }, [currentBoardId, demoTraceableEntityIds, selectTraceEntity, setDemoSelectionOwner]);
+  }, [currentBoardId, demoTraceableEntityIds, selectTraceEntity, setDemoSelectionOwner, onTraceModeEnter]);
 
   const reopenLensInspector = useCallback(() => {
     if (!lensFocus.entityId) return;
     setInspectorView(lensFocus.view);
-    if (!manualTakeover) selectDemoEntity(lensFocus.entityId);
-  }, [lensFocus, manualTakeover, selectDemoEntity]);
+    if (manualTakeover) onTraceModeEnter?.();
+    else selectDemoEntity(lensFocus.entityId);
+  }, [lensFocus, manualTakeover, selectDemoEntity, onTraceModeEnter]);
 
   useEffect(() => {
     if (!demoActive) {
@@ -253,6 +256,7 @@ export default function Canvas() {
     orchestratedStepRef.current = stepKey;
 
     if (demoStep === 3 && manualTakeover) {
+      if (selectedTraceEntity) onTraceModeEnter?.();
       setInspectorView("microsoft-security-lens");
       return;
     }
@@ -273,6 +277,8 @@ export default function Canvas() {
     securityWorkflow,
     demoTraceGraph,
     selectedTraceEntityId,
+    selectedTraceEntity,
+    onTraceModeEnter,
     selectDemoEntity,
     clearDemoOwnedSelection,
     finishGuidedDemo,
