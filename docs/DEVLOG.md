@@ -29,6 +29,18 @@ current state).
 
 ---
 
+## 2026-09-25 — PR #42 trace sidebar exclusivity
+
+- **Done:** Starting from `main@dc7fafb`, close Add Box when a valid manual or Guided Demo
+  trace context opens the Inspector. Keep the existing Add Box-to-Inspector reset behavior.
+- **Verified:** Focused Guided Demo tests 19/19; full suite server 69/69, client 522/522,
+  Functions 7/7; all three builds and `git diff --check` pass. Local browser checks covered
+  manual trace selection, the reverse Add Box transition, and Guided Demo trace/Lens steps.
+- **In flight:** PR #42 is prepared for review and remains unmerged.
+- **Next steps:** Review PR #42; do not merge automatically.
+
+---
+
 ## 2026-09-24 — PR #41 Add Box placement and trace reset
 
 - **Done:** Made Add Box clear the transient trace selection and reset the local Inspector to
