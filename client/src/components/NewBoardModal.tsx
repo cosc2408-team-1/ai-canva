@@ -109,7 +109,7 @@ export default function NewBoardModal({
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-slate-900">
-                          {template.id === "security-assessment" ? "🔐 " : ""}
+                          {template.id === "security-assessment" || template.id === "jennie-showcase" ? "🔐 " : ""}
                           {template.label}
                         </span>
                         {template.id === "security-assessment" && (
@@ -137,7 +137,7 @@ export default function NewBoardModal({
                         </>
                       ) : (
                         <span className="mt-1 block text-xs text-slate-500">
-                          Start from an empty canvas and add boxes manually.
+                          {template.description}
                         </span>
                       )}
                     </span>
@@ -174,7 +174,11 @@ export default function NewBoardModal({
               type="submit"
               className="px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              {templateId === "security-assessment" ? "Create Security Assessment" : "Create Blank Board"}
+              {templateId === "security-assessment"
+                ? "Create Security Assessment"
+                : templateId === "jennie-showcase"
+                  ? "Create Jennie Demo"
+                  : "Create Blank Board"}
             </button>
           </div>
         </form>

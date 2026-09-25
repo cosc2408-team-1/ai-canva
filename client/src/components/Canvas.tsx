@@ -21,6 +21,7 @@ import { isValidAreaSize, normalizeRect } from "../lib/areas.js";
 import { buildSecurityTraceGraph, traceBoxIds, traceEntity } from "../lib/securityTraceability.js";
 import { deriveTraceEdgePresentation, deriveTraceNodePresentation } from "../lib/securityTraceabilityPresentation.js";
 import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
+import { findJennieRunPlan } from "../lib/boardTemplates.js";
 import {
   buildSecurityDemoTraceGraph,
   findDemoArtifactBox,
@@ -87,6 +88,9 @@ export default function Canvas() {
   const [demoSelectionOwner, setDemoSelectionOwnerState] = useState<SecurityDemoSelectionOwner | null>(null);
   const orchestratedStepRef = useRef<string | null>(null);
   const [inspectorView, setInspectorView] = useState<"traceability" | "microsoft-security-lens">("traceability");
+  const jennieRunBusyRef = useRef(false);
+  const [jennieRunProgress, setJennieRunProgress] = useState("");
+  const [jennieRunBusy, setJennieRunBusy] = useState(false);
 
   const traceSources = useMemo(() => nodes.flatMap((node) => {
     const candidateType = node.type || node.data?.boxType;
@@ -96,6 +100,40 @@ export default function Canvas() {
   }), [nodes, boxData]);
   const traceGraph = useMemo(() => buildSecurityTraceGraph(traceSources), [traceSources]);
   const securityWorkflow = useMemo(() => findSecurityWorkflow(nodes, edges), [nodes, edges]);
+  const jennieRunPlan = useMemo(() => findJennieRunPlan(nodes, edges), [nodes, edges]);
+
+  const runJennieReview = useCallback(async () => {
+    if (!jennieRunPlan || jennieRunBusyRef.current || !currentBoardId) return;
+    jennieRunBusyRef.current = true;
+    setJennieRunBusy(true);
+    const boardId = currentBoardId;
+    try {
+      for (const [index, stage] of jennieRunPlan.entries()) {
+        if (useBoardStore.getState().currentBoardId !== boardId) return;
+        setJennieRunProgress(`Running ${index + 1}/${jennieRunPlan.length}: ${stage.title}`);
+        await useBoardStore.getState().runBox(stage.id);
+        const state = useBoardStore.getState();
+        if (state.currentBoardId !== boardId) return;
+        const result = state.boxData[stage.id];
+        if (result?.status !== "done" || !result.output?.trim()
+          || result.securityArtifactValidation?.status === "invalid") {
+          setJennieRunProgress(`Stopped at ${stage.title}: ${result?.error || "Please review this box's output before continuing."}`);
+          return;
+        }
+      }
+      setJennieRunProgress("Review generated. Check each result before using it.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The run stopped unexpectedly.";
+      setJennieRunProgress(`Review stopped: ${message}`);
+    } finally {
+      jennieRunBusyRef.current = false;
+      setJennieRunBusy(false);
+    }
+  }, [currentBoardId, jennieRunPlan]);
+
+  useEffect(() => {
+    setJennieRunProgress("");
+  }, [currentBoardId]);
   const demoTraceGraph = useMemo(
     () => securityWorkflow ? buildSecurityDemoTraceGraph(securityWorkflow, boxData) : { entities: [], relations: [] },
     [securityWorkflow, boxData],
@@ -505,6 +543,24 @@ export default function Canvas() {
                   ▭ {areaTool ? "Drawing areas — Esc to stop" : "Area"}
                 </Button>
               </div>
+              {jennieRunPlan && (
+                <div className="flex flex-col items-start gap-1">
+                  <Button
+                    size="xs"
+                    variant="primary"
+                    disabled={jennieRunBusy}
+                    onClick={runJennieReview}
+                    title="Run Jennie's seven connected security boxes in order"
+                  >
+                    {jennieRunBusy ? "Running Jennie's review…" : "▶ Run Jennie's review"}
+                  </Button>
+                  {jennieRunProgress && (
+                    <span role="status" className="max-w-72 rounded bg-white/95 px-2 py-1 text-xs text-slate-700 shadow-sm">
+                      {jennieRunProgress}
+                    </span>
+                  )}
+                </div>
+              )}
               {areaTool && (
                 <div className="flex items-center gap-1.5 rounded-lg bg-white/90 backdrop-blur px-2 py-1.5 shadow-md border border-slate-200">
                   {AREA_COLORS.map((c, i) => (

@@ -6,8 +6,10 @@ import { useBoardStore } from "../store/boardStore.js";
 import { useSecurityDemoStore } from "../store/securityDemoStore.js";
 import { useSecurityTraceStore } from "../store/securityTraceStore.js";
 import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
+import { createBoardTemplate, findJennieRunPlan } from "../lib/boardTemplates.js";
 import { buildSecurityDemoTraceGraph, findSecurityWorkflow } from "../lib/securityDemo.js";
 import { openAddBoxPanel } from "../lib/sidebarActions.js";
+import { BOX_TYPES, type BoxType } from "../types.js";
 
 vi.mock("@xyflow/react", async () => {
   const React = await import("react");
@@ -107,6 +109,8 @@ function CanvasWithAddBoxAction() {
 let container: HTMLDivElement;
 let root: Root;
 const initialBoxData = useBoardStore.getState().boxData;
+const initialNodes = useBoardStore.getState().nodes;
+const initialEdges = useBoardStore.getState().edges;
 const noMatchRequirementsOutput = `artifact_type: RequirementsPackage
 schema_version: "1.0"
 requirements:
@@ -140,7 +144,12 @@ function setRetargetFixture() {
 
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  useBoardStore.setState({ boxData: initialBoxData });
+  useBoardStore.setState({
+    boxData: initialBoxData,
+    nodes: initialNodes,
+    edges: initialEdges,
+    currentBoardId: "board-a",
+  });
   useSecurityDemoStore.getState().finish();
   useSecurityTraceStore.getState().clearSelection();
   container = document.createElement("div");
@@ -385,5 +394,78 @@ describe("Canvas guided demo ownership and Lens state", () => {
     expect(container.querySelector('#microsoft-security-lens-tab')?.getAttribute("aria-selected")).toBe("true");
     expect(container.textContent).not.toContain("No current entity is available for the Lens");
     expect(container.textContent).not.toContain("No current trace target is available");
+  });
+});
+
+describe("Jennie template run control", () => {
+  function templateFixture() {
+    let index = 0;
+    return createBoardTemplate(
+      "jennie-showcase",
+      () => `jennie-${++index}`,
+      (type: BoxType) => ({
+        content: "",
+        output: "",
+        prompt: BOX_TYPES[type].defaultPrompt,
+        systemPrompt: BOX_TYPES[type].defaultSystemPrompt,
+        status: "idle",
+      }),
+    );
+  }
+
+  it("runs all seven workers in order from one click", async () => {
+    const template = templateFixture();
+    const runBox = vi.fn(async (id: string) => {
+      const current = useBoardStore.getState();
+      useBoardStore.setState({
+        boxData: {
+          ...current.boxData,
+          [id]: { ...current.boxData[id], output: "generated", status: "done" },
+        },
+      });
+    });
+    useBoardStore.setState({
+      ...template,
+      currentBoardId: "board-jennie",
+      runBox,
+    });
+    await mountCanvas();
+
+    const button = [...container.querySelectorAll("button")]
+      .find((candidate) => candidate.textContent === "▶ Run Jennie's review")!;
+    expect(runBox).not.toHaveBeenCalled();
+    await act(async () => button.click());
+
+    expect(runBox.mock.calls.map(([id]) => id)).toEqual(
+      findJennieRunPlan(template.nodes, template.edges)!.map(({ id }) => id),
+    );
+    expect(container.textContent).toContain("Review generated. Check each result before using it.");
+  });
+
+  it("stops at the first failed worker instead of running downstream boxes", async () => {
+    const template = templateFixture();
+    const plan = findJennieRunPlan(template.nodes, template.edges)!;
+    const runBox = vi.fn(async (id: string) => {
+      const current = useBoardStore.getState();
+      useBoardStore.setState({
+        boxData: {
+          ...current.boxData,
+          [id]: {
+            ...current.boxData[id],
+            status: id === plan[1].id ? "error" : "done",
+            output: id === plan[1].id ? "" : "generated",
+            error: id === plan[1].id ? "Provider unavailable" : undefined,
+          },
+        },
+      });
+    });
+    useBoardStore.setState({ ...template, currentBoardId: "board-jennie", runBox });
+    await mountCanvas();
+    const button = [...container.querySelectorAll("button")]
+      .find((candidate) => candidate.textContent === "▶ Run Jennie's review")!;
+    await act(async () => button.click());
+
+    expect(runBox.mock.calls.map(([id]) => id)).toEqual(plan.slice(0, 2).map(({ id }) => id));
+    expect(container.textContent).toContain("Stopped at Threat Modeler: Provider unavailable");
   });
 });
