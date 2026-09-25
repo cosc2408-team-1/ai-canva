@@ -29,6 +29,13 @@ current state).
 
 ---
 
+## 2026-09-25 — Jennie showcase template
+
+- **Done:** Added a selectable Jennie's Security Review board template with Hafsah's fictional university reviewer scenario in a prefilled Idea box. It connects the seven security workers and adds a single canvas control to run them in order, stopping on a failed or invalid result. The ordinary Security Assessment and Blank Board templates remain unchanged.
+- **Verified:** All 522 client tests pass and the client production build succeeds. The run-control UI tests cover full sequence and failure stop.
+- **In flight:** The sample has not been exercised against the live AI provider; generated outputs still need a presenter review and should be saved before the showcase.
+- **Next steps:** Create a Jennie board in the deployed app after this change is released, run it once, check outputs and timing, and keep a pre-run board as the demo fallback.
+
 ## 2026-09-25 — PR #42 trace sidebar exclusivity
 
 - **Done:** PR #41 was merged into `main` as

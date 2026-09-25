@@ -135,7 +135,13 @@ plus role-gated Admin/Facilitator buttons.
 retaining `+ Add Box` and the Boards menu. Empty boards show a Security Assessment-first
 onboarding view in `BoardEmptyState.tsx` and the contextual Sidebar; choosing Add Box or Build
 manually switches to the normal palette. `NewBoardModal.tsx` selects Security Assessment by
-default, while Blank Board remains available. App keeps this presentation mode locally, never
+default, while Blank Board remains available. A separate **Jennie's Security Review** template
+in `lib/boardTemplates.ts` seeds a fictional university project description into both `content`
+and `output` of an Idea box, then wires the seven security workers from both teams. Template
+nodes carry stable `templateId`/`templateKey` metadata; `findJennieRunPlan` offers a canvas-level
+**Run Jennie's review** button only while the original workflow is intact. That button runs the
+workers in order and stops on a failed or invalid result; the Idea box itself has no Run button.
+It does not generate anything on board creation. App keeps this presentation mode locally, never
 in board persistence; populated boards continue to use the normal canvas and palette. The header's
 `+ Add Box` action is open-only: repeated clicks leave the palette open, while its explicit close
 control closes it. Opening Add Box clears the transient trace selection, resets the local Inspector

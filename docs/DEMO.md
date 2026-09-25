@@ -1,5 +1,11 @@
 # Guided Security Assessment Demo
 
+## Jennie showcase template
+
+Choose **New Board > Jennie's Security Review** for the fictional university-app scenario. Its Project Description (Idea box) already contains the sample input, and all seven security workers are connected. The Idea box supplies text to the workflow; it does not have a Run button. Select **Run Jennie's review** on the canvas to run the workers in order. The run stops if a box fails or produces an invalid structured artifact. Review that box before trying again. Creating the board alone does not call the AI provider.
+
+The sample describes proposed sign-in and access behaviour, not verified controls. Use synthetic data only. Run and check the board before the event, then use **Start demo** for the presentation-only tour of the core assessment path. That tour does not generate output.
+
 ## Prepare the board
 
 Use a Security Assessment board with existing project context and generated outputs for Asset Mapper, Security Requirements Elicitor, NIST CSF Gap Checker, and Security Advisor. Confirm the NIST artifact is usable (Valid, Warning, or Needs clarification). A NIST finding is not required. Use synthetic or approved demo data only.

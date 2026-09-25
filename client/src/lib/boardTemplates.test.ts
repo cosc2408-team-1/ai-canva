@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { BOX_TYPES, type BoxData, type BoxType } from "../types.js";
 import { cleanBoxDataForFirestore } from "./serialization.js";
+import { findSecurityWorkflow } from "./securityDemo.js";
 import {
   BOARD_TEMPLATE_OPTIONS,
   DEFAULT_BOARD_TEMPLATE_ID,
+  JENNIE_PROJECT_DESCRIPTION,
   createBoardTemplate,
   defaultBoardName,
+  findJennieRunPlan,
 } from "./boardTemplates.js";
 
 function ids() {
@@ -28,9 +31,11 @@ describe("Security Assessment board template", () => {
     expect(DEFAULT_BOARD_TEMPLATE_ID).toBe("security-assessment");
     expect(BOARD_TEMPLATE_OPTIONS.map((option) => option.id)).toEqual([
       "security-assessment",
+      "jennie-showcase",
       "blank",
     ]);
     expect(defaultBoardName("security-assessment")).toBe("Security Assessment");
+    expect(defaultBoardName("jennie-showcase")).toBe("Jennie's Security Review");
     expect(defaultBoardName("blank")).toBe("Untitled Board");
   });
 
@@ -124,5 +129,56 @@ describe("Security Assessment board template", () => {
     for (const data of Object.values(cleanBoxDataForFirestore(template.boxData))) {
       expect(Object.values(data)).not.toContain(undefined);
     }
+  });
+});
+
+describe("Jennie showcase board template", () => {
+  it("starts with the fictional student-app description ready to feed the first worker", () => {
+    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData);
+    const idea = template.nodes.find((node) => node.type === "idea")!;
+
+    expect(JENNIE_PROJECT_DESCRIPTION).toContain("Jennie is a university security reviewer");
+    expect(JENNIE_PROJECT_DESCRIPTION).toContain("upload PDF or DOCX reports");
+    expect(JENNIE_PROJECT_DESCRIPTION).toContain("Microsoft Entra ID");
+    expect(JENNIE_PROJECT_DESCRIPTION).toContain("not verified controls");
+    expect(template.boxData[idea.id]).toMatchObject({
+      content: JENNIE_PROJECT_DESCRIPTION,
+      output: JENNIE_PROJECT_DESCRIPTION,
+      status: "idle",
+    });
+    expect(template.edges.some((edge) => edge.source === idea.id
+      && template.nodes.find((node) => node.id === edge.target)?.type === "assetmapper")).toBe(true);
+    expect(Object.values(cleanBoxDataForFirestore(template.boxData)).every(
+      (data) => Object.values(data).every((value) => value !== undefined),
+    )).toBe(true);
+  });
+
+  it("includes both teams' security boxes while retaining the guided demo path", () => {
+    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData);
+    expect(template.nodes.map((node) => node.type)).toEqual([
+      "idea", "assetmapper", "reqelicitor", "nistgap", "securityadvisor",
+      "threatModeler", "riskScorer", "irPlanner",
+    ]);
+    expect(template.edges).toHaveLength(9);
+    expect(findSecurityWorkflow(template.nodes, template.edges)).not.toBeNull();
+    expect(findJennieRunPlan(template.nodes, template.edges)?.map(({ type }) => type)).toEqual([
+      "assetmapper", "threatModeler", "riskScorer", "reqelicitor",
+      "nistgap", "securityadvisor", "irPlanner",
+    ]);
+    for (const node of template.nodes.filter((node) => node.type !== "idea")) {
+      expect(template.boxData[node.id]).toMatchObject({
+        prompt: BOX_TYPES[node.type as BoxType].defaultPrompt,
+        systemPrompt: BOX_TYPES[node.type as BoxType].defaultSystemPrompt,
+        status: "idle",
+        output: "",
+      });
+    }
+  });
+
+  it("does not offer the one-click run for an incomplete or rewired copy", () => {
+    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData);
+    expect(findJennieRunPlan(template.nodes.slice(1), template.edges)).toBeNull();
+    expect(findJennieRunPlan(template.nodes, template.edges.slice(1))).toBeNull();
+    expect(findJennieRunPlan(createBoardTemplate("security-assessment", ids(), defaultBoxData).nodes, [])).toBeNull();
   });
 });
