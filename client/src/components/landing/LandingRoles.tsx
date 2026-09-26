@@ -2,6 +2,16 @@ import Reveal from "./Reveal.js";
 
 const ROLES = [
   {
+    icon: "🛡️",
+    title: "For security teams",
+    color: "#0f766e",
+    points: [
+      "Open Security view to find the security boxes",
+      "Follow assets through requirements, gaps and next steps",
+      "Review AI findings against real evidence before acting",
+    ],
+  },
+  {
     icon: "🎨",
     title: "For designers",
     color: "#f472b6",
@@ -56,7 +66,7 @@ export default function LandingRoles() {
           </p>
         </Reveal>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {ROLES.map((role, i) => (
             <Reveal key={role.title} delay={i * 120}>
               <div className="h-full rounded-2xl border border-white/10 bg-white/5 p-6 transition hover:border-white/20 hover:bg-white/[0.07]">

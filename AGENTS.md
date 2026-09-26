@@ -577,7 +577,9 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   `LandingHowItWorks`, `LandingFeatures`, `LandingBoxes`, `LandingRoles`, `LandingCTA`,
   `LandingFooter`). It reuses `BOX_TYPES` for the box showcase, uses a `Reveal` scroll-fade wrapper
   (`useReveal.ts`), and keeps the dark indigo/cyan theme from `index.css` (`.landing-bg`,
-  `.gradient-text`, `.glass-card`). `App.tsx` renders it when `!user`.
+  `.gradient-text`, `.glass-card`). The hero previews a security assessment, `LandingBoxes`
+  explains the seven security workers alongside the general-purpose boxes, and `LandingRoles`
+  includes Security view. `App.tsx` renders it when `!user`.
 - **Code editor:** the Code / UI / Stitch boxes use an editable CodeMirror 6 editor
   (`client/src/components/CodeEditor.tsx`, `@uiw/react-codemirror` + `@codemirror/lang-javascript`
   + `@uiw/codemirror-theme-vscode`). It is **lazy-loaded** via `React.lazy` in `BoxNode.tsx` so
