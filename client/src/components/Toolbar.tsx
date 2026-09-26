@@ -20,6 +20,9 @@ const SECURITY_BOX_GUIDANCE: Record<Extract<QuickGuideContext, { kind: "security
   reqelicitor: { stage: "SPECIFY", detail: "Turn supplied assets and evidence into testable requirements." },
   nistgap: { stage: "ASSESS", detail: "Compare requirements and evidence against relevant NIST CSF outcomes." },
   securityadvisor: { stage: "ADVISE", detail: "Review next actions, open questions, and human-review items." },
+  threatModeler: { stage: "MODEL", detail: "Turn supplied assets into conditional STRIDE threats with THR-* IDs." },
+  riskScorer: { stage: "SCORE", detail: "Score each threat by likelihood × impact; the app checks the arithmetic and bands." },
+  irPlanner: { stage: "PLAN", detail: "Plan the response to an incident, or prepare for the highest-rated risks." },
 };
 
 function guideContent(context: QuickGuideContext): GuideContent {

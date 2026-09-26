@@ -57,6 +57,9 @@ const ARTIFACT_TYPES: Record<SecurityArtifactBoxType, string> = {
   reqelicitor: "RequirementsPackage",
   nistgap: "NISTAssessmentPackage",
   securityadvisor: "NextStepGuidance",
+  threatModeler: "ThreatModel",
+  riskScorer: "RiskRegister",
+  irPlanner: "IncidentResponsePlan",
 };
 
 const REFERENCE_FIELDS = new Set([
