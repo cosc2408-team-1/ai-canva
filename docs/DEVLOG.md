@@ -29,6 +29,13 @@ current state).
 
 ---
 
+## 2026-09-26 — Security homepage copy
+
+- **Done:** Updated the logged-out homepage to show the project-to-security-review flow, explain all seven security boxes, and add a Security role card. Left branding and colour changes to the parallel team work.
+- **Verified:** Client TypeScript check and production Vite build pass; `git diff --check` passes.
+- **In flight:** Changes are local on `feat/security-homepage`; no hosting deploy yet.
+- **Next steps:** Review and merge the homepage change, then rebuild and redeploy the `val-demo` Hosting preview from the merged version to show both this copy and the Jennie template.
+
 ## 2026-09-25 — Jennie showcase template
 
 - **Done:** Added a selectable Jennie's Security Review board template with Hafsah's fictional university reviewer scenario in a prefilled Idea box. It connects the seven security workers and adds a single canvas control to run them in order, stopping on a failed or invalid result. The ordinary Security Assessment and Blank Board templates remain unchanged.
