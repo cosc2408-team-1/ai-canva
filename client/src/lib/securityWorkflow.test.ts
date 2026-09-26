@@ -7,6 +7,10 @@ import {
   securityWorkflowStages,
 } from "./securityWorkflow.js";
 
+// Team 2's boxes are structured security artifacts but sit outside the
+// numbered four-stage workflow, so existing stage badges stay 1/4–4/4.
+const UNSTAGED_SECURITY_BOXES = ["threatModeler", "riskScorer", "irPlanner"];
+
 describe("security workflow metadata", () => {
   it("defines the four ordered stages and their artifact contracts", () => {
     const stages = securityWorkflowStages();
@@ -24,8 +28,13 @@ describe("security workflow metadata", () => {
     const stages = securityWorkflowStages();
     expect(new Set(stages.map(({ order }) => order)).size).toBe(stages.length);
     expect(new Set(stages.map(({ boxType }) => boxType)).size).toBe(stages.length);
-    expect(stages.map(({ boxType }) => boxType).sort()).toEqual([...SECURITY_ARTIFACT_BOX_TYPES].sort());
-    for (const type of SECURITY_ARTIFACT_BOX_TYPES) {
+    const staged = SECURITY_ARTIFACT_BOX_TYPES.filter((type) => !UNSTAGED_SECURITY_BOXES.includes(type));
+    expect(stages.map(({ boxType }) => boxType).sort()).toEqual([...staged].sort());
+    for (const type of UNSTAGED_SECURITY_BOXES) {
+      expect(isSecurityWorkflowBox(type)).toBe(true);
+      expect(securityWorkflowStageForBoxType(type)).toBeUndefined();
+    }
+    for (const type of staged) {
       expect(isSecurityWorkflowBox(type)).toBe(true);
       expect(securityWorkflowStageForBoxType(type)?.boxType).toBe(type);
       expect(securityWorkflowStageNumber(type)).toBeDefined();
