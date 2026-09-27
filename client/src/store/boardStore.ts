@@ -1518,6 +1518,15 @@ export const useBoardStore = create<BoardState>()(
             const assessmentDate = boxType === "nistgap" ? applicationAssessmentDate() : "";
             if (assessmentDate) filledPrompt += nistTrustedMetadataPrompt(assessmentDate);
 
+            // Requirements Elicitor: append the most relevant real OWASP ASVS 5.0.0
+            // requirements (local keyword retrieval) so the model cites the standard,
+            // not its memory. Adds nothing when no requirement is relevant. The ASVS
+            // list is loaded only when this box runs, so it is not in the main bundle.
+            if (boxType === "reqelicitor") {
+              const { asvsReferencePrompt } = await import("../lib/asvsRetrieval.js");
+              filledPrompt += asvsReferencePrompt(namedInputs.map((input) => input.output).join("\n"));
+            }
+
             const result = await generateTextForBox(id, {
               systemPrompt: data.systemPrompt,
               userPrompt: filledPrompt,
