@@ -291,4 +291,56 @@ describe("NextStepGuidance and execution gate", () => {
     expect(warning.validations[0].validation.status).toBe("warning");
     expect(warning.message).toBeNull();
   });
+
+  describe("clarification gate", () => {
+    const unresolved = requirementsPackage
+      .replace("status: complete", "status: clarification_required")
+      .replace("open_questions: []", "open_questions: [Is MFA enforced for administrators?]");
+    const unresolvedValidation = () => {
+      const { parsed: _parsed, ...summary } = validateSecurityArtifact({ boxType: "reqelicitor", output: unresolved, now: () => 1234 });
+      return summary;
+    };
+
+    it("blocks the NIST CSF Gap Checker on an unresolved RequirementsPackage", () => {
+      const gate = securityUpstreamGate("nistgap", [{
+        boxType: "reqelicitor", title: "Requirements Elicitor", output: unresolved, validation: unresolvedValidation(),
+      }]);
+      expect(gate.message).toContain("Requirements Elicitor still has unanswered clarification questions");
+      expect(gate.message).toContain("Proceed with unresolved questions");
+      expect(gate.bypassed).toEqual([]);
+    });
+
+    it("lets NIST run after an explicit override on that exact output and reports the bypass", () => {
+      const source = {
+        boxType: "reqelicitor" as const,
+        title: "Requirements Elicitor",
+        output: unresolved,
+        validation: unresolvedValidation(),
+        clarificationOverride: { by: "Jennie", at: 99, validatedAt: 1234 },
+      };
+      const gate = securityUpstreamGate("nistgap", [source]);
+      expect(gate.message).toBeNull();
+      expect(gate.bypassed.map((entry) => entry.title)).toEqual(["Requirements Elicitor"]);
+    });
+
+    it("ignores an override granted for an older output", () => {
+      const gate = securityUpstreamGate("nistgap", [{
+        boxType: "reqelicitor",
+        title: "Requirements Elicitor",
+        output: unresolved,
+        validation: unresolvedValidation(),
+        clarificationOverride: { by: "Jennie", at: 99, validatedAt: 1 },
+      }]);
+      expect(gate.message).toContain("still has unanswered clarification questions");
+    });
+
+    it("does not gate the Elicitor, the Advisor, or complete packages", () => {
+      expect(securityUpstreamGate("nistgap", [{ boxType: "reqelicitor", title: "Elicitor", output: requirementsPackage }]).message).toBeNull();
+      expect(securityUpstreamGate("reqelicitor", [{
+        boxType: "assetmapper", title: "Asset Mapper", output: assetPackage.replace("status: complete", "status: clarification_required"),
+      }]).message).toBeNull();
+      const unresolvedNist = nistPackage().replace(/^status: complete$/m, "status: clarification_required");
+      expect(securityUpstreamGate("securityadvisor", [{ boxType: "nistgap", title: "NIST", output: unresolvedNist }]).message).toBeNull();
+    });
+  });
 });

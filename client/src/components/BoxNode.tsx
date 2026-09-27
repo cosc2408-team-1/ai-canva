@@ -127,6 +127,10 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
   const setBoxName = useBoardStore((s) => s.setBoxName);
   const setSdlcGateRequired = useBoardStore((s) => s.setSdlcGateRequired);
   const deployBox = useBoardStore((s) => s.deployBox);
+  const setSecurityClarifications = useBoardStore((s) => s.setSecurityClarifications);
+  const proceedWithUnresolvedClarifications = useBoardStore((s) => s.proceedWithUnresolvedClarifications);
+  const clearClarificationOverride = useBoardStore((s) => s.clearClarificationOverride);
+  const authUser = useAuthStore((s) => s.user);
 
   const [showSettings, setShowSettings] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -1115,6 +1119,18 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
                 output={boxData.output}
                 validation={boxData.securityArtifactValidation}
                 isError={hasError}
+                clarification={{
+                  entries: boxData.securityClarifications || [],
+                  override: boxData.securityClarificationOverride,
+                  actor: authUser?.displayName || authUser?.email || "Someone",
+                  onSave: (entries) => setSecurityClarifications(id, entries),
+                  onSaveAndRerun: (entries) => {
+                    setSecurityClarifications(id, entries);
+                    void runBox(id);
+                  },
+                  onProceed: () => { proceedWithUnresolvedClarifications(id); },
+                  onUndoProceed: () => clearClarificationOverride(id),
+                }}
               />
             )}
 

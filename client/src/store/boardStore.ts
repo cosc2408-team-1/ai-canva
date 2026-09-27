@@ -10,7 +10,7 @@ import {
   type EdgeChange,
   type Connection,
 } from "@xyflow/react";
-import type { BoxData, BoxType, BoxStatus, NamedInput, AgentStep, ChatMessage, DeployInfo, FileChange, EditMeta, ArtifactVersion, SdlcEvent, SdlcStage, RepoMeta, ChecklistItem, SecurityArtifactBoxType } from "../types.js";
+import type { BoxData, BoxType, BoxStatus, NamedInput, AgentStep, ChatMessage, DeployInfo, FileChange, EditMeta, ArtifactVersion, SdlcEvent, SdlcStage, RepoMeta, ChecklistItem, SecurityArtifactBoxType, SecurityClarification } from "../types.js";
 import { BOX_TYPES, AGENT_CONTROLLER_SYSTEM_PROMPT, isSecurityArtifactBoxType } from "../types.js";
 import { buildCodeMapPrompt, resolveRepoRef } from "../lib/repo.js";
 import {
@@ -47,6 +47,11 @@ import {
 import { generate, generateImage, generateStitchUI, fetchRepoDigest, publishSite } from "../lib/api.js";
 import { fillPromptTemplate, getBoxOutput } from "../lib/prompts.js";
 import { securityInputError } from "../lib/securityInputValidation.js";
+import {
+  CLARIFICATION_INPUT_NAME,
+  buildClarificationInput,
+  clarificationBypassPrompt,
+} from "../lib/securityClarifications.js";
 import {
   applicationAssessmentDate,
   nistTrustedMetadataPrompt,
@@ -306,6 +311,19 @@ interface BoardState {
    * so the whole list syncs to collaborators through the normal board save.
    */
   setChecklistItems: (id: string, items: ChecklistItem[]) => void;
+  /**
+   * Security boxes: replace the stored clarification answers (built by the pure
+   * helpers in `lib/securityClarifications.ts`). Skips the write when unchanged.
+   */
+  setSecurityClarifications: (id: string, entries: SecurityClarification[]) => void;
+  /**
+   * Security boxes: record that the user chose to continue downstream although
+   * the current output still needs clarification. Tied to that exact output.
+   * Returns false when the box has no output needing clarification.
+   */
+  proceedWithUnresolvedClarifications: (id: string, actor?: string) => boolean;
+  /** Security boxes: undo "Proceed with unresolved questions". */
+  clearClarificationOverride: (id: string) => void;
   /** Place a chatbot node (Canvas auto-places it at the viewport bottom). */
   placeChatbot: (id: string, position: { x: number; y: number }) => void;
 
@@ -999,6 +1017,43 @@ export const useBoardStore = create<BoardState>()(
         get().updateBoxData(id, { checklistItems: items });
       },
 
+      setSecurityClarifications: (id, entries) => {
+        const data = get().boxData[id];
+        if (!data) return;
+        const prev = data.securityClarifications || [];
+        if (prev === entries || (prev.length === 0 && entries.length === 0)) return;
+        get().updateBoxData(id, { securityClarifications: entries });
+      },
+
+      proceedWithUnresolvedClarifications: (id, actor) => {
+        const node = get().nodes.find((n) => n.id === id);
+        const data = get().boxData[id];
+        const boxType = (node?.data.boxType || node?.type) as BoxType | undefined;
+        if (!data || !boxType || !isSecurityArtifactBoxType(boxType) || !data.output.trim()) return false;
+        // Legacy boxes have no stored validation yet; persist one so the
+        // override can be tied to this exact output.
+        let validation = data.securityArtifactValidation;
+        if (!validation) {
+          const { parsed: _parsed, ...summary } = validateSecurityArtifact({ boxType, output: data.output });
+          validation = summary;
+        }
+        if (validation.status !== "clarification_required") return false;
+        get().updateBoxData(id, {
+          securityArtifactValidation: validation,
+          securityClarificationOverride: {
+            by: actor || actorName(),
+            at: Date.now(),
+            validatedAt: validation.validatedAt,
+          },
+        });
+        return true;
+      },
+
+      clearClarificationOverride: (id) => {
+        if (!get().boxData[id]?.securityClarificationOverride) return;
+        get().updateBoxData(id, { securityClarificationOverride: undefined });
+      },
+
       placeChatbot: (id, position) => {
         set({
           nodes: get().nodes.map((n) =>
@@ -1425,6 +1480,15 @@ export const useBoardStore = create<BoardState>()(
           id
         );
 
+        // A security box's own clarification answers travel with its inputs
+        // (before the input guard, so answers alone can feed the Advisor).
+        const clarificationInput = isSecurityArtifactBoxType(boxType)
+          ? buildClarificationInput(data.securityClarifications)
+          : null;
+        if (clarificationInput) {
+          namedInputs.push({ name: CLARIFICATION_INPUT_NAME, output: clarificationInput });
+        }
+
         // Reject missing security-box inputs before entering the shared AI path.
         const inputError = securityInputError(boxType, namedInputs);
         if (inputError) {
@@ -1446,12 +1510,15 @@ export const useBoardStore = create<BoardState>()(
                 title: (sourceNode?.data.title as string) || BOX_TYPES[sourceType].label,
                 output: sourceData.output,
                 validation: sourceData.securityArtifactValidation,
+                clarificationOverride: sourceData.securityClarificationOverride,
                 sourceId: edge.source,
               }];
             })
           : [];
+        let bypassNote = "";
         if (securityBox) {
           const gate = securityUpstreamGate(boxType, directSecurityUpstreams);
+          bypassNote = clarificationBypassPrompt(gate.bypassed.map((source) => source.title));
           // Old boards have no validation metadata. Persist an on-demand summary
           // while preserving their raw model output and without migrating data.
           for (const { source, validation } of gate.validations) {
@@ -1464,8 +1531,8 @@ export const useBoardStore = create<BoardState>()(
             get().setBoxStatus(id, "error", gate.message);
             return;
           }
-          // A rerun must not display validation belonging to an older result.
-          get().updateBoxData(id, { securityArtifactValidation: undefined });
+          // A rerun must not display validation (or an override) belonging to an older result.
+          get().updateBoxData(id, { securityArtifactValidation: undefined, securityClarificationOverride: undefined });
         }
 
         // Set running state
@@ -1517,6 +1584,8 @@ export const useBoardStore = create<BoardState>()(
             // guess. It is appended immediately before the model call.
             const assessmentDate = boxType === "nistgap" ? applicationAssessmentDate() : "";
             if (assessmentDate) filledPrompt += nistTrustedMetadataPrompt(assessmentDate);
+            // The user proceeded past unresolved upstream questions: say so.
+            filledPrompt += bypassNote;
 
             // Requirements Elicitor: append the most relevant real OWASP ASVS 5.0.0
             // requirements (local keyword retrieval) so the model cites the standard,
