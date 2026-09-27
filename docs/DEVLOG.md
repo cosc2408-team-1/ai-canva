@@ -29,6 +29,55 @@ current state).
 
 ---
 
+## 2026-09-27 — Corrected evaluator and three-repeat version batches
+
+- **Done:** Fixed eval ID detection to inspect raw strings recursively, preserving IDs after
+  newlines. Judge now receives independent output-contract context and trusted assessment date;
+  exact framework identifier accuracy remains explicitly outside the rubric without a catalogue.
+  Generation failures now leave scores incomplete instead of recording zero. Old history is
+  untouched; new runs are evaluator 2 in a separate comparison group.
+- **Versions:** `evals/prompt-versions.yaml` contains nine distinct prompt sets recovered from
+  history/current/reference eval files, preserving exact system/user text. `node evals/run.mjs
+  --all` runs each set three times (27 runs, normally 648 VAL calls); `--version v04` selects
+  one set, `--repeats` overrides repeats, and `--check` makes no calls. Plain invocation still
+  reads `prompts.yaml` once. Report includes per-prompt means/ranges/usable counts and failed
+  attempts. Cases, production prompts and app behavior remain unchanged.
+- **Verified:** Seven offline tests pass, including newline regression, trusted judge metadata,
+  failed-generation handling and a complete mocked two-version/three-repeat batch. Chromium
+  direct-file report checks pass, including means/ranges and exclusion of incomplete attempts.
+- **Next steps:** Manually run the desired version batch with VAL and review the new evaluator
+  group. No live VAL calls or historical rescoring were performed during implementation.
+
+## 2026-09-26 — Basic prompt baseline and score trends
+
+- **Done:** Saved the former full eval prompts in `evals/prompts-production-reference.yaml`
+  and reset the three active prompts to short `01-basic` versions. Added per-box history
+  charts, stage labels and changes in points between comparable runs to the static report.
+  The runner, scorer, cases and judge are unchanged so existing comparisons remain valid.
+  Documented the incremental prompt-edit workflow. Production remains untouched.
+- **Existing evidence:** One saved full-prompt VAL run scored Requirements Elicitor 90,
+  NIST Gap Checker 76.25 and Security Advisor 92.5. That history is preserved unchanged.
+- **Next steps:** Manually run the basic prompts, inspect reasons and subscores, then add
+  one improvement at a time. No new live VAL run was started for this change.
+
+## 2026-09-26 — Standalone local VAL prompt evaluations
+
+- **Done:** Added isolated `evals/` with independent copies of the Requirements Elicitor,
+  NIST Gap Checker and Security Advisor prompts, four fixed scenarios per box, four automatic
+  checks plus six VAL-judged checks (ten points each), checkpointed local JSON history, and a
+  self-contained HTML report that opens directly from disk. Each box is scored against its own
+  responsibility; generated outputs never become another evaluated box's inputs. No production
+  imports, app behavior, default commands, CI or hooks changed. Only dependency is an isolated
+  YAML parser; history, report and credentials are ignored by Git.
+- **Verified:** Six offline checks pass, including full mocked runs, failed-judge retries,
+  scoring arithmetic, package preservation and safe report embedding. Input preflight passes.
+  Chromium verified direct-file empty/history reports, run/group selection, filtering, raw
+  output, script escaping and mobile width, with no page errors or network requests.
+- **In flight:** No live VAL calls made; real model output quality remains unverified.
+- **Next steps:** Set `VAL_API_KEY` in `evals/.env` (see `.env.example`), run
+  `node evals/run.mjs`, then open `evals/report.html`. Edit `evals/prompts.yaml` to compare
+  independent prompt versions. `node evals/report.mjs` rebuilds history without model calls.
+
 ## 2026-09-26 — Security homepage copy
 
 - **Done:** Updated the logged-out homepage to show the project-to-security-review flow, explain all seven security boxes, and add a Security role card. Left branding and colour changes to the parallel team work.
