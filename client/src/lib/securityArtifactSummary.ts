@@ -43,6 +43,9 @@ const ARTIFACT_TYPES: Record<SecurityArtifactBoxType, string> = {
   reqelicitor: "RequirementsPackage",
   nistgap: "NISTAssessmentPackage",
   securityadvisor: "NextStepGuidance",
+  threatModeler: "ThreatModel",
+  riskScorer: "RiskRegister",
+  irPlanner: "IncidentResponsePlan",
 };
 
 const TRACE_ID_PATTERN = /^(AST|EVID|REQ|GAP|NEXT)-0*[1-9]\d*$/;
@@ -268,6 +271,10 @@ export function summarizeSecurityArtifact(
     };
   }
 
+  if (boxType === "threatModeler") return summarizeThreatModel(base, artifact, questionSection);
+  if (boxType === "riskScorer") return summarizeRiskRegister(base, artifact, questionSection);
+  if (boxType === "irPlanner") return summarizeIncidentResponsePlan(base, artifact, questionSection);
+
   const interview = artifact.status === "interview_required";
   const ready = artifact.status === "recommendation_ready";
   if (!interview && !ready) return null;
@@ -292,5 +299,158 @@ export function summarizeSecurityArtifact(
     recommendedNextStep: ready ? text(artifact.recommended_next_step) : undefined,
     reason: ready ? text(artifact.reason) : undefined,
     confidence: ready ? firstItemText(artifact.confidence, ["level", "label", "value", "confidence"]) : undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Team 2 summaries: ThreatModel, RiskRegister, IncidentResponsePlan.
+// ---------------------------------------------------------------------------
+
+type QuestionSection = (value: unknown, emptyText?: string) => SummarySection;
+
+function joinParts(...parts: Array<string | undefined>): string | undefined {
+  const present = parts.filter((part): part is string => Boolean(part && part.trim()));
+  return present.length ? present.join(" · ") : undefined;
+}
+
+function refs(value: unknown): string | undefined {
+  const entries = (list(value) || []).map(text).filter((entry): entry is string => Boolean(entry));
+  return entries.length ? entries.join(", ") : undefined;
+}
+
+function labelled(id: string | undefined, body: string | undefined, fallback: string): string {
+  return id && body ? `${id} — ${body}` : id || body || fallback;
+}
+
+function summarizeThreatModel(
+  base: SecurityArtifactSummary,
+  artifact: ArtifactRecord,
+  questionSection: QuestionSection,
+): SecurityArtifactSummary | null {
+  const threats = list(artifact.threats);
+  if (!threats) return null;
+  const items = threats.flatMap((entry): SummaryItem[] => {
+    const threat = record(entry);
+    if (!threat) return [];
+    const id = text(threat.id);
+    const mapping = record(threat.attack_mapping);
+    const technique = mapping && text(mapping.technique_id) && text(mapping.technique_id)!.toLowerCase() !== "unknown"
+      ? `ATT&CK ${text(mapping.technique_id)}${mapping.match === "closest" ? " (closest match)" : ""}`
+      : "ATT&CK: no confident match";
+    return [{
+      text: labelled(id, text(threat.threat), "Threat"),
+      detail: joinParts(refs(threat.asset_refs), text(threat.stride_category), technique, text(threat.attack_vector)),
+    }];
+  });
+  const stride = new Set(threats.map((entry) => text(record(entry)?.stride_category)).filter(Boolean));
+  const unmodelled = list(artifact.unmodelled_asset_refs);
+  const sections: SummarySection[] = [
+    section("threats", "Threat excerpts", items, "Show all threats", "No threats reported in this artifact."),
+  ];
+  if (unmodelled?.length) {
+    sections.push(excerptSection("unmodelled", "Assets not modelled", unmodelled, [], [], [], "Show all assets not modelled", "Every supplied asset was modelled."));
+  }
+  sections.push(questionSection(artifact.open_questions));
+  return {
+    ...base,
+    title: "Threats modelled",
+    description: "STRIDE threats written as conditional scenarios, not confirmed weaknesses.",
+    metrics: countMetrics(
+      metric(artifact.threats, "Threats"),
+      { label: "STRIDE categories", count: stride.size },
+      metric(artifact.open_questions, "Questions"),
+    ),
+    sections,
+    nextAction: "Verify ATT&CK mappings against attack.mitre.org before relying on them.",
+  };
+}
+
+function summarizeRiskRegister(
+  base: SecurityArtifactSummary,
+  artifact: ArtifactRecord,
+  questionSection: QuestionSection,
+): SecurityArtifactSummary | null {
+  const risks = list(artifact.risks);
+  if (!risks) return null;
+  const levels = { High: 0, Medium: 0, Low: 0 } as Record<string, number>;
+  const items = risks.flatMap((entry): SummaryItem[] => {
+    const risk = record(entry);
+    if (!risk) return [];
+    const id = text(risk.id);
+    const level = text(risk.risk_level);
+    if (level && level in levels) levels[level] += 1;
+    const score = typeof risk.risk_score === "number" ? `Risk ${risk.risk_score}${level ? ` ${level}` : ""}` : level;
+    const factors = typeof risk.likelihood === "number" && typeof risk.impact === "number"
+      ? `L${risk.likelihood} × I${risk.impact}`
+      : undefined;
+    const uncertainty = text(risk.uncertainty) ? `Uncertainty ${text(risk.uncertainty)}` : undefined;
+    return [{
+      text: labelled(id, text(risk.scenario), "Risk"),
+      detail: joinParts(refs(risk.threat_refs), score, factors, uncertainty),
+    }];
+  });
+  return {
+    ...base,
+    title: "Risk register",
+    description: "Qualitative prioritisation, highest first. Scores and bands are checked by the app.",
+    metrics: [
+      { label: "High", count: levels.High },
+      { label: "Medium", count: levels.Medium },
+      { label: "Low", count: levels.Low },
+    ],
+    sections: [
+      section("risks", "Risk excerpts", items, "Show all risks", "No risks reported in this artifact."),
+      questionSection(artifact.open_questions),
+    ],
+    nextAction: "Confirm High-uncertainty scores with the project team before acting on them.",
+  };
+}
+
+function summarizeIncidentResponsePlan(
+  base: SecurityArtifactSummary,
+  artifact: ArtifactRecord,
+  questionSection: QuestionSection,
+): SecurityArtifactSummary | null {
+  const phases = record(artifact.phases);
+  if (!phases) return null;
+  const readiness = artifact.mode === "readiness";
+  const decisions: SummaryItem[] = [];
+  let actions = 0;
+  for (const [phase, value] of Object.entries(phases)) {
+    const body = record(value);
+    if (!body) continue;
+    actions += list(body.actions)?.length || 0;
+    for (const decision of list(body.human_decisions) || []) {
+      const decisionText = text(decision);
+      if (decisionText) decisions.push({ text: decisionText, detail: phase.replace("_", " ") });
+    }
+  }
+  const scenarios = (list(artifact.selected_scenarios) || []).flatMap((entry): SummaryItem[] => {
+    const scenario = record(entry);
+    if (!scenario) return [];
+    const detail = joinParts(refs(scenario.risk_refs), refs(scenario.threat_refs), text(scenario.reason));
+    return [{
+      text: text(scenario.scenario) || "Scenario",
+      ...(detail ? { detail } : {}),
+    }];
+  });
+  const sections: SummarySection[] = [];
+  if (readiness) sections.push(section("scenarios", "Scenarios planned for", scenarios, "Show all scenarios", "No scenarios selected."));
+  sections.push(excerptSection("facts", "Known facts", artifact.known_facts, [], ["statement"], ["evidence_refs"], "Show all facts", "No facts supplied."));
+  sections.push(section("decisions", "Human decisions required", decisions, "Show all decisions", "No human decisions recorded."));
+  sections.push(questionSection(artifact.open_questions));
+  return {
+    ...base,
+    title: readiness ? "Readiness plan" : "Incident response plan",
+    description: readiness
+      ? "Prepares for the highest-rated scenarios; nothing here has happened yet."
+      : "Response to the incident described, across the six PICERL phases.",
+    metrics: countMetrics(
+      { label: "Phases", count: Object.keys(phases).length },
+      { label: "Actions", count: actions },
+      { label: "Human decisions", count: decisions.length },
+    ),
+    sections,
+    nextAction: text(artifact.framework_note),
   };
 }
