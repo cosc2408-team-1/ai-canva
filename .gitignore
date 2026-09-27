@@ -11,3 +11,5 @@ dist/
 test-stitch*
 .idea/
 *.tsbuildinfo
+evals/.runs/
+evals/report.html

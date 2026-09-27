@@ -29,46 +29,54 @@ current state).
 
 ---
 
-## 2026-09-27 — Fix "Invalid" security artifacts under VAL (prompt shape rules)
+## 2026-09-27 — Corrected evaluator and three-repeat version batches
 
-- **Done:** Reproduced "Artifact integrity check failed" against live VAL (`openai-gpt-4.1`). Two
-  causes, both existing gaps in the prompts:
-  - The Asset Mapper and Elicitor emitted `assets`/`evidence_register` as mappings keyed by ID.
-    The validator requires lists, and every `EVID-*` reference then showed as broken. Added
-    `SECURITY_LIST_SHAPE_RULE` to both system prompts.
-  - NIST nested included/excluded under `scope_boundary` and left out the top-level `exclusions`.
-    Extended `NIST_YAML_OUTPUT_RULES`.
-  - Locally, set `VAL_TIMEOUT_MS=120000` in `server/.env`, because the 30s default timed out on
-    NIST's long output.
-- **Verified (live VAL):** Asset Mapper + Elicitor 3/3 runs valid (were invalid). NIST 6/6 valid
-  (was 5/6 invalid), with and without the clarification bypass note. A scripted clarification
-  round cut the Elicitor's questions from 7 to 4 and its output included the answers. Client tests
-  563/563.
-  - Follow-up: the Elicitor's prompt never pinned `schema_version`, so with an Idea box connected
-    directly (no Asset Mapper) VAL guessed values such as `v0.9` (2/2 invalid). Its system prompt
-    now requires `"1.0"` (5/5 valid).
-- **Next steps:** existing boards keep the prompts copied at box creation, so create a new board to
-  get the fixes. Mirror the rules into `evals/` prompt versions if the evals should track them.
+- **Done:** Fixed eval ID detection to inspect raw strings recursively, preserving IDs after
+  newlines. Judge now receives independent output-contract context and trusted assessment date;
+  exact framework identifier accuracy remains explicitly outside the rubric without a catalogue.
+  Generation failures now leave scores incomplete instead of recording zero. Old history is
+  untouched; new runs are evaluator 2 in a separate comparison group.
+- **Versions:** `evals/prompt-versions.yaml` contains nine distinct prompt sets recovered from
+  history/current/reference eval files, preserving exact system/user text. `node evals/run.mjs
+  --all` runs each set three times (27 runs, normally 648 VAL calls); `--version v04` selects
+  one set, `--repeats` overrides repeats, and `--check` makes no calls. Plain invocation still
+  reads `prompts.yaml` once. Report includes per-prompt means/ranges/usable counts and failed
+  attempts. Cases, production prompts and app behavior remain unchanged.
+- **Verified:** Seven offline tests pass, including newline regression, trusted judge metadata,
+  failed-generation handling and a complete mocked two-version/three-repeat batch. Chromium
+  direct-file report checks pass, including means/ranges and exclusion of incomplete attempts.
+- **Next steps:** Manually run the desired version batch with VAL and review the new evaluator
+  group. No live VAL calls or historical rescoring were performed during implementation.
 
-## 2026-09-27 — Security clarification answers + NIST clarification gate
+## 2026-09-26 — Basic prompt baseline and score trends
 
-- **Done:** Security boxes that return `clarification_required`/`interview_required` now show an
-  inline answer form (`SecurityClarificationPanel.tsx`, logic in `lib/securityClarifications.ts`).
-  Answers persist on the box and are fed into its next run as a labelled `Clarification answers`
-  input. The NIST CSF Gap Checker is blocked, with no model call, on an unresolved upstream
-  Elicitor/Asset Mapper unless the user chose "Proceed with unresolved questions" on that exact
-  output. A bypassed run gets a trusted note telling the model to treat the open questions as
-  unknowns. The four security system prompts gained one clarification sentence. The Jennie
-  one-click run (extracted to `lib/jennieRun.ts`) answers the Elicitor with fixed fictional
-  scripted answers, reruns it once, then auto-proceeds as `Demo run` if it is still unresolved.
-- **Verified:** client `vitest` 563/563 (new: clarifications, gate, store integration, panel, Jennie
-  runner, template, prompt tests); `tsc` and `vite build` clean. The root `npm test` stopped at
-  `server/` because its `node_modules` are not installed (server/functions untouched). No live
-  model run, E2E or UI smoke run yet.
-- **In flight:** `evals/` prompt copies do not yet include the new clarification sentence.
-- **Next steps:** manual check in `npm run dev` with a real model (answer → rerun → questions
-  shrink; NIST blocked until answered/proceeded); run `ui-smoke.mjs`/`e2e.mjs`; decide whether the
-  evals should cover a clarification round.
+- **Done:** Saved the former full eval prompts in `evals/prompts-production-reference.yaml`
+  and reset the three active prompts to short `01-basic` versions. Added per-box history
+  charts, stage labels and changes in points between comparable runs to the static report.
+  The runner, scorer, cases and judge are unchanged so existing comparisons remain valid.
+  Documented the incremental prompt-edit workflow. Production remains untouched.
+- **Existing evidence:** One saved full-prompt VAL run scored Requirements Elicitor 90,
+  NIST Gap Checker 76.25 and Security Advisor 92.5. That history is preserved unchanged.
+- **Next steps:** Manually run the basic prompts, inspect reasons and subscores, then add
+  one improvement at a time. No new live VAL run was started for this change.
+
+## 2026-09-26 — Standalone local VAL prompt evaluations
+
+- **Done:** Added isolated `evals/` with independent copies of the Requirements Elicitor,
+  NIST Gap Checker and Security Advisor prompts, four fixed scenarios per box, four automatic
+  checks plus six VAL-judged checks (ten points each), checkpointed local JSON history, and a
+  self-contained HTML report that opens directly from disk. Each box is scored against its own
+  responsibility; generated outputs never become another evaluated box's inputs. No production
+  imports, app behavior, default commands, CI or hooks changed. Only dependency is an isolated
+  YAML parser; history, report and credentials are ignored by Git.
+- **Verified:** Six offline checks pass, including full mocked runs, failed-judge retries,
+  scoring arithmetic, package preservation and safe report embedding. Input preflight passes.
+  Chromium verified direct-file empty/history reports, run/group selection, filtering, raw
+  output, script escaping and mobile width, with no page errors or network requests.
+- **In flight:** No live VAL calls made; real model output quality remains unverified.
+- **Next steps:** Set `VAL_API_KEY` in `evals/.env` (see `.env.example`), run
+  `node evals/run.mjs`, then open `evals/report.html`. Edit `evals/prompts.yaml` to compare
+  independent prompt versions. `node evals/report.mjs` rebuilds history without model calls.
 
 ## 2026-09-26 — Security homepage copy
 
