@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>AI Canva · Prompt evaluations</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f8fafc; color: #0f172a; font: 15px/1.6 system-ui, sans-serif; }
+  main { max-width: 1180px; margin: auto; padding: 36px 24px; }
+  h1 { margin-bottom: 4px; } h2 { margin-top: 28px; }
+  p { color: #475569; } select, button { font: inherit; padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #0f172a; }
+  button { cursor: pointer; } button:hover { background: #eef2ff; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  .card, details, .panel { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .score { font-size: 32px; font-weight: 700; color: #4338ca; }
+  .muted { font-size: 13px; color: #64748b; }
+  .scroll { overflow-x: auto; } table { border-collapse: collapse; width: 100%; background: white; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  th { color: #475569; font-size: 13px; } pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; max-height: 520px; overflow: auto; }
+  summary { cursor: pointer; font-weight: 600; } .filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .bar { width: 100px; height: 7px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: #6366f1; }
+  .notice { padding: 12px; background: #eef2ff; border-radius: 8px; }
+  .trend { width: 100%; height: auto; display: block; } .trend circle { cursor: pointer; }
+  @media (max-width: 700px) { .cards { grid-template-columns: 1fr; } main { padding: 16px; } }
+</style>
+<main>
+  <h1>Prompt evaluations</h1>
+  <p>Three boxes, scored against their own responsibilities. Ten checks × ten points. Higher scores mean more of the stated requirements were met.</p>
+  <p class="muted">This file works offline. It contains saved results, not live data. Reopen or refresh it after running an evaluation. VAL judgments are estimates; inspect their reasons.</p>
+  <div id="empty" class="notice" hidden>No runs yet. Run <code>node evals/run.mjs</code>, then reopen this file.</div>
+  <div id="content" hidden>
+    <div class="filters"><label>History group <select id="group"></select></label></div>
+    <p class="muted">Only runs with the same cases, scoring code, rubric and configured models/settings share a group. Prompt text may change within a group. Hosted model updates may still affect scores.</p>
+    <h2>Version averages</h2>
+    <p class="muted">Average and lowest–highest score for each exact prompt version. Only runs where every case for that box was scored are included. Failed or unfinished attempts are counted separately. Three usable runs are a starting point, not statistical proof.</p>
+    <div class="scroll"><table><thead><tr><th>Box / version</th><th>Usable runs</th><th>Average / 100</th><th>Lowest–highest</th><th>Failed / unfinished</th></tr></thead><tbody id="averages"></tbody></table></div>
+    <h2>Scores over time</h2>
+    <p class="muted">Each dot is one run, oldest to newest, equally spaced. The scale stays at 0–100. Click a dot or a run below to inspect it. Missing scores break the line.</p>
+    <div id="trends" class="cards"></div>
+    <div class="scroll"><table><thead><tr><th>Run</th><th>Requirements Elicitor</th><th>NIST Gap Checker</th><th>Security Advisor</th><th>State</th></tr></thead><tbody id="history"></tbody></table></div>
+    <h2 id="run-title">Run details</h2>
+    <p id="metadata" class="muted"></p>
+    <div id="cards" class="cards"></div>
+    <div class="filters"><label>Box <select id="box"><option value="all">All boxes</option></select></label><label>Results <select id="filter"><option value="all">All cases</option><option value="issues">Below 100 or incomplete</option></select></label></div>
+    <div id="cases"></div>
+    <details><summary>Prompt versions, test cases, and scoring rubric</summary><pre id="snapshot"></pre></details>
+  </div>
+</main>
+<!-- RUN_DATA -->
+<script>
+  const runs = JSON.parse(document.getElementById('run-data').textContent);
+  const ids = ['reqelicitor', 'nistgap', 'securityadvisor'];
+  const labels = ['Requirements Elicitor', 'NIST Gap Checker', 'Security Advisor'];
+  const byId = id => document.getElementById(id);
+  const scoreText = score => typeof score === 'number' ? `${score.toFixed(1)} / 100` : 'Incomplete';
+  const stage = (run, id) => run.snapshot.prompts.find(prompt => prompt.id === id)?.stage || 'Unlabeled';
+  let selected;
+
+  // All saved/model text is inserted with textContent, never interpreted as HTML.
+  function element(tag, text, parent, className) {
+    const node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (className) node.className = className;
+    if (parent) parent.append(node);
+    return node;
+  }
+  function disclosure(title, text, parent) {
+    const details = element('details', undefined, parent);
+    element('summary', title, details);
+    element('pre', text, details);
+  }
+  function showCases() {
+    const container = byId('cases');
+    container.replaceChildren();
+    for (const result of selected.results) {
+      if (byId('box').value !== 'all' && result.boxId !== byId('box').value) continue;
+      if (byId('filter').value === 'issues' && result.score === 100) continue;
+      const scenario = selected.snapshot.scenarios.find(item => item.id === result.scenarioId);
+      const details = element('details', undefined, container);
+      element('summary', `${labels[ids.indexOf(result.boxId)]} · ${result.scenarioId} · ${scoreText(result.score)} · ${result.state}`, details);
+      element('p', scenario.description, details);
+      if (result.error) element('p', result.error, details, 'notice');
+      const table = element('table', undefined, element('div', undefined, details, 'scroll'));
+      const header = element('tr', undefined, element('thead', undefined, table));
+      ['Check', 'Points', 'Reason and evidence'].forEach(title => element('th', title, header));
+      const body = element('tbody', undefined, table);
+      for (const check of result.checks) {
+        const row = element('tr', undefined, body);
+        element('td', check.title, row);
+        element('td', `${check.points} / 10`, row);
+        const cell = element('td', undefined, row);
+        element('div', check.reason, cell);
+        element('div', check.evidence, cell, 'muted');
+      }
+      if (!result.checks.length) element('p', result.score === null ? 'No checks ran: generation failed. This case is incomplete.' : 'No checks ran. This older evaluator recorded a zero for generation failure.', details);
+      disclosure('Fixed input and expectations', JSON.stringify(scenario.boxes[result.boxId], null, 2), details);
+      disclosure('Exact rendered user message', result.user, details);
+      disclosure('Raw output', result.output || '(No output)', details);
+      disclosure('Raw judge attempts and execution details', JSON.stringify({judgeAttempts: result.judgeAttempts, generation: result.generation, durationMs: result.durationMs}, null, 2), details);
+    }
+    if (!container.children.length) element('p', 'No matching saved case results.', container);
+  }
+  function showRun(run) {
+    selected = run;
+    byId('run-title').textContent = `Run · ${new Date(run.startedAt).toLocaleString()}`;
+    byId('metadata').textContent = `${run.versionId || 'Saved run'}${run.repeat ? ` · repeat ${run.repeat}/${run.repeats}` : ''} · Generation: ${run.settings.model} · Judge: ${run.settings.judgeModel} · ${run.state} · ${run.results.length} saved results`;
+    byId('cards').replaceChildren();
+    ids.forEach((id, index) => {
+      const card = element('div', undefined, byId('cards'), 'card');
+      element('strong', labels[index], card);
+      element('div', scoreText(run.scores[id]), card, 'score');
+      element('div', stage(run, id), card);
+      element('div', `Prompt version ${run.promptVersions[id].slice(0, 12)}`, card, 'muted');
+      const results = run.results.filter(row => row.boxId === id);
+      const complete = results.length === run.snapshot.scenarios.length && results.every(row => row.score !== null);
+      if (complete) {
+        const average = offset => results.reduce((sum, row) => sum + row.checks.slice(offset, offset === 0 ? 4 : 10).reduce((n, check) => n + check.points, 0), 0) / results.length;
+        element('div', `Automatic ${average(0).toFixed(1)}/40 · VAL ${average(4).toFixed(1)}/60`, card, 'muted');
+      }
+      const errors = results.filter(row => row.state !== 'scored').length;
+      if (errors) element('div', `${errors} execution/judge error(s)`, card, 'muted');
+    });
+    byId('snapshot').textContent = JSON.stringify({promptVersions: run.promptVersions, settings: run.settings, evaluatorHash: run.evaluatorHash, snapshot: run.snapshot}, null, 2);
+    showCases();
+  }
+  function showTrends(matching) {
+    byId('trends').replaceChildren();
+    function svgElement(tag, attributes, parent, text) {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+      if (text !== undefined) node.textContent = text;
+      parent.append(node);
+      return node;
+    }
+    ids.forEach((id, index) => {
+      const card = element('div', undefined, byId('trends'), 'card');
+      element('strong', labels[index], card);
+      const svg = svgElement('svg', {viewBox: '0 0 320 160', class: 'trend', role: 'img', 'aria-label': `${labels[index]} score history, 0 to 100`}, card);
+      for (const value of [0, 50, 100]) {
+        const y = 130 - value;
+        svgElement('line', {x1: 30, x2: 300, y1: y, y2: y, stroke: '#e2e8f0'}, svg);
+        svgElement('text', {x: 2, y: y + 4, fill: '#64748b', 'font-size': 11}, svg, value);
+      }
+      let previous;
+      matching.forEach((run, i) => {
+        const score = run.scores[id];
+        if (typeof score !== 'number') { previous = undefined; return; }
+        const x = matching.length === 1 ? 165 : 35 + i * 260 / (matching.length - 1);
+        const y = 130 - score;
+        if (previous) svgElement('line', {x1: previous.x, y1: previous.y, x2: x, y2: y, stroke: '#6366f1', 'stroke-width': 2}, svg);
+        const dot = svgElement('circle', {cx: x, cy: y, r: 5, fill: '#4338ca'}, svg);
+        svgElement('title', {}, dot, `${new Date(run.startedAt).toLocaleString()} · ${stage(run, id)} · ${scoreText(score)}`);
+        dot.onclick = () => showRun(run);
+        previous = {x, y};
+      });
+      element('div', matching.length === 1 ? 'One run saved. Run the basic prompts to add a comparison.' : `${matching.length} runs · oldest → newest`, card, 'muted');
+    });
+  }
+  function showGroup() {
+    const matching = runs.filter(run => run.comparisonGroup === byId('group').value);
+    byId('averages').replaceChildren();
+    ids.forEach((id, index) => {
+      const versions = new Map();
+      for (const run of matching) {
+        const hash = run.promptVersions[id];
+        if (!versions.has(hash)) versions.set(hash, {label: stage(run, id), scores: [], failed: 0});
+        const entry = versions.get(hash);
+        const results = run.results.filter(result => result.boxId === id);
+        if (results.length === run.snapshot.scenarios.length && results.every(result => result.state === 'scored') && typeof run.scores[id] === 'number') entry.scores.push(run.scores[id]);
+        else entry.failed++;
+      }
+      for (const [hash, entry] of versions) {
+        const row = element('tr', undefined, byId('averages'));
+        element('td', `${labels[index]} · ${entry.label} · ${hash.slice(0, 8)}`, row);
+        element('td', entry.scores.length, row);
+        element('td', entry.scores.length ? (entry.scores.reduce((sum, score) => sum + score, 0) / entry.scores.length).toFixed(1) : '—', row);
+        element('td', entry.scores.length ? `${Math.min(...entry.scores).toFixed(1)}–${Math.max(...entry.scores).toFixed(1)}` : '—', row);
+        element('td', entry.failed, row);
+      }
+    });
+    showTrends(matching);
+    byId('history').replaceChildren();
+    for (const run of [...matching].reverse()) {
+      const row = element('tr', undefined, byId('history'));
+      const button = element('button', new Date(run.startedAt).toLocaleString(), element('td', undefined, row));
+      button.onclick = () => showRun(run);
+      if (run.versionId) element('div', `${run.versionId} · repeat ${run.repeat}/${run.repeats}`, button.parentElement, 'muted');
+      for (const id of ids) {
+        const cell = element('td', scoreText(run.scores[id]), row);
+        if (typeof run.scores[id] === 'number') {
+          const bar = element('div', undefined, cell, 'bar');
+          element('span', undefined, bar).style.width = `${run.scores[id]}%`;
+        }
+        element('div', run.promptVersions[id].slice(0, 8), cell, 'muted');
+        element('div', stage(run, id), cell, 'muted');
+        const previous = matching[matching.indexOf(run) - 1];
+        if (typeof run.scores[id] === 'number' && typeof previous?.scores[id] === 'number') {
+          const delta = run.scores[id] - previous.scores[id];
+          element('div', `${delta > 0 ? '+' : ''}${delta.toFixed(1)} points vs previous run`, cell, 'muted');
+        }
+      }
+      element('td', run.state, row);
+    }
+    showRun(matching.at(-1));
+  }
+  if (!runs.length) byId('empty').hidden = false;
+  else {
+    byId('content').hidden = false;
+    ids.forEach((id, index) => { const option = element('option', labels[index], byId('box')); option.value = id; });
+    const groups = [...new Set(runs.map(run => run.comparisonGroup))].reverse();
+    for (const group of groups) {
+      const latest = runs.filter(run => run.comparisonGroup === group).at(-1);
+      const option = element('option', `${group.slice(0, 8)} · evaluator ${latest.evaluatorVersion || 1} · ${latest.settings.model} · ${latest.snapshot.scenarios.length} scenarios`, byId('group'));
+      option.value = group;
+    }
+    byId('group').onchange = showGroup;
+    byId('box').onchange = showCases;
+    byId('filter').onchange = showCases;
+    showGroup();
+  }
+</script>
+</html>
