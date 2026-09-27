@@ -3,13 +3,13 @@ import Reveal from "./Reveal.js";
 const FEATURES = [
   {
     icon: "🧩",
-    title: "11 AI box types",
-    body: "Idea, Research, PRD, Dev Plan, Code, UI Design, Stitch and more — each a focused, reusable AI step.",
+    title: "Focused AI boxes",
+    body: "Use security, research, design and development boxes as separate steps on the same board.",
   },
   {
     icon: "🔗",
     title: "Visual pipelines",
-    body: "Chain boxes on a canvas and watch content flow from research to a working prototype.",
+    body: "Connect a project description to security boxes, or build your own research-to-prototype flow.",
   },
   {
     icon: "👥",
@@ -29,7 +29,7 @@ const FEATURES = [
   {
     icon: "🎨",
     title: "Role-based palettes",
-    body: "Designer, Developer and Product views surface the boxes each role needs, without hiding the pipeline.",
+    body: "Security, Designer, Developer and Product views bring the relevant boxes to the front.",
   },
 ];
 

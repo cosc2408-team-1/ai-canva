@@ -4,10 +4,11 @@ interface LandingHeroProps {
 }
 
 const PIPELINE = [
-  { icon: "💡", label: "Idea", color: "#fbbf24" },
-  { icon: "🔍", label: "Research", color: "#60a5fa" },
-  { icon: "📄", label: "PRD", color: "#818cf8" },
-  { icon: "💻", label: "Code", color: "#22d3ee" },
+  { icon: "💡", label: "Project", color: "#fbbf24" },
+  { icon: "🗂️", label: "Assets", color: "#0891b2" },
+  { icon: "📋", label: "Requirements", color: "#f59e0b" },
+  { icon: "🛡️", label: "NIST gaps", color: "#0f766e" },
+  { icon: "🧭", label: "Next steps", color: "#7c3aed" },
 ];
 
 export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
@@ -17,19 +18,19 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
         {/* Badge */}
         <div className="fade-in inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium text-slate-300">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          Visual AI pipelines · real-time collaboration
+          Visual security workflows · real-time collaboration
         </div>
 
         {/* Headline */}
         <h1 className="fade-in fade-in-delay-1 mx-auto mt-6 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-white md:text-6xl">
-          Build AI pipelines{" "}
-          <span className="gradient-text">visually</span>, from idea to code
+          Work through security questions{" "}
+          <span className="gradient-text">on one canvas</span>
         </h1>
 
         {/* Subheadline */}
         <p className="fade-in fade-in-delay-2 mx-auto mt-5 max-w-2xl text-lg text-slate-300 md:text-xl">
-          Place boxes on a canvas, connect them, and let AI content flow from
-          research to PRD to a working prototype — together with your team.
+          Describe your project once, then connect AI boxes to map assets, draft
+          requirements and see what still needs checking. Your team stays in control.
         </p>
 
         {/* CTAs */}
@@ -59,7 +60,7 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
               </div>
-              <span className="text-xs text-slate-400">My First Board</span>
+              <span className="text-xs text-slate-400">Jennie&apos;s Security Review</span>
               <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-medium text-slate-300">
                 ▶ Run
               </span>
@@ -93,21 +94,12 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
             <div className="mt-5 rounded-xl border border-white/10 bg-slate-950/60 p-4 text-left">
               <div className="mb-2 flex items-center gap-2 text-xs text-slate-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                Code box output
+                NIST CSF Gap Checker · example output
               </div>
               <div className="space-y-1.5 font-mono text-xs text-slate-300">
-                <div>
-                  <span className="text-fuchsia-400">function</span>{" "}
-                  <span className="text-cyan-300">App</span>() {"{"}
-                </div>
-                <div className="pl-4">
-                  <span className="text-slate-500">{"// a working React prototype"}</span>
-                </div>
-                <div className="pl-4">
-                  <span className="text-emerald-300">return</span> (
-                  <span className="text-slate-400">&lt;MealPlanner /&gt;</span>);
-                </div>
-                <div>{"}"}</div>
+                <div><span className="text-emerald-300">Finding:</span> access-control evidence not supplied</div>
+                <div><span className="text-amber-300">Check:</span> test which users can view each group&apos;s files</div>
+                <div className="text-slate-500">Preliminary AI output — review against the real system.</div>
               </div>
             </div>
           </div>
