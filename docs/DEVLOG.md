@@ -50,6 +50,26 @@ current state).
 - **Next steps:** existing boards keep the prompts copied at box creation, so create a new board to
   get the fixes. Mirror the rules into `evals/` prompt versions if the evals should track them.
 
+## 2026-09-27 — Security clarification answers + NIST clarification gate
+
+- **Done:** Security boxes that return `clarification_required`/`interview_required` now show an
+  inline answer form (`SecurityClarificationPanel.tsx`, logic in `lib/securityClarifications.ts`).
+  Answers persist on the box and are fed into its next run as a labelled `Clarification answers`
+  input. The NIST CSF Gap Checker is blocked, with no model call, on an unresolved upstream
+  Elicitor/Asset Mapper unless the user chose "Proceed with unresolved questions" on that exact
+  output. A bypassed run gets a trusted note telling the model to treat the open questions as
+  unknowns. The four security system prompts gained one clarification sentence. The Jennie
+  one-click run (extracted to `lib/jennieRun.ts`) answers the Elicitor with fixed fictional
+  scripted answers, reruns it once, then auto-proceeds as `Demo run` if it is still unresolved.
+- **Verified:** client `vitest` 563/563 (new: clarifications, gate, store integration, panel, Jennie
+  runner, template, prompt tests); `tsc` and `vite build` clean. The root `npm test` stopped at
+  `server/` because its `node_modules` are not installed (server/functions untouched). No live
+  model run, E2E or UI smoke run yet.
+- **In flight:** `evals/` prompt copies do not yet include the new clarification sentence.
+- **Next steps:** manual check in `npm run dev` with a real model (answer → rerun → questions
+  shrink; NIST blocked until answered/proceeded); run `ui-smoke.mjs`/`e2e.mjs`; decide whether the
+  evals should cover a clarification round.
+
 ## 2026-09-26 — Security homepage copy
 
 - **Done:** Updated the logged-out homepage to show the project-to-security-review flow, explain all seven security boxes, and add a Security role card. Left branding and colour changes to the parallel team work.

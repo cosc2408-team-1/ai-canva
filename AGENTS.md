@@ -570,8 +570,27 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 - **Security-box input guard:** `securityInputError()` in `client/src/lib/securityInputValidation.ts`
   checks the collected text before `runBox` starts a Requirements Elicitor, NIST Gap Checker, or
   Security Advisor call. It gives a box-specific error when all inputs are blank. It checks text
-  presence only; structured output validation and `clarification_required` routing are separate
-  future work.
+  presence only; artifact validation and clarification gating are handled separately (below).
+- **Security clarifications:** when a security box's validation is `clarification_required`
+  (`clarification_required` / `interview_required`), `SecurityClarificationPanel.tsx` (rendered by
+  `SecurityArtifactResult.tsx` and wired from BoxNode with store callbacks) lists the artifact's
+  questions (`open_questions`, the Advisor's `focused_questions`/`questions`) through the same
+  `readArtifactQuestions` the summary uses. All logic is pure in `lib/securityClarifications.ts`.
+  Answers are stored on the asking box as `boxData.securityClarifications` (keyed by normalized
+  question text, only answered entries, **all fields always defined**, capped at 40 × 2,000 chars).
+  Drafts stay local until Save. `runBox` appends `buildClarificationInput()` as the
+  `Clarification answers` NamedInput. The block describes its own instructions, so prompts copied
+  onto old boards still work; the four system prompts also carry `CLARIFICATION_ANSWER_RULE`.
+  **Gate:** `securityUpstreamGate` blocks only `nistgap` when a direct `reqelicitor`/`assetmapper`
+  upstream needs clarification, with no model call, unless that box has
+  `securityClarificationOverride` whose `validatedAt` matches its current validation.
+  `proceedWithUnresolvedClarifications` sets the override; `runBox` clears it when the box reruns.
+  A bypassed NIST run gets `clarificationBypassPrompt()` appended. The Elicitor and Advisor are
+  never gated on clarification. **Jennie run:** `lib/jennieRun.ts` (`runJennieStages`, called from
+  Canvas) answers an unresolved Elicitor once with the fixed fictional `JENNIE_CLARIFICATIONS`
+  (`source: "demo-script"`, shown under "Scripted demo answers (fictional)"), reruns it, and if it
+  is still unresolved proceeds with an override attributed to `Demo run`. User guide:
+  `docs/SECURITY_WORKFLOW.md`.
 - **Landing page:** the logged-out entry is a full marketing page in
   `client/src/components/landing/` (`LandingPage.tsx` composes `LandingNav`, `LandingHero`,
   `LandingHowItWorks`, `LandingFeatures`, `LandingBoxes`, `LandingRoles`, `LandingCTA`,
