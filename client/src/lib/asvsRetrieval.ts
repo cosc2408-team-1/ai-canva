@@ -1,3 +1,5 @@
+import { ASVS_REQUIREMENTS, ASVS_VERSION, type AsvsRequirement } from "./asvsData.js";
+
 /**
  * Retrieval for the Security Requirements Elicitor (a small, local RAG step).
  *
@@ -92,4 +94,54 @@ export function queryTerms(text: string): Set<string> {
     for (const extra of EXPANSIONS[word] ?? []) terms.add(extra);
   }
   return terms;
+}
+
+export const DEFAULT_ASVS_REFERENCE_LIMIT = 8;
+
+interface IndexedRequirement {
+  requirement: AsvsRequirement;
+  terms: Set<string>;
+}
+
+/** Each ASVS requirement with its words, prepared once when the file loads. */
+const INDEX: readonly IndexedRequirement[] = ASVS_REQUIREMENTS.map((requirement) => ({
+  requirement,
+  terms: new Set(tokenize(`${requirement.chapter} ${requirement.section} ${requirement.text}`)),
+}));
+
+/** Inverse document frequency: words that appear in fewer requirements count for more. */
+const IDF: ReadonlyMap<string, number> = (() => {
+  const counts = new Map<string, number>();
+  for (const { terms } of INDEX) for (const term of terms) counts.set(term, (counts.get(term) ?? 0) + 1);
+  const idf = new Map<string, number>();
+  for (const [term, count] of counts) idf.set(term, Math.log(1 + INDEX.length / count));
+  return idf;
+})();
+
+export interface AsvsMatch {
+  requirement: AsvsRequirement;
+  score: number;
+  matchedTerms: string[];
+}
+
+/**
+ * Returns up to `limit` ASVS requirements that best match the text, highest score first.
+ * A requirement needs at least two matching terms, so a single shared word is not enough.
+ */
+export function retrieveAsvsRequirements(text: string, limit = DEFAULT_ASVS_REFERENCE_LIMIT): AsvsMatch[] {
+  const terms = queryTerms(text);
+  if (terms.size === 0 || limit <= 0) return [];
+  const matches: AsvsMatch[] = [];
+  INDEX.forEach(({ requirement, terms: requirementTerms }) => {
+    const matchedTerms = [...terms].filter((term) => requirementTerms.has(term));
+    if (matchedTerms.length < 2) return;
+    const score = matchedTerms.reduce((total, term) => total + (IDF.get(term) ?? 0), 0);
+    matches.push({ requirement, score, matchedTerms: matchedTerms.sort() });
+  });
+  // Stable order: highest score first, then ASVS order (the data file is in standard order).
+  return matches
+    .map((match, order) => ({ match, order }))
+    .sort((a, b) => b.match.score - a.match.score || a.order - b.order)
+    .slice(0, limit)
+    .map(({ match }) => match);
 }
