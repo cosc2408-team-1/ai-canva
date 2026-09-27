@@ -147,13 +147,37 @@ function excerptSection(
   return section(key, heading, excerptItems(value, idKeys, primaryKeys, detailKeys), showAllLabel, emptyText);
 }
 
-function questions(value: unknown): SummaryItem[] {
+export interface ArtifactQuestion {
+  question: string;
+  whyItMatters?: string;
+  evidenceNeeded?: string;
+}
+
+/**
+ * Reads a question list (`open_questions`, `focused_questions`, `questions`) from
+ * parsed artifact YAML. Shared by the summary and the clarification form so the
+ * two always show the same questions.
+ */
+export function readArtifactQuestions(value: unknown): ArtifactQuestion[] {
   return (list(value) || []).flatMap((entry) => {
     const question = firstItemText(entry, ["question", "name", "area", "title", "description", "reason", "missing_evidence", "evidence_needed"]);
     if (!question) return [];
-    const detail = text(record(entry)?.why_it_matters);
-    return [{ text: question, ...(detail ? { detail } : {}) }];
+    const item = record(entry);
+    const whyItMatters = text(item?.why_it_matters);
+    const evidenceNeeded = excerptText(item?.evidence_needed);
+    return [{
+      question,
+      ...(whyItMatters ? { whyItMatters } : {}),
+      ...(evidenceNeeded && evidenceNeeded !== question ? { evidenceNeeded } : {}),
+    }];
   });
+}
+
+function questions(value: unknown): SummaryItem[] {
+  return readArtifactQuestions(value).map(({ question, whyItMatters }) => ({
+    text: question,
+    ...(whyItMatters ? { detail: whyItMatters } : {}),
+  }));
 }
 
 function countMetrics(...values: Array<SummaryMetric | null>): SummaryMetric[] {

@@ -5,11 +5,14 @@ import { findSecurityWorkflow } from "./securityDemo.js";
 import {
   BOARD_TEMPLATE_OPTIONS,
   DEFAULT_BOARD_TEMPLATE_ID,
+  JENNIE_CLARIFICATIONS,
   JENNIE_PROJECT_DESCRIPTION,
   createBoardTemplate,
   defaultBoardName,
   findJennieRunPlan,
+  jennieClarificationEntries,
 } from "./boardTemplates.js";
+import { clarificationKey } from "./securityClarifications.js";
 
 function ids() {
   let count = 0;
@@ -180,5 +183,19 @@ describe("Jennie showcase board template", () => {
     expect(findJennieRunPlan(template.nodes.slice(1), template.edges)).toBeNull();
     expect(findJennieRunPlan(template.nodes, template.edges.slice(1))).toBeNull();
     expect(findJennieRunPlan(createBoardTemplate("security-assessment", ids(), defaultBoxData).nodes, [])).toBeNull();
+  });
+});
+
+describe("Jennie scripted clarification answers", () => {
+  it("are fully defined, uniquely keyed, and labelled as a demo script", () => {
+    const entries = jennieClarificationEntries("Demo run", 5);
+    expect(entries).toHaveLength(JENNIE_CLARIFICATIONS.length);
+    expect(new Set(entries.map((entry) => entry.key)).size).toBe(entries.length);
+    for (const entry of entries) {
+      for (const value of Object.values(entry)) expect(value).not.toBeUndefined();
+      expect(entry).toMatchObject({ source: "demo-script", answeredBy: "Demo run", answeredAt: 5 });
+      expect(entry.key).toBe(clarificationKey(entry.question));
+      expect(entry.answer.trim()).not.toBe("");
+    }
   });
 });

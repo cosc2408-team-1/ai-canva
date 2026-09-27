@@ -3,7 +3,9 @@ import type {
   SecurityArtifactBoxType,
   SecurityArtifactValidation,
   SecurityArtifactValidationIssue,
+  SecurityClarificationOverride,
 } from "../types.js";
+import { clarificationOverrideActive } from "./securityClarifications.js";
 
 type ArtifactRecord = Record<string, unknown>;
 
@@ -16,6 +18,8 @@ export interface SecurityArtifactUpstream extends SecurityArtifactInput {
   title: string;
   sourceId?: string;
   validation?: SecurityArtifactValidation;
+  /** The user's explicit "Proceed with unresolved questions" on the source box. */
+  clarificationOverride?: SecurityClarificationOverride;
 }
 
 export interface SecurityArtifactValidationContext {
@@ -707,15 +711,26 @@ export function validateSecurityArtifact(context: SecurityArtifactValidationCont
   };
 }
 
+/** Upstream packages whose unresolved clarification blocks the NIST CSF Gap Checker. */
+const CLARIFICATION_GATED_SOURCES: readonly SecurityArtifactBoxType[] = ["assetmapper", "reqelicitor"];
+
 /**
  * Checks direct inputs immediately before a downstream model call. Legacy
- * boards are validated on demand; only invalid output blocks the workflow.
+ * boards are validated on demand. Invalid output blocks every downstream box;
+ * a package that still needs clarification blocks only the NIST CSF Gap
+ * Checker, unless the user chose to proceed on that exact output (`bypassed`).
+ * The Elicitor asks its own questions and the Advisor routes from incomplete
+ * state, so neither is gated on clarification.
  */
 export function securityUpstreamGate(
   target: SecurityArtifactBoxType,
   upstream: SecurityArtifactUpstream[],
-): { message: string | null; validations: Array<{ source: SecurityArtifactUpstream; validation: SecurityArtifactValidationResult }> } {
-  if (target === "assetmapper") return { message: null, validations: [] };
+): {
+  message: string | null;
+  validations: Array<{ source: SecurityArtifactUpstream; validation: SecurityArtifactValidationResult }>;
+  bypassed: SecurityArtifactUpstream[];
+} {
+  if (target === "assetmapper") return { message: null, validations: [], bypassed: [] };
   const validations = upstream.map((source) => ({
     source,
     validation: source.validation
@@ -723,12 +738,29 @@ export function securityUpstreamGate(
       : validateSecurityArtifact({ boxType: source.boxType, output: source.output }),
   }));
   const invalid = validations.find(({ validation }) => validation.status === "invalid");
-  if (!invalid) return { message: null, validations };
+  if (!invalid) {
+    const unresolved = target === "nistgap"
+      ? validations.filter(({ source, validation }) =>
+        validation.status === "clarification_required" && CLARIFICATION_GATED_SOURCES.includes(source.boxType))
+      : [];
+    const blocked = unresolved.find(({ source, validation }) =>
+      !clarificationOverrideActive(source.clarificationOverride, validation));
+    if (blocked) {
+      const name = blocked.source.title || artifactLabel(blocked.source.boxType);
+      return {
+        message: `${name} still has unanswered clarification questions. Answer them and rerun it, or choose "Proceed with unresolved questions" on that box.`,
+        validations,
+        bypassed: [],
+      };
+    }
+    return { message: null, validations, bypassed: unresolved.map(({ source }) => source) };
+  }
   const name = invalid.source.title || artifactLabel(invalid.source.boxType);
   const next = artifactLabel(target);
   return {
     message: `${name} produced an invalid structured artifact. Fix or rerun it before running ${next}.`,
     validations,
+    bypassed: [],
   };
 }
 

@@ -22,6 +22,7 @@ import { buildSecurityTraceGraph, traceBoxIds, traceEntity } from "../lib/securi
 import { deriveTraceEdgePresentation, deriveTraceNodePresentation } from "../lib/securityTraceabilityPresentation.js";
 import { deriveMicrosoftSecurityLens } from "../lib/microsoftSecurityLens.js";
 import { findJennieRunPlan } from "../lib/boardTemplates.js";
+import { runJennieStages } from "../lib/jennieRun.js";
 import {
   buildSecurityDemoTraceGraph,
   findDemoArtifactBox,
@@ -108,20 +109,15 @@ export default function Canvas({ onTraceModeEnter }: { onTraceModeEnter?: () => 
     setJennieRunBusy(true);
     const boardId = currentBoardId;
     try {
-      for (const [index, stage] of jennieRunPlan.entries()) {
-        if (useBoardStore.getState().currentBoardId !== boardId) return;
-        setJennieRunProgress(`Running ${index + 1}/${jennieRunPlan.length}: ${stage.title}`);
-        await useBoardStore.getState().runBox(stage.id);
-        const state = useBoardStore.getState();
-        if (state.currentBoardId !== boardId) return;
-        const result = state.boxData[stage.id];
-        if (result?.status !== "done" || !result.output?.trim()
-          || result.securityArtifactValidation?.status === "invalid") {
-          setJennieRunProgress(`Stopped at ${stage.title}: ${result?.error || "Please review this box's output before continuing."}`);
-          return;
-        }
-      }
-      setJennieRunProgress("Review generated. Check each result before using it.");
+      const store = () => useBoardStore.getState();
+      await runJennieStages(jennieRunPlan, {
+        runBox: (id) => store().runBox(id),
+        getBoxData: (id) => store().boxData[id],
+        setSecurityClarifications: (id, entries) => store().setSecurityClarifications(id, entries),
+        proceedWithUnresolvedClarifications: (id, actor) => store().proceedWithUnresolvedClarifications(id, actor),
+        isCurrent: () => store().currentBoardId === boardId,
+        progress: setJennieRunProgress,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "The run stopped unexpectedly.";
       setJennieRunProgress(`Review stopped: ${message}`);
