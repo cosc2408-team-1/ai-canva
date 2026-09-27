@@ -145,3 +145,41 @@ export function retrieveAsvsRequirements(text: string, limit = DEFAULT_ASVS_REFE
     .slice(0, limit)
     .map(({ match }) => match);
 }
+
+const MAX_REFERENCE_TEXT = 240;
+
+function shorten(text: string): string {
+  return text.length <= MAX_REFERENCE_TEXT ? text : `${text.slice(0, MAX_REFERENCE_TEXT - 1).trimEnd()}…`;
+}
+
+/**
+ * Builds the reference block appended to the Requirements Elicitor prompt.
+ * Returns "" when nothing relevant is found, so the prompt is unchanged.
+ */
+export function asvsReferencePrompt(text: string, limit = DEFAULT_ASVS_REFERENCE_LIMIT): string {
+  const matches = retrieveAsvsRequirements(text, limit);
+  if (matches.length === 0) return "";
+  const lines = matches.map(({ requirement }) =>
+    `- ${requirement.id} (${requirement.chapter} > ${requirement.section}, L${requirement.level}): ${shorten(requirement.text)}`,
+  );
+  return [
+    "",
+    "",
+    `Retrieved OWASP ASVS ${ASVS_VERSION} reference requirements (application-supplied from the official ASVS ${ASVS_VERSION} list by keyword match; reference material, not project evidence):`,
+    ...lines,
+    `Use these only where a requirement concerns an in-scope web application or API. When you cite ASVS, cite only IDs from this list, exactly as written. Do not cite any other ASVS ID. If none apply, set asvs_applicability to not_applicable with a rationale.`,
+  ].join("\n");
+}
+
+const ASVS_ID_PATTERN = /\bv5\.0\.0-\d+\.\d+\.\d+\b/g;
+const KNOWN_IDS: ReadonlySet<string> = new Set(ASVS_REQUIREMENTS.map((requirement) => requirement.id));
+
+/** True when the ID exists in the ASVS 5.0.0 requirement list. */
+export function isKnownAsvsId(id: string): boolean {
+  return KNOWN_IDS.has(id);
+}
+
+/** Finds every version-prefixed ASVS 5.0.0 ID mentioned in the text, without duplicates. */
+export function findAsvsIds(text: string): string[] {
+  return [...new Set(text.match(ASVS_ID_PATTERN) ?? [])];
+}

@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { queryTerms, retrieveAsvsRequirements, tokenize } from "./asvsRetrieval.js";
+import { ASVS_REQUIREMENTS, ASVS_VERSION } from "./asvsData.js";
+import {
+  asvsReferencePrompt,
+  findAsvsIds,
+  isKnownAsvsId,
+  queryTerms,
+  retrieveAsvsRequirements,
+  tokenize,
+} from "./asvsRetrieval.js";
 import { JENNIE_PROJECT_DESCRIPTION } from "./boardTemplates.js";
+
+describe("ASVS 5.0.0 data", () => {
+  it("contains the full requirement list with unique, version-prefixed IDs", () => {
+    expect(ASVS_VERSION).toBe("5.0.0");
+    expect(ASVS_REQUIREMENTS).toHaveLength(345);
+    const ids = ASVS_REQUIREMENTS.map((requirement) => requirement.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const requirement of ASVS_REQUIREMENTS) {
+      expect(requirement.id).toMatch(/^v5\.0\.0-\d+\.\d+\.\d+$/);
+      expect(requirement.text).toMatch(/^Verify /);
+      expect([1, 2, 3]).toContain(requirement.level);
+    }
+  });
+});
 
 describe("tokenize", () => {
   it("normalises sign-in phrases, folds plurals and drops stopwords and artifact field names", () => {
@@ -47,5 +69,34 @@ describe("retrieveAsvsRequirements", () => {
     expect(first).toHaveLength(3);
     expect(second).toEqual(first);
     expect(retrieveAsvsRequirements(JENNIE_PROJECT_DESCRIPTION, 0)).toEqual([]);
+  });
+});
+
+describe("asvsReferencePrompt", () => {
+  it("lists only real ASVS IDs and tells the model to cite only those", () => {
+    const block = asvsReferencePrompt(JENNIE_PROJECT_DESCRIPTION);
+    expect(block).toContain("Retrieved OWASP ASVS 5.0.0 reference requirements");
+    expect(block).toContain("reference material, not project evidence");
+    expect(block).toContain("cite only IDs from this list");
+    const ids = findAsvsIds(block);
+    expect(ids).toHaveLength(8);
+    expect(ids.every(isKnownAsvsId)).toBe(true);
+  });
+
+  it("adds nothing when no requirement is relevant", () => {
+    expect(asvsReferencePrompt("A warehouse forklift maintenance schedule kept on paper.")).toBe("");
+  });
+});
+
+describe("ASVS ID helpers", () => {
+  it("recognises real IDs and rejects invented ones", () => {
+    expect(isKnownAsvsId("v5.0.0-1.1.1")).toBe(true);
+    expect(isKnownAsvsId("v5.0.0-99.9.9")).toBe(false);
+    expect(isKnownAsvsId("V1.1.1")).toBe(false);
+  });
+
+  it("finds each version-prefixed ID once", () => {
+    expect(findAsvsIds("see v5.0.0-6.2.1 and v5.0.0-6.2.1, also v4.0.3-2.1.1 and v5.0.0-5.2.2."))
+      .toEqual(["v5.0.0-6.2.1", "v5.0.0-5.2.2"]);
   });
 });
