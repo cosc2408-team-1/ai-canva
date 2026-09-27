@@ -51,7 +51,7 @@ Supplied via `{{inputs}}`. Sanitized or fictional data only.
 
 A `RequirementsPackage` artifact, in one of two states.
 
-When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state, unless the user has bypassed. (The current MVP does not enforce this. This should be enforced in future sprints.)
+When essential information is missing, `status: clarification_required` — a partial profile, targeted questions each with a reason it matters, missing evidence and suggested sources or owners, and explicit unconfirmed assumptions. The NIST CSF Checker must not run against a package in this state, unless the user has bypassed. (Enforced: the app blocks the NIST Checker and offers "Proceed with unresolved questions" on the upstream box. Users answer the questions inline and rerun. See docs/SECURITY_WORKFLOW.md.)
 
 When essential information is resolved, `status: complete` — the confirmed assessment boundary; an `AST-*` asset inventory with relationships, trust boundaries and CIA impact classifications; `REQ-*` requirements each carrying a testable `SHALL` statement, source type (`stated` / `derived` / `obligation_based`), `cia_objectives`, `elicitation_basis`, priority, confidence, `acceptance_criteria` and `source_refs`; an `EVID-*` register recording provenance, artifact location, date or version, verification state and confidence; conditional ASVS references with version and applicability rationale; confirmed, rejected and unresolved assumptions; remaining non-essential unknowns; and a limitations statement.
 
@@ -738,7 +738,7 @@ limitation: >
 
 ## Sprint 1 Validation
 
-The boxes pass YAML-like model outputs as text through {{inputs}}, matching the brief's intended MVP handoff. The one outstanding behavioral gap is that the application does not yet block the NIST Checker from running on a clarification_required package (nor does it yet support the user-bypass option described in the brief). Other structural checks (YAML validity, identifier correctness) are not currently needed since nothing downstream reads those fields programmatically.
+The boxes pass YAML-like model outputs as text through {{inputs}}, matching the brief's intended MVP handoff. The application now blocks the NIST Checker from running on a clarification_required package unless the user explicitly bypasses it, and users can answer clarification questions inline (added after Sprint 1 validation). Other structural checks (YAML validity, identifier correctness) are not currently needed since nothing downstream reads those fields programmatically.
 
 For more detail, see: docs/sprint1-validation.md
 

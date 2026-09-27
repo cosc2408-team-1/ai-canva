@@ -1,5 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
-import { BOX_TYPES, type BoxData, type BoxType } from "../types.js";
+import { BOX_TYPES, type BoxData, type BoxType, type SecurityClarification } from "../types.js";
+import { clarificationKey } from "./securityClarifications.js";
 
 export type BoardTemplateId = "blank" | "security-assessment" | "jennie-showcase";
 export const DEFAULT_BOARD_TEMPLATE_ID: BoardTemplateId = "security-assessment";
@@ -64,6 +65,53 @@ Jennie is a university security reviewer assessing a proposed student project po
 The proposed app will use Microsoft Entra ID for sign-in, Firebase Hosting for the website, Firestore for student names, university email addresses, group membership and submission records, and Firebase Storage for uploaded reports. Reports may contain student names and assessment feedback. The team wants MFA for sign-in and access limited to the right students and tutors. Those are proposed behaviours, not verified controls.
 
 Jennie has the project description but has not received deployed configuration, access-control test results or logging evidence. She needs a first-pass security review and a clear list of what to check with the project team. No live incident has been reported.`;
+
+/**
+ * Fixed, fictional project-team answers used by the one-click Jennie run when
+ * the Requirements Elicitor asks for clarification. They are a demo script, not
+ * the model's own questions, and are labelled as such wherever they appear.
+ */
+export const JENNIE_CLARIFICATIONS: ReadonlyArray<{ question: string; whyItMatters: string; answer: string }> = [
+  {
+    question: "Is MFA enforced for every student, tutor and course administrator sign-in?",
+    whyItMatters: "Determines whether account takeover protection is a stated requirement or an open gap.",
+    answer: "MFA is planned through a Microsoft Entra ID Conditional Access policy for all three roles. The policy is drafted but has not been tested.",
+  },
+  {
+    question: "How is access to uploaded reports restricted to the right group and its tutor?",
+    whyItMatters: "Reports contain student names and assessment feedback, so access scope drives confidentiality requirements.",
+    answer: "Draft Firebase Storage and Firestore rules scope files to the student's group and its assigned tutor. No access-control tests have been run yet.",
+  },
+  {
+    question: "Where are sign-in, access and administrative actions logged, and who reviews them?",
+    whyItMatters: "Needed to decide whether detection and audit requirements are supported by any evidence.",
+    answer: "Only Firebase default logging is enabled. There is no central log collection and no one is assigned to review logs.",
+  },
+  {
+    question: "How long are uploaded reports and student records retained?",
+    whyItMatters: "Retention affects privacy obligations and the data that must be protected.",
+    answer: "Until the end of the semester plus one year, then deleted by a manual clean-up. The clean-up has not been automated.",
+  },
+  {
+    question: "How many course administrators are there, and do they use individual accounts?",
+    whyItMatters: "Shared or excessive privileged accounts change the access-control and accountability requirements.",
+    answer: "Two course administrators, each with an individual university account. There are no shared accounts.",
+  },
+];
+
+/** The scripted answers as fully defined clarification entries (Firestore-safe). */
+export function jennieClarificationEntries(actor: string, now: number): SecurityClarification[] {
+  return JENNIE_CLARIFICATIONS.map(({ question, whyItMatters, answer }) => ({
+    key: clarificationKey(question),
+    question,
+    whyItMatters,
+    answer,
+    answeredBy: actor,
+    answeredAt: now,
+    round: 1,
+    source: "demo-script" as const,
+  }));
+}
 
 const JENNIE_SHOWCASE_BOXES: readonly TemplateBoxDefinition[] = [
   { key: "project-description", type: "idea", title: "Project Description", position: { x: 80, y: 430 } },

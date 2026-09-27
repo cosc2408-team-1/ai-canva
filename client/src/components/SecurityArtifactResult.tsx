@@ -4,6 +4,7 @@ import { securityWorkflowStageForBoxType } from "../lib/securityWorkflow.js";
 import { summarizeSecurityArtifact } from "../lib/securityArtifactSummary.js";
 import SecurityArtifactStatus from "./SecurityArtifactStatus.js";
 import SecurityArtifactSummary from "./SecurityArtifactSummary.js";
+import SecurityClarificationPanel, { type SecurityClarificationControls } from "./SecurityClarificationPanel.js";
 
 export function TechnicalArtifact({ output }: { output: string }) {
   return (
@@ -33,11 +34,13 @@ function HumanReviewCue({ boxType }: { boxType: SecurityArtifactBoxType }) {
   );
 }
 
-export default function SecurityArtifactResult({ boxType, output, validation, isError = false }: {
+export default function SecurityArtifactResult({ boxType, output, validation, isError = false, clarification }: {
   boxType: SecurityArtifactBoxType;
   output: string;
   validation?: SecurityArtifactValidation;
   isError?: boolean;
+  /** Answer form wiring; without it the box only says that clarification would help. */
+  clarification?: SecurityClarificationControls;
 }) {
   const [view, setView] = useState<"summary" | "technical">("summary");
   useEffect(() => setView("summary"), [output]);
@@ -79,10 +82,21 @@ export default function SecurityArtifactResult({ boxType, output, validation, is
               </p>
             ) : summary ? (
               <>
-                {needsClarification && (
+                {needsClarification && !clarification && (
                   <p className="mx-3 mb-2 text-xs leading-relaxed text-violet-700">
                     AI Canva produced a partial result, but more project evidence or clarification would improve it.
                   </p>
+                )}
+                {clarification && (
+                  <SecurityClarificationPanel
+                    // Remount (resetting drafts) when the artifact or the stored answers change.
+                    key={`${output.length}:${validation?.validatedAt ?? 0}:${clarification.entries.map((entry) => `${entry.key}@${entry.answeredAt}`).join("|")}`}
+                    boxType={boxType}
+                    output={output}
+                    validation={validation}
+                    needsClarification={needsClarification}
+                    controls={clarification}
+                  />
                 )}
                 <SecurityArtifactSummary key={output} summary={summary} needsClarification={needsClarification} />
               </>

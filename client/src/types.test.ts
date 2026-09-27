@@ -172,3 +172,18 @@ describe("Security Advisor box", () => {
     expect(defaultSystemPrompt).toMatch(/never emit human_review as a scalar string/i);
   });
 });
+
+describe("security clarification answers in system prompts", () => {
+  it.each(["assetmapper", "reqelicitor", "nistgap", "securityadvisor"] as const)("%s treats supplied answers as user-reported evidence", (type) => {
+    const prompt = BOX_TYPES[type].defaultSystemPrompt;
+    expect(prompt).toContain("If answers to previous clarification questions are supplied");
+    expect(prompt).toContain("user_reported evidence");
+    expect(prompt).toContain("do not repeat answered questions");
+  });
+});
+
+describe("Security Requirements Elicitor schema version", () => {
+  it("pins schema_version 1.0 even without an upstream AssetPackage", () => {
+    expect(BOX_TYPES.reqelicitor.defaultSystemPrompt).toContain('schema_version: "1.0", whether or not an AssetPackage is supplied');
+  });
+});
