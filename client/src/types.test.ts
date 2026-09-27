@@ -172,3 +172,9 @@ describe("Security Advisor box", () => {
     expect(defaultSystemPrompt).toMatch(/never emit human_review as a scalar string/i);
   });
 });
+
+describe("Security Requirements Elicitor schema version", () => {
+  it("pins schema_version 1.0 even without an upstream AssetPackage", () => {
+    expect(BOX_TYPES.reqelicitor.defaultSystemPrompt).toContain('schema_version: "1.0", whether or not an AssetPackage is supplied');
+  });
+});

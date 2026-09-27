@@ -29,6 +29,27 @@ current state).
 
 ---
 
+## 2026-09-27 — Fix "Invalid" security artifacts under VAL (prompt shape rules)
+
+- **Done:** Reproduced "Artifact integrity check failed" against live VAL (`openai-gpt-4.1`). Two
+  causes, both existing gaps in the prompts:
+  - The Asset Mapper and Elicitor emitted `assets`/`evidence_register` as mappings keyed by ID.
+    The validator requires lists, and every `EVID-*` reference then showed as broken. Added
+    `SECURITY_LIST_SHAPE_RULE` to both system prompts.
+  - NIST nested included/excluded under `scope_boundary` and left out the top-level `exclusions`.
+    Extended `NIST_YAML_OUTPUT_RULES`.
+  - Locally, set `VAL_TIMEOUT_MS=120000` in `server/.env`, because the 30s default timed out on
+    NIST's long output.
+- **Verified (live VAL):** Asset Mapper + Elicitor 3/3 runs valid (were invalid). NIST 6/6 valid
+  (was 5/6 invalid), with and without the clarification bypass note. A scripted clarification
+  round cut the Elicitor's questions from 7 to 4 and its output included the answers. Client tests
+  563/563.
+  - Follow-up: the Elicitor's prompt never pinned `schema_version`, so with an Idea box connected
+    directly (no Asset Mapper) VAL guessed values such as `v0.9` (2/2 invalid). Its system prompt
+    now requires `"1.0"` (5/5 valid).
+- **Next steps:** existing boards keep the prompts copied at box creation, so create a new board to
+  get the fixes. Mirror the rules into `evals/` prompt versions if the evals should track them.
+
 ## 2026-09-26 — Security homepage copy
 
 - **Done:** Updated the logged-out homepage to show the project-to-security-review flow, explain all seven security boxes, and add a Security role card. Left branding and colour changes to the parallel team work.
