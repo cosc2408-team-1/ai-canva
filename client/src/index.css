@@ -618,7 +618,7 @@ html {
   --sf-text: #e7f1fb;
   --sf-text-secondary: #a9bfd3;
   --sf-muted: #7892ad;
-  --sf-dim: #506a83;
+  --sf-dim: #8fa9c0;
 
   --sf-green: #36d39a;
   --sf-red: #ff6675;
@@ -1297,7 +1297,7 @@ button {
 input,
 textarea,
 select {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* 1. SECUREFLOW LOGO
@@ -1539,8 +1539,8 @@ select {
   }
 
   .react-flow__renderer {
-    background-color: #030b18 !important;
-  }
+  background-color: #F3F2F1 !important;
+}
 
   /* IMPORTANT:
      Hide the white minimap seen in your screenshot. */
@@ -1867,4 +1867,398 @@ select {
 
   z-index: 30 !important;
 }
+}
+
+/* =========================================================
+   MICROSOFT / FLUENT LIGHT THEME
+========================================================= */
+
+:root {
+  --sf-bg: #F3F2F1;
+  --sf-surface: #FFFFFF;
+  --sf-surface-2: #FAF9F8;
+  --sf-card: #FFFFFF;
+  --sf-card-hover: #F3F2F1;
+
+  --sf-border: #D2D0CE;
+  --sf-border-light: #E1DFDD;
+
+  --sf-blue: #0078D4;
+  --sf-blue-bright: #106EBE;
+  --sf-blue-soft: #DEECF9;
+
+  --sf-text: #323130;
+  --sf-text-secondary: #605E5C;
+  --sf-muted: #797775;
+  --sf-dim: #A19F9D;
+
+  --sf-green: #107C10;
+  --sf-red: #A4262C;
+}
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+html,
+body,
+#root {
+  background: #F3F2F1 !important;
+  color: #323130 !important;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.app-bar {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid #D2D0CE !important;
+  color: #323130 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.app-bar input {
+  background: #FFFFFF !important;
+  border: 1px solid #8A8886 !important;
+  color: #323130 !important;
+}
+
+.app-bar input::placeholder {
+  color: #797775 !important;
+}
+
+.app-bar input:focus {
+  border-color: #0078D4 !important;
+  box-shadow: 0 0 0 1px #0078D4 !important;
+}
+
+.app-bar button {
+  color: #323130 !important;
+}
+
+.app-bar button.bg-white,
+.app-bar button.bg-slate-50,
+.app-bar button.bg-slate-100 {
+  background: #FFFFFF !important;
+  color: #323130 !important;
+  border-color: #D2D0CE !important;
+}
+
+.app-bar button.bg-white:hover,
+.app-bar button.bg-slate-50:hover,
+.app-bar button.bg-slate-100:hover {
+  background: #F3F2F1 !important;
+  color: #0078D4 !important;
+}
+
+.app-bar button.bg-indigo-600 {
+  background: #0078D4 !important;
+  border-color: #0078D4 !important;
+  color: #FFFFFF !important;
+}
+
+.app-bar button.bg-indigo-600:hover {
+  background: #106EBE !important;
+}
+
+.app-bar .text-slate-700,
+.app-bar .text-slate-600 {
+  color: #323130 !important;
+}
+
+.app-bar .text-slate-500,
+.app-bar .text-slate-400 {
+  color: #605E5C !important;
+}
+
+.app-bar .text-emerald-600,
+.app-bar .text-green-600 {
+  color: #107C10 !important;
+}
+
+
+/* =========================================================
+   MAIN CANVAS
+========================================================= */
+
+.react-flow {
+  background: #F3F2F1 !important;
+}
+
+.react-flow__background {
+  background-color: #F3F2F1 !important;
+}
+
+.react-flow__background pattern circle,
+.react-flow__background pattern path {
+  opacity: 0.35 !important;
+}
+
+.react-flow__selection {
+  background: rgba(0, 120, 212, 0.10) !important;
+  border: 1px solid rgba(0, 120, 212, 0.45) !important;
+}
+
+
+/* =========================================================
+   REACT FLOW CONTROLS
+========================================================= */
+
+.react-flow__controls {
+  background: #FFFFFF !important;
+  border: 1px solid #D2D0CE !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+.react-flow__controls-button {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid #E1DFDD !important;
+  color: #323130 !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #F3F2F1 !important;
+  color: #0078D4 !important;
+}
+
+
+/* =========================================================
+   CANVAS BOXES / NODES
+========================================================= */
+
+.box-node {
+  background: #FFFFFF !important;
+  border: 1px solid #D2D0CE !important;
+  color: #323130 !important;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.10) !important;
+}
+
+.box-node.selected {
+  border-color: #0078D4 !important;
+
+  box-shadow:
+    0 0 0 1px #0078D4,
+    0 4px 12px rgba(0, 120, 212, 0.15) !important;
+}
+
+
+/* Node header */
+
+.box-node > div:first-child {
+  background: #FAF9F8 !important;
+  border-bottom: 1px solid #E1DFDD !important;
+}
+
+.box-node .font-semibold,
+.box-node .text-sm {
+  color: #323130 !important;
+}
+
+.box-node .text-slate-400,
+.box-node .text-slate-500 {
+  color: #605E5C !important;
+}
+
+.box-node .box-body {
+  background: #FFFFFF !important;
+  color: #323130 !important;
+}
+
+
+/* Inputs */
+
+.box-node input,
+.box-node textarea,
+.box-node select {
+  background: #FFFFFF !important;
+  border: 1px solid #8A8886 !important;
+  color: #323130 !important;
+}
+
+.box-node input::placeholder,
+.box-node textarea::placeholder {
+  color: #797775 !important;
+}
+
+.box-node input:focus,
+.box-node textarea:focus,
+.box-node select:focus {
+  border-color: #0078D4 !important;
+  box-shadow: 0 0 0 1px #0078D4 !important;
+}
+
+
+/* Node footer */
+
+.box-node .box-footer {
+  background: #FAF9F8 !important;
+  border-top: 1px solid #E1DFDD !important;
+}
+
+.box-node .box-footer button {
+  color: #323130 !important;
+}
+
+.box-node .box-footer button.bg-slate-100 {
+  background: #FFFFFF !important;
+  color: #323130 !important;
+  border-color: #D2D0CE !important;
+}
+
+.box-node .box-footer button.bg-slate-100:hover {
+  background: #F3F2F1 !important;
+  color: #0078D4 !important;
+}
+
+
+/* Delete */
+
+.box-node .box-delete {
+  color: #797775 !important;
+}
+
+.box-node .box-delete:hover {
+  background: #FDE7E9 !important;
+  color: #A4262C !important;
+}
+
+
+/* =========================================================
+   CONNECTIONS
+========================================================= */
+
+.react-flow__edge-path {
+  stroke: #0078D4 !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #106EBE !important;
+  stroke-width: 2.5 !important;
+}
+
+.react-flow__handle {
+  background: #0078D4 !important;
+  border: 2px solid #FFFFFF !important;
+}
+
+.react-flow__handle:hover {
+  background: #106EBE !important;
+}
+
+
+/* =========================================================
+   RIGHT SIDEBAR
+========================================================= */
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl {
+  background: #FFFFFF !important;
+  border-left: 1px solid #D2D0CE !important;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.10) !important;
+  color: #323130 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  > div:first-child {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid #E1DFDD !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .text-slate-700 {
+  color: #323130 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .text-slate-400 {
+  color: #797775 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  button:hover {
+  background: #F3F2F1 !important;
+  color: #0078D4 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .bg-slate-50\/60 {
+  background: #FAF9F8 !important;
+  border-bottom-color: #E1DFDD !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  select {
+  background: #FFFFFF !important;
+  border-color: #8A8886 !important;
+  color: #323130 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  select:focus {
+  border-color: #0078D4 !important;
+  box-shadow: 0 0 0 1px #0078D4 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  h3 {
+  color: #605E5C !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .palette-row {
+  background: #FFFFFF !important;
+  border-color: #D2D0CE !important;
+  color: #323130 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .palette-row:hover {
+  background: #F3F2F1 !important;
+  border-color: #0078D4 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .palette-row .text-slate-700 {
+  color: #323130 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .palette-row.border-indigo-300 {
+  border-color: #0078D4 !important;
+  box-shadow: 0 0 0 1px #0078D4 !important;
+}
+
+.absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl
+  .palette-row svg {
+  color: #0078D4 !important;
+}
+
+
+/* =========================================================
+   GENERAL TEXT
+========================================================= */
+
+.text-slate-700 {
+  color: #323130 !important;
+}
+
+.text-slate-600 {
+  color: #605E5C !important;
+}
+
+.text-slate-500 {
+  color: #797775 !important;
+}
+
+.text-slate-400 {
+  color: #8A8886 !important;
+}
+
+.react-flow__renderer {
+  background-color: #F3F2F1 !important;
 }
