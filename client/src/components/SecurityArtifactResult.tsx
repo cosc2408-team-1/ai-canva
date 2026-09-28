@@ -89,8 +89,8 @@ export default function SecurityArtifactResult({ boxType, output, validation, is
             ) : summary ? (
               <>
                 {needsClarification && !clarification && (
-                  <p className="mx-3 mb-2 text-xs leading-relaxed text-violet-700">
-                    AI Canva produced a partial result, but more project evidence or clarification would improve it.
+                  <p className="mx-3 mb-2 text-xs leading-relaxed text-amber-700">
+                    SecureFlow produced a partial result, but more project evidence or clarification would improve it.
                   </p>
                 )}
                 {clarification && (
