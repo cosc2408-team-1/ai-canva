@@ -2178,3 +2178,147 @@ input:not([type]):not([class*="bg-"]) {
 .focus\:ring-slate-300:focus {
   --tw-ring-color: var(--sf-border-light) !important;
 }
+
+/* =========================================================
+   SECUREFLOW RESPONSIVE FIXES (tablets, phones, touch)
+   Keep this block last.
+========================================================= */
+
+/* ---------- Layering, all sizes ----------
+   The header and the sidebar were both z-20, so the sidebar (later
+   in the page) covered the header's menus: the Account and Boards
+   menus opened behind it. Dialogs must sit above everything,
+   including the phone bottom sheet (z-index 100). */
+.app-bar {
+  z-index: 40 !important;
+}
+.fixed.inset-0.z-50 {
+  z-index: 200 !important;
+}
+
+/* ---------- Tablet portrait (iPad 744–1023px) ----------
+   Below 1024px the header wraps onto two rows, but the theme fixed
+   its height at 52px, so the second row spilled over the canvas and
+   under the sidebar. Let it grow: row 1 = logo + board name,
+   row 2 = actions. The canvas sits below it instead of under it. */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .app-bar {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    row-gap: 8px !important;
+    padding: 8px 16px !important;
+  }
+  .header-left {
+    width: 100% !important;
+  }
+  .header-left input {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: 360px !important;
+  }
+  .header-actions {
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+  }
+  /* The dividers and token counter don't fit on one row at iPad widths */
+  .header-actions > .h-6,
+  .header-actions div[title^="Your total LLM tokens used"] {
+    display: none !important;
+  }
+}
+
+/* ---------- Phones (≤640px) ----------
+   Two mobile sections above disagree: the first moves Boards and
+   Add Box into a bottom bar, the second hides them. Restore the
+   bottom bar so boards can still be created, switched and filled.
+   (New Board stays in the Boards menu.) */
+@media (max-width: 640px) {
+  .header-actions button[title="Open the add-box palette"],
+  .header-actions button[title="Open, create, or manage boards"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ---------- Touch screens (iPads, phones) ----------
+   Header buttons were 32px tall: too small to tap reliably.
+   40px is comfortable without changing the desktop look. */
+@media (pointer: coarse) and (min-width: 641px) {
+  .app-bar button,
+  .app-bar input {
+    min-height: 40px !important;
+  }
+  .app-bar button[title="Account"] {
+    min-width: 40px !important;
+  }
+}
+
+/* ---------- Header blur (all sizes) ----------
+   The original light theme blurs the header (backdrop-filter). The
+   SecureFlow header is fully opaque, so the blur did nothing visible,
+   but it made the header the containing block for position: fixed.
+   That is why the phone bottom bar (Boards / Add Box) appeared at
+   the top of the screen instead of the bottom. */
+.app-bar {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ---------- Phone: Boards menu opens upward from the bottom bar ---------- */
+@media (max-width: 640px) {
+  .relative:has(> button[title="Open, create, or manage boards"]) > div.absolute {
+    position: fixed !important;
+    top: auto !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 66px !important;
+    width: auto !important;
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+    margin: 0 !important;
+  }
+  .relative:has(> button[title="Open, create, or manage boards"]) > div.absolute .max-h-80 {
+    max-height: none !important;
+  }
+}
+
+/* ---------- Phone: bottom bar stays reachable ----------
+   The Add Box sheet opens by default and covers 82% of the screen
+   (z-index 100), which hid the bottom bar. Keep the bar above the
+   sheet and pad the sheet so its last rows aren't hidden behind it. */
+@media (max-width: 640px) {
+  /* The bar lives inside the header, so the header's layer decides.
+     The sheet starts below the header, so the two never overlap. */
+  .app-bar {
+    z-index: 110 !important;
+  }
+  .absolute.right-0.top-0.bottom-0.z-20.bg-white.shadow-xl .flex-1.min-h-0.overflow-y-auto {
+    padding-bottom: 72px !important;
+  }
+}
+
+/* Phone Add Box button: same accessible blue as other primary buttons */
+@media (max-width: 640px) {
+  .header-actions button[title="Open the add-box palette"] {
+    background: var(--sf-blue-button) !important;
+    border-color: var(--sf-blue-button) !important;
+  }
+}
+
+/* iPad Safari: on the board page, the page itself must not scroll or bounce,
+   so one-finger drags reach the canvas. The landing page is unaffected. */
+html:has(.react-flow),
+html:has(.react-flow) body {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  height: 100%;
+}
+.react-flow__pane {
+  touch-action: none !important;
+}
