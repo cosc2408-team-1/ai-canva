@@ -813,7 +813,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
   assetmapper: {
     label: "Asset Mapper",
     icon: "🗂️",
-    color: "#0891b2",
+    color: "#22d3ee",
     description:
       "Turn supplied project evidence into a traceable asset inventory with stable AST-* and EVID-* references.",
     hasAI: true,
@@ -829,7 +829,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
   reqelicitor: {
     label: "Security Requirements Elicitor",
     icon: "📋",
-    color: "#f59e0b",
+    color: "#818cf8",
     description:
       "Convert supplied project evidence or an AssetPackage into a traceable RequirementsPackage of testable SHALL requirements.",
     hasAI: true,
@@ -845,7 +845,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
   nistgap: {
     label: "NIST CSF Gap Checker",
     icon: "🛡️",
-    color: "#0f766e",
+    color: "#a3e635",
     description:
       "Review a completed security requirements package against relevant NIST CSF 2.0 outcomes and identify evidence-linked gaps.",
     hasAI: true,
@@ -861,7 +861,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
   securityadvisor: {
     label: "Security Advisor",
     icon: "🧭",
-    color: "#7c3aed",
+    color: "#c084fc",
     description:
       "Interview the practitioner about their goal and available evidence, then recommend the appropriate next box or security-workflow step.",
     hasAI: true,
@@ -877,7 +877,7 @@ export const BOX_TYPES: Record<BoxType, BoxTypeMeta> = {
   threatModeler: {
     label: "Threat Modeler",
     icon: "🧠",
-    color: "#8B5CF6",
+    color: "#f472b6",
     description:
       "Turn an AssetPackage into a traceable ThreatModel: STRIDE threats with THR-* IDs, conditional attack vectors, AI-suggested MITRE ATT&CK mappings and recommended mitigations.",
     hasAI: true,
@@ -935,7 +935,7 @@ Output YAML only. Quote any string value that contains a colon, a # character, o
   riskScorer: {
     label: "Risk Scorer",
     icon: "🎲",
-    color: "#F77519",
+    color: "#fb923c",
     description:
       "Score a ThreatModel by likelihood × impact into a traceable RiskRegister, with RISK-* IDs, evidence links and uncertainty. The app checks the arithmetic and risk bands.",
     hasAI: true,

@@ -1,5 +1,10 @@
 import { memo, useState } from "react";
 import type { User } from "firebase/auth";
+import secureflowLogo from "../assets/secureflow-logo.png";
+import rmitMark from "../assets/rmit-mark.png";
+import microsoftMark from "../assets/microsoft-mark.png";
+import rmitLogo from "../assets/rmit-logo-white.png";
+import microsoftLogo from "../assets/microsoft-logo-white.png";
 import { useBoardStore } from "../store/boardStore.js";
 import { useTokenStore } from "../store/tokenStore.js";
 import { Button } from "./ui/Button.js";
@@ -102,44 +107,79 @@ function Header({
   return (
     <header className="app-bar relative z-20 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 lg:flex-nowrap lg:py-0">
       {/* ---- Left: brand + board identity ---- */}
-      <div className="flex w-full min-w-0 items-center gap-3 lg:w-auto">
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <div className="logo-tile" aria-hidden>
-            🎨
-          </div>
-          <span className="text-[15px] font-semibold tracking-tight text-slate-900 hidden sm:block">
-            AI Canva
-          </span>
-        </div>
-
-        <div className="h-6 w-px bg-slate-200 flex-shrink-0" />
-
-        {currentBoardId ? (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <input
-              type="text"
-              value={boardTitle}
-              onChange={(e) => setBoardTitle(e.target.value)}
-              placeholder="Untitled board"
-              className="h-8 w-36 sm:w-48 lg:w-56 rounded-lg border border-transparent bg-slate-100/70 px-2.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-100 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-            {saveLabel && (
-              <span
-                className="flex items-center gap-1.5 flex-shrink-0"
-                title={"Board save status: " + saveLabel}
-              >
-                <span className={"save-dot save-" + saveStatus} />
-                <span className="text-[11px] text-slate-400 hidden md:block">{saveLabel}</span>
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400">Opening board…</span>
+<div className="header-left flex min-w-0 items-center gap-3">
+  <div className="header-logo flex items-center flex-shrink-0">
+    <img
+      src={secureflowLogo}
+      alt="SecureFlow"
+      className="secureflow-logo"
+    />
+    {/* Showcase partners: a compact button with both symbols; tapping it
+        opens the full, unaltered logos. Hidden on phones, where the
+        header has no room. */}
+    <div className="header-partners hidden sm:flex items-center ml-3 pl-3 border-l border-slate-200">
+      <Menu
+        panelClassName="w-80"
+        trigger={({ open, toggle }) => (
+          <Button onClick={toggle} active={open} title="Showcase partners: RMIT University and Microsoft">
+            <img src={rmitMark} alt="" className="h-[18px] w-auto" />
+            <img src={microsoftMark} alt="" className="h-4 w-auto" />
+            <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+            Partners
+            <span className={"text-[10px] transition-transform " + (open ? "rotate-180" : "")}>
+              ▾
+            </span>
+          </Button>
         )}
-      </div>
+      >
+        <div className="p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Showcase partners
+          </div>
+          <p className="mt-1.5 text-[13px] leading-snug text-slate-700">
+            Built by RMIT University students in partnership with Microsoft
+          </p>
+          <div className="mt-4 flex items-center gap-6">
+            <img src={rmitLogo} alt="RMIT University" className="h-9 w-auto" />
+            <img src={microsoftLogo} alt="Microsoft" className="h-6 w-auto" />
+          </div>
+        </div>
+      </Menu>
+    </div>
+  </div>
+
+  <div className="h-6 w-px bg-slate-200 flex-shrink-0" />
+
+  {currentBoardId ? (
+    <div className="flex items-center gap-2.5 min-w-0">
+      <input
+        type="text"
+        value={boardTitle}
+        onChange={(e) => setBoardTitle(e.target.value)}
+        placeholder="Untitled board"
+        className="h-8 w-36 sm:w-48 lg:w-56 rounded-lg border border-transparent bg-slate-100/70 px-2.5 text-[13px] font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-100 focus:border-indigo-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+      />
+
+      {saveLabel && (
+        <span
+          className="flex items-center gap-1.5 flex-shrink-0"
+          title={"Board save status: " + saveLabel}
+        >
+          <span className={"save-dot save-" + saveStatus} />
+          <span className="text-[11px] text-slate-400 hidden md:block">
+            {saveLabel}
+          </span>
+        </span>
+      )}
+    </div>
+  ) : (
+    <span className="text-xs text-slate-400">Opening board…</span>
+  )}
+</div>
+      
 
       {/* ---- Right: actions ---- */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-1.5 lg:w-auto lg:flex-nowrap lg:justify-end">
+      <div className="header-actions flex w-full flex-wrap items-center justify-between gap-1.5 lg:w-auto lg:flex-nowrap lg:justify-end">
         {/* Collaboration group */}
         {currentBoardId && (
           <>
@@ -155,7 +195,7 @@ function Header({
         <Button variant="primary" onClick={onNewBoard} title="Create a new board">
           + New Board
         </Button>
-        <Button onClick={onAddBox} title="Open the add-box palette">
+        <Button onClick={onAddBox} title="Open the add-box palette" className="sm:hidden">
           {"+ Add Box"}
         </Button>
 
@@ -294,13 +334,11 @@ function Header({
               }
               title="Account"
             >
-              {user.photoURL ? (
-                <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full" />
-              ) : (
-                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold flex items-center justify-center">
-                  {avatarInitials}
-                </span>
-              )}
+              <span
+  className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white"
+>
+  {avatarInitials}
+</span>
               <span className="text-[10px] text-slate-400">▾</span>
             </button>
           )}

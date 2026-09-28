@@ -9,6 +9,7 @@ import NewBoardModal from "./components/NewBoardModal.js";
 import ShareModal from "./components/ShareModal.js";
 import LandingPage from "./components/landing/LandingPage.js";
 import AdminBoard from "./components/AdminBoard.js";
+import secureflowLogo from "./assets/secureflow-logo.png";
 import FacilitatorBoard from "./components/FacilitatorBoard.js";
 import GuestProfileModal from "./components/GuestProfileModal.js";
 import { isFacilitator } from "./lib/admin.js";
@@ -283,9 +284,11 @@ export default function App() {
   // Loading state
   if (authLoading) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-slate-900">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-4xl animate-spin">🎨</span>
+      <div className="h-full w-full flex items-center justify-center bg-[#030b18]">
+        <div className="flex flex-col items-center gap-4" role="status" aria-live="polite">
+          <img src={secureflowLogo} alt="SecureFlow" className="h-12 w-auto" />
+          {/* Indeterminate: sign-in checks have no measurable progress. */}
+          <div className="sf-loading-bar" aria-hidden="true"><span /></div>
           <span className="text-sm text-slate-400">Loading...</span>
         </div>
       </div>
