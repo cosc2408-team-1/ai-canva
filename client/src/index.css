@@ -2079,3 +2079,102 @@ input:not([type]):not([class*="bg-"]) {
 .react-flow__minimap-mask {
   fill: rgba(3, 11, 24, 0.65) !important;
 }
+
+/* =========================================================
+   SECUREFLOW HOVER / ACTIVE / OPACITY-VARIANT FIXES
+   Tailwind's hover: and /NN opacity variants are separate
+   classes, so the rules above don't reach them. Without these,
+   hovered rows and the current board in menus flash white/pastel
+   behind pale text.
+========================================================= */
+
+/* Neutral hovers (menus, list rows, icon buttons) */
+.hover\:bg-slate-50:hover,
+.hover\:bg-slate-100:hover {
+  background-color: var(--sf-card-hover) !important;
+}
+.hover\:text-slate-900:hover {
+  color: #ffffff !important;
+}
+
+/* Tinted hovers */
+.hover\:bg-indigo-50:hover,
+.hover\:bg-indigo-100:hover,
+.hover\:bg-blue-100:hover {
+  background-color: rgba(0, 153, 255, 0.16) !important;
+}
+.hover\:bg-red-50:hover,
+.hover\:bg-red-100:hover,
+.hover\:bg-rose-50:hover {
+  background-color: rgba(255, 102, 117, 0.16) !important;
+}
+.hover\:bg-emerald-50:hover,
+.hover\:bg-green-100:hover {
+  background-color: rgba(54, 211, 154, 0.16) !important;
+}
+
+/* Opacity variants of light surfaces */
+.bg-slate-50\/60,
+.bg-slate-50\/80 {
+  background-color: #061322 !important;
+}
+.bg-indigo-50\/40,
+.bg-indigo-50\/70,
+.bg-blue-50\/60 {
+  background-color: rgba(0, 153, 255, 0.16) !important;
+}
+.bg-rose-50\/40,
+.bg-rose-50\/60,
+.bg-rose-50\/70 {
+  background-color: rgba(255, 102, 117, 0.12) !important;
+}
+.bg-amber-50\/60 {
+  background-color: rgba(251, 191, 36, 0.12) !important;
+}
+.bg-teal-50\/50 {
+  background-color: rgba(45, 212, 191, 0.12) !important;
+}
+
+/* Current board in the Boards menu: keep the text bright on the tint */
+.bg-indigo-50\/70,
+.bg-indigo-50\/70 .text-slate-400 {
+  color: var(--sf-text) !important;
+}
+.bg-indigo-50\/70 .text-slate-400 {
+  color: var(--sf-text-secondary) !important;
+}
+
+/* ---------- Borders the theme's plain rules don't reach ---------- */
+
+/* Menu panels (Boards / Account) and checklist rows */
+.border-slate-200\/80,
+.border-slate-200\/70,
+.border-slate-50 {
+  border-color: var(--sf-border) !important;
+}
+
+/* Row dividers (Share dialog people list, Code Edit file list) */
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--sf-border) !important;
+}
+
+/* Hover borders on buttons, template cards and sidebar rows */
+.hover\:border-slate-200:hover,
+.hover\:border-slate-300:hover,
+.hover\:border-slate-400:hover {
+  border-color: var(--sf-blue-soft) !important;
+}
+
+/* Selected option state inside boxes */
+.border-slate-500 {
+  border-color: var(--sf-blue) !important;
+}
+
+/* Rings around presence avatars and colour swatches */
+.border-white {
+  border-color: var(--sf-surface) !important;
+}
+
+.focus\:ring-slate-300:focus {
+  --tw-ring-color: var(--sf-border-light) !important;
+}
