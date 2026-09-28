@@ -60,7 +60,7 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
               </div>
-              <span className="text-xs text-slate-400">Jennie&apos;s Security Review</span>
+              <span className="text-xs text-slate-400">Jennie&apos;s Security Review Sample</span>
               <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-medium text-slate-300">
                 ▶ Run
               </span>

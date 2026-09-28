@@ -71,13 +71,15 @@ interface MenuItemProps {
   accent?: boolean;
   /** Marks the currently-selected entry (e.g. the open board). */
   active?: boolean;
+  disabled?: boolean;
 }
 
-export function MenuItem({ icon, label, description, onClick, danger, accent, active }: MenuItemProps) {
+export function MenuItem({ icon, label, description, onClick, danger, accent, active, disabled }: MenuItemProps) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={
         "w-full flex items-center gap-2.5 px-3.5 py-2 text-left transition-colors " +
         (danger
@@ -85,7 +87,8 @@ export function MenuItem({ icon, label, description, onClick, danger, accent, ac
           : accent
             ? "text-indigo-600 hover:bg-indigo-50"
             : "text-slate-600 hover:bg-slate-50 hover:text-slate-900") +
-        (active ? " bg-indigo-50/70" : "")
+        (active ? " bg-indigo-50/70" : "") +
+        (disabled ? " cursor-not-allowed opacity-50" : "")
       }
     >
       {icon !== undefined && (

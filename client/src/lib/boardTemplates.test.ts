@@ -38,7 +38,7 @@ describe("Security Assessment board template", () => {
       "blank",
     ]);
     expect(defaultBoardName("security-assessment")).toBe("Security Assessment");
-    expect(defaultBoardName("jennie-showcase")).toBe("Jennie's Security Review");
+    expect(defaultBoardName("jennie-showcase")).toBe("Jennie's Security Review Sample");
     expect(defaultBoardName("blank")).toBe("Untitled Board");
   });
 
@@ -136,8 +136,8 @@ describe("Security Assessment board template", () => {
 });
 
 describe("Jennie showcase board template", () => {
-  it("starts with the fictional student-app description ready to feed the first worker", () => {
-    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData);
+  it("starts with the fictional description and preloaded sample results", () => {
+    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData, new Date("2026-09-28"));
     const idea = template.nodes.find((node) => node.type === "idea")!;
 
     expect(JENNIE_PROJECT_DESCRIPTION).toContain("Jennie is a university security reviewer");
@@ -157,7 +157,7 @@ describe("Jennie showcase board template", () => {
   });
 
   it("includes both teams' security boxes while retaining the guided demo path", () => {
-    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData);
+    const template = createBoardTemplate("jennie-showcase", ids(), defaultBoxData, new Date("2026-09-28"));
     expect(template.nodes.map((node) => node.type)).toEqual([
       "idea", "assetmapper", "reqelicitor", "nistgap", "securityadvisor",
       "threatModeler", "riskScorer", "irPlanner",
@@ -172,9 +172,11 @@ describe("Jennie showcase board template", () => {
       expect(template.boxData[node.id]).toMatchObject({
         prompt: BOX_TYPES[node.type as BoxType].defaultPrompt,
         systemPrompt: BOX_TYPES[node.type as BoxType].defaultSystemPrompt,
-        status: "idle",
-        output: "",
+        status: "done",
+        sampleOutput: true,
+        securityArtifactValidation: { status: "valid" },
       });
+      expect(template.boxData[node.id].output).toContain("artifact_type:");
     }
   });
 

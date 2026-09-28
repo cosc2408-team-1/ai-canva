@@ -1,13 +1,15 @@
 import type { Edge, Node } from "@xyflow/react";
 import { BOX_TYPES, type BoxData, type BoxType, type SecurityClarification } from "../types.js";
 import { clarificationKey } from "./securityClarifications.js";
+import { applicationAssessmentDate, validateSecurityArtifact } from "./securityArtifacts.js";
+import { jennieSampleOutputs } from "./jennieSample.js";
 
 export type BoardTemplateId = "blank" | "security-assessment" | "jennie-showcase";
 export const DEFAULT_BOARD_TEMPLATE_ID: BoardTemplateId = "security-assessment";
 
 export function defaultBoardName(templateId: BoardTemplateId): string {
   if (templateId === "security-assessment") return "Security Assessment";
-  if (templateId === "jennie-showcase") return "Jennie's Security Review";
+  if (templateId === "jennie-showcase") return "Jennie's Security Review Sample";
   return "Untitled Board";
 }
 
@@ -25,8 +27,8 @@ export const BOARD_TEMPLATE_OPTIONS: readonly BoardTemplateOption[] = [
   },
   {
     id: "jennie-showcase",
-    label: "Jennie's Security Review",
-    description: "A fictional student-app review with the project description already filled in. Run the connected security boxes when you're ready.",
+    label: "Jennie's Security Review Sample",
+    description: "Fictional student-app review with example results already filled in. Run the boxes to replace the samples with fresh AI output.",
   },
   {
     id: "blank",
@@ -185,6 +187,7 @@ export function createBoardTemplate(
   templateId: BoardTemplateId,
   createId: () => string,
   createDefaultBoxData: (type: BoxType) => BoxData,
+  sampleDate = new Date(),
 ): BoardTemplateContent {
   if (templateId === "blank") {
     return { nodes: [], edges: [], boxData: {} };
@@ -216,6 +219,8 @@ export function createBoardTemplate(
     } satisfies Node;
   });
 
+  const sampleAssessmentDate = applicationAssessmentDate(sampleDate);
+  const sampleOutputs = templateId === "jennie-showcase" ? jennieSampleOutputs(sampleAssessmentDate) : null;
   const boxData = Object.fromEntries(
     definitions.map((definition) => [
       nodeIds.get(definition.key)!,
@@ -223,6 +228,16 @@ export function createBoardTemplate(
         ...createDefaultBoxData(definition.type),
         ...(templateId === "jennie-showcase" && definition.key === "project-description"
           ? { content: JENNIE_PROJECT_DESCRIPTION, output: JENNIE_PROJECT_DESCRIPTION }
+          : {}),
+        ...(sampleOutputs && definition.type in sampleOutputs
+          ? (() => {
+              const type = definition.type as keyof typeof sampleOutputs;
+              const output = sampleOutputs[type];
+              const { parsed: _parsed, ...securityArtifactValidation } = validateSecurityArtifact({
+                boxType: type, output, trustedMetadata: { assessmentDate: sampleAssessmentDate },
+              });
+              return { output, status: "done" as const, sampleOutput: true, securityArtifactValidation };
+            })()
           : {}),
       },
     ]),

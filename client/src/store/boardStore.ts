@@ -1660,6 +1660,7 @@ export const useBoardStore = create<BoardState>()(
               get().updateBoxData(id, {
                 output: result.content,
                 status: "done",
+                sampleOutput: false,
                 error: undefined,
                 ...(securityArtifactValidation ? { securityArtifactValidation } : {}),
               });

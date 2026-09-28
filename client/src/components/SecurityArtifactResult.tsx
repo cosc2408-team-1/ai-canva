@@ -34,11 +34,12 @@ function HumanReviewCue({ boxType }: { boxType: SecurityArtifactBoxType }) {
   );
 }
 
-export default function SecurityArtifactResult({ boxType, output, validation, isError = false, clarification }: {
+export default function SecurityArtifactResult({ boxType, output, validation, isError = false, sampleOutput = false, clarification }: {
   boxType: SecurityArtifactBoxType;
   output: string;
   validation?: SecurityArtifactValidation;
   isError?: boolean;
+  sampleOutput?: boolean;
   /** Answer form wiring; without it the box only says that clarification would help. */
   clarification?: SecurityClarificationControls;
 }) {
@@ -59,6 +60,11 @@ export default function SecurityArtifactResult({ boxType, output, validation, is
       <SecurityArtifactStatus validation={validation} hasOutput={hasOutput} />
       {hasOutput && (
         <>
+          {sampleOutput && (
+            <p className="mx-3 mb-2 text-xs leading-relaxed text-amber-800">
+              Fictional sample output. Run this box to generate a fresh result.
+            </p>
+          )}
           {isError && <p className="mx-3 mb-2 text-xs text-amber-700">Previous artifact shown below. The latest run failed.</p>}
           <div className="mx-3 mb-3 flex gap-1 border-b border-slate-200 pb-1" aria-label="Security result view">
             <button

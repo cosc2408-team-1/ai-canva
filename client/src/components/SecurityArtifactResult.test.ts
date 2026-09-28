@@ -35,6 +35,14 @@ function render(output: string, status: SecurityArtifactValidationStatus = "vali
 }
 
 describe("SecurityArtifactResult", () => {
+  it("labels preloaded output as a fictional sample", () => {
+    const html = renderToStaticMarkup(createElement(SecurityArtifactResult, {
+      boxType: "assetmapper", output: yaml, validation: validation("valid"), sampleOutput: true,
+    }));
+    expect(html).toContain("Fictional sample output");
+    expect(render(yaml)).not.toContain("Fictional sample output");
+  });
+
   it("shows Summary first and keeps raw YAML behind Technical artifact", () => {
     const html = render(yaml);
     expect(html).toContain("Assets discovered");
