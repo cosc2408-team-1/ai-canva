@@ -2322,3 +2322,28 @@ html:has(.react-flow) body {
 .react-flow__pane {
   touch-action: none !important;
 }
+/* "0 online" must never wrap onto two lines */
+.header-actions > :first-child,
+.header-actions > :first-child * {
+  white-space: nowrap !important;
+}
+.header-actions > :first-child {
+  flex-shrink: 0 !important;
+}
+
+/* iPad Pro portrait and small landscape iPads (1024–1179px): drop the
+   token counter and dividers so the
+   board name and "0 online" don't collide. */
+@media (min-width: 1024px) and (max-width: 1179px) {
+  .header-actions > .h-6,
+  .header-actions div[title^="Your total LLM tokens used"] {
+    display: none !important;
+  }
+}
+
+/* Partners menu sits on the left of the header, so open its panel
+   left-aligned under the button (shared menus open right-aligned). */
+.header-partners .absolute {
+  left: 0 !important;
+  right: auto !important;
+}

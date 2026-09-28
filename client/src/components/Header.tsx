@@ -1,6 +1,10 @@
 import { memo, useState } from "react";
 import type { User } from "firebase/auth";
 import secureflowLogo from "../assets/secureflow-logo.png";
+import rmitMark from "../assets/rmit-mark.png";
+import microsoftMark from "../assets/microsoft-mark.png";
+import rmitLogo from "../assets/rmit-logo-white.png";
+import microsoftLogo from "../assets/microsoft-logo-white.png";
 import { useBoardStore } from "../store/boardStore.js";
 import { useTokenStore } from "../store/tokenStore.js";
 import { Button } from "./ui/Button.js";
@@ -110,6 +114,38 @@ function Header({
       alt="SecureFlow"
       className="secureflow-logo"
     />
+    {/* Showcase partners: a compact button with both symbols; tapping it
+        opens the full, unaltered logos. Hidden on phones, where the
+        header has no room. */}
+    <div className="header-partners hidden sm:flex items-center ml-3 pl-3 border-l border-slate-200">
+      <Menu
+        panelClassName="w-80"
+        trigger={({ open, toggle }) => (
+          <Button onClick={toggle} active={open} title="Showcase partners: RMIT University and Microsoft">
+            <img src={rmitMark} alt="" className="h-[18px] w-auto" />
+            <img src={microsoftMark} alt="" className="h-4 w-auto" />
+            <span className="h-4 w-px bg-slate-200" aria-hidden="true" />
+            Partners
+            <span className={"text-[10px] transition-transform " + (open ? "rotate-180" : "")}>
+              ▾
+            </span>
+          </Button>
+        )}
+      >
+        <div className="p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Showcase partners
+          </div>
+          <p className="mt-1.5 text-[13px] leading-snug text-slate-700">
+            Built by RMIT University students in partnership with Microsoft
+          </p>
+          <div className="mt-4 flex items-center gap-6">
+            <img src={rmitLogo} alt="RMIT University" className="h-9 w-auto" />
+            <img src={microsoftLogo} alt="Microsoft" className="h-6 w-auto" />
+          </div>
+        </div>
+      </Menu>
+    </div>
   </div>
 
   <div className="h-6 w-px bg-slate-200 flex-shrink-0" />
@@ -159,7 +195,7 @@ function Header({
         <Button variant="primary" onClick={onNewBoard} title="Create a new board">
           + New Board
         </Button>
-        <Button onClick={onAddBox} title="Open the add-box palette">
+        <Button onClick={onAddBox} title="Open the add-box palette" className="sm:hidden">
           {"+ Add Box"}
         </Button>
 
