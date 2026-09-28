@@ -61,7 +61,7 @@ describe("board-first onboarding", () => {
     }));
     expect(manual).toContain("Add Box");
     expect(manual).toContain("Back to Get Started");
-    expect(manual).toContain("Workers");
+    expect(manual).toContain("Security review");
 
     const populated = renderToStaticMarkup(createElement(Sidebar, {
       ...sidebarProps,
@@ -69,7 +69,7 @@ describe("board-first onboarding", () => {
       emptyBoardMode: "onboarding",
     }));
     expect(populated).toContain("Add Box");
-    expect(populated).toContain("Workers");
+    expect(populated).toContain("Security review");
     expect(populated).not.toContain("Back to Get Started");
   });
 

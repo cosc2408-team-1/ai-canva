@@ -58,6 +58,23 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
 - **Single Zustand store** (`client/src/store/boardStore.ts`) owns the whole board: `nodes`/`edges`
   (React Flow graph), `boxData` (per-box content/prompts/status/output — kept separate from the
   graph objects so it serializes cleanly to Firestore), and board/collaboration metadata.
+- **Board security review export:** the Boards menu offers an editable DOCX download assembled in the
+  browser from the current board's Idea text and saved outputs of the seven security artifact
+  boxes. `client/src/lib/securityReview.ts` builds the ordered, testable review model;
+  `securityReportNarrative.ts` turns saved YAML artifacts into prose sections, and
+  `securityReportDocument.ts` provides numbered report content to the lazy-loaded
+  `securityReviewDocx.ts` renderer. The report has an executive summary, project scope, findings
+  by topic, actions and brief limitations, with page numbers. There is no PDF export or
+  Assessment approach section. The report does not append raw YAML or turn
+  each box into a bullet list. No AI call or server upload occurs
+  during export. Unrun boxes and invalid or unchecked outputs are labelled rather than presented
+  as verified findings.
+- **Focused Add Box palette:** `Sidebar.tsx` offers 11 tools: Idea, Documents, the seven security
+  workers, Note and Checklist. General coding/design, SDLC, image, companion and custom-box
+  creation entries are no longer advertised. Old boards retain their original box types and
+  contents; do not remove the runtime registrations as part of palette cleanup. The role filter
+  is no longer used. Every palette row uses its original box icon, without numbered badges;
+  sidebar workflow help has been removed.
 - `addBox(type)` and `addCustomBox(def)` use `lib/boxPlacement.ts` for deterministic row-major
   default placement with `DEFAULT_BOX_GAP = 32` (measured/node/style dimensions are resolved
   independently before BoxType defaults; Area and pending auto-placed Chatbot nodes do not block).
@@ -135,13 +152,16 @@ plus role-gated Admin/Facilitator buttons.
 retaining `+ Add Box` and the Boards menu. Empty boards show a Security Assessment-first
 onboarding view in `BoardEmptyState.tsx` and the contextual Sidebar; choosing Add Box or Build
 manually switches to the normal palette. `NewBoardModal.tsx` selects Security Assessment by
-default, while Blank Board remains available. A separate **Jennie's Security Review** template
-in `lib/boardTemplates.ts` seeds a fictional university project description into both `content`
-and `output` of an Idea box, then wires the seven security workers from both teams. Template
+default, while Blank Board remains available. A separate **Jennie's Security Review Sample**
+template in `lib/boardTemplates.ts` seeds a fictional university project description into both
+`content` and `output` of an Idea box, then wires the seven security workers from both teams.
+`lib/jennieSample.ts` preloads a hand-authored, schema-valid fictional output into each worker;
+these carry `sampleOutput` metadata and are visibly labelled as samples until a successful live
+run replaces them. Do not describe these fixtures as VAL-generated or verified against a live app. Template
 nodes carry stable `templateId`/`templateKey` metadata; `findJennieRunPlan` offers a canvas-level
 **Run Jennie's review** button only while the original workflow is intact. That button runs the
 workers in order and stops on a failed or invalid result; the Idea box itself has no Run button.
-It does not generate anything on board creation. App keeps this presentation mode locally, never
+It does not call AI on board creation. App keeps this presentation mode locally, never
 in board persistence; populated boards continue to use the normal canvas and palette. The header's
 `+ Add Box` action is open-only: repeated clicks leave the palette open, while its explicit close
 control closes it. Opening Add Box clears the transient trace selection, resets the local Inspector

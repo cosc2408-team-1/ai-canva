@@ -1,10 +1,11 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { User } from "firebase/auth";
 import { useBoardStore } from "../store/boardStore.js";
 import { useTokenStore } from "../store/tokenStore.js";
 import { Button } from "./ui/Button.js";
 import { Menu, MenuDivider, MenuItem } from "./ui/Menu.js";
 import PresenceRoster from "./PresenceRoster.js";
+import { buildSecurityReview } from "../lib/securityReview.js";
 
 /**
  * Top app bar — the app's primary chrome.
@@ -68,6 +69,29 @@ function Header({
   const saveStatus = useBoardStore((s) => s.saveStatus);
   const boardList = useBoardStore((s) => s.boardList);
   const refreshBoardList = useBoardStore((s) => s.refreshBoardList);
+  const [exportingReview, setExportingReview] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  const exportReview = async (close: () => void) => {
+    if (exportingReview) return;
+    setExportError("");
+    const { boardTitle, nodes, boxData } = useBoardStore.getState();
+    const review = buildSecurityReview(boardTitle, nodes, boxData);
+    if (!review.stages.length) {
+      setExportError("Run at least one security box before exporting a review.");
+      return;
+    }
+    setExportingReview(true);
+    try {
+      const { downloadSecurityReviewDocx } = await import("../lib/securityReviewDocx.js");
+      await downloadSecurityReviewDocx(review);
+      close();
+    } catch {
+      setExportError("The review could not be exported. Please try again.");
+    } finally {
+      setExportingReview(false);
+    }
+  };
 
   const totalTokens = useTokenStore((s) => s.totalTokens);
   const fmtTokens = (n: number) => n.toLocaleString("en-US");
@@ -188,6 +212,15 @@ function Header({
               </div>
               {currentBoardId && (
                 <>
+                  <MenuDivider />
+                  <MenuItem
+                    icon="↓"
+                    label={exportingReview ? "Preparing Word document…" : "Export report as Word (.docx)"}
+                    description="Editable copy of the report"
+                    disabled={exportingReview}
+                    onClick={() => void exportReview(close)}
+                  />
+                  {exportError && <p role="alert" className="px-3.5 pb-2 text-[11px] text-red-600">{exportError}</p>}
                   <MenuDivider />
                   <MenuItem
                     icon="🧹"

@@ -177,7 +177,7 @@ export default function NewBoardModal({
               {templateId === "security-assessment"
                 ? "Create Security Assessment"
                 : templateId === "jennie-showcase"
-                  ? "Create Jennie Demo"
+                  ? "Create Sample Board"
                   : "Create Blank Board"}
             </button>
           </div>

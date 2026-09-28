@@ -628,6 +628,8 @@ export interface BoxData {
   systemPrompt: string;
   output: string;
   status: BoxStatus;
+  /** True only while this box shows a preloaded fictional template example. */
+  sampleOutput?: boolean;
   /** Application-level format and traceability checks for security YAML. */
   securityArtifactValidation?: SecurityArtifactValidation;
   /** Security boxes: answers to the box's clarification questions, fed into its next run. */

@@ -1119,6 +1119,7 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
                 output={boxData.output}
                 validation={boxData.securityArtifactValidation}
                 isError={hasError}
+                sampleOutput={boxData.sampleOutput}
                 clarification={{
                   entries: boxData.securityClarifications || [],
                   override: boxData.securityClarificationOverride,
