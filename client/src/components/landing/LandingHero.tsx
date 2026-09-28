@@ -1,14 +1,18 @@
+import { BOX_TYPES } from "../../types.js";
+
 interface LandingHeroProps {
   onSignIn: () => void;
   signingIn: boolean;
 }
 
+// Colours come from the real box types, so this preview always matches
+// the boxes (and minimap) on the board.
 const PIPELINE = [
-  { icon: "💡", label: "Project", color: "#fbbf24" },
-  { icon: "🗂️", label: "Assets", color: "#0891b2" },
-  { icon: "📋", label: "Requirements", color: "#f59e0b" },
-  { icon: "🛡️", label: "NIST gaps", color: "#0f766e" },
-  { icon: "🧭", label: "Next steps", color: "#7c3aed" },
+  { icon: "💡", label: "Project", color: BOX_TYPES.idea.color },
+  { icon: "🗂️", label: "Assets", color: BOX_TYPES.assetmapper.color },
+  { icon: "📋", label: "Requirements", color: BOX_TYPES.reqelicitor.color },
+  { icon: "🛡️", label: "NIST gaps", color: BOX_TYPES.nistgap.color },
+  { icon: "🧭", label: "Next steps", color: BOX_TYPES.securityadvisor.color },
 ];
 
 export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
@@ -84,7 +88,9 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
                     </span>
                   </div>
                   {i < PIPELINE.length - 1 && (
-                    <span className="pipeline-arrow text-slate-400">→</span>
+                    <span className="pipeline-arrow text-[22px] font-semibold leading-none text-[#c3d4e4]" aria-hidden="true">
+                      →
+                    </span>
                   )}
                 </div>
               ))}

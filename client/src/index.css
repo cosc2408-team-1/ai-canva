@@ -461,8 +461,12 @@ html {
   animation: arrowFlow 1.6s ease-in-out infinite;
 }
 @keyframes arrowFlow {
-  0%, 100% { opacity: 0.35; transform: translateX(0); }
+  /* Never fades below 70%, so the flow direction stays readable. */
+  0%, 100% { opacity: 0.7; transform: translateX(0); }
   50% { opacity: 1; transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pipeline-arrow { animation: none; opacity: 1; }
 }
 
 /* Area drawing tool: crosshair over the canvas while active */
