@@ -607,6 +607,8 @@ html {
 
 :root {
   --sf-bg: #030b18;
+  /* Board canvas: a step lighter than the page so boxes don't float in a void */
+  --sf-canvas: #0a1626;
   --sf-surface: #071221;
   --sf-surface-2: #0a1729;
   --sf-card: #09172a;
@@ -762,22 +764,22 @@ body {
 ========================================================= */
 
 .react-flow {
-  background: var(--sf-bg) !important;
+  background: var(--sf-canvas) !important;
 }
 
 
 /* React Flow background */
 
 .react-flow__background {
-  background-color: var(--sf-bg) !important;
+  background-color: var(--sf-canvas) !important;
 }
 
 
-/* Make the grid subtle */
+/* Subtle grid, but still visible on the lighter canvas */
 
 .react-flow__background pattern circle,
 .react-flow__background pattern path {
-  opacity: 0.28 !important;
+  opacity: 0.3 !important;
 }
 
 
@@ -894,7 +896,7 @@ body {
 /* Node header */
 
 .box-node > div:first-child {
-  background: #0b1a2d !important;
+  background: #0f2036 !important;
   border-bottom: 1px solid var(--sf-border) !important;
 }
 
@@ -918,7 +920,7 @@ body {
 /* Node body */
 
 .box-node .box-body {
-  background: var(--sf-card) !important;
+  background: #10233c !important;
   color: var(--sf-text-secondary) !important;
 }
 
@@ -955,7 +957,7 @@ body {
 /* Node footer */
 
 .box-node .box-footer {
-  background: #071221 !important;
+  background: #0c1b2f !important;
   border-top: 1px solid var(--sf-border) !important;
 }
 
@@ -1335,7 +1337,7 @@ select {
    Do NOT change borders, text, buttons, size or content.
 */
 .react-flow__node .box-node {
-  background-color: #081a2e !important;
+  background-color: #10233c !important;
 }
 
 /* Idea box — remove inner box but keep all text accessible */
@@ -2395,13 +2397,15 @@ html:has(.react-flow) body {
 
 /* ---------- Run buttons: one brand colour ----------
    Each box type used its own colour for Run (orange, teal, purple...).
-   The box colour stays on the icon and minimap; actions are blue. */
+   The box colour stays on the icon and minimap; actions are blue.
+   A deeper blue so seven of them on a board don't glare; they light up
+   to the brand blue on hover. */
 .box-node .box-footer > button:first-child {
-  background-color: var(--sf-blue-button) !important;
-  color: #fff !important;
+  background-color: #0b4f86 !important;
+  color: #e6f2ff !important;
 }
 .box-node .box-footer > button:first-child:hover:not(:disabled) {
-  background-color: var(--sf-blue-button-hover) !important;
+  background-color: var(--sf-blue-button) !important;
 }
 
 /* ---------- Security status banner ----------
