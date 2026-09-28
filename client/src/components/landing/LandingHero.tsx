@@ -3,6 +3,8 @@ import { BOX_TYPES } from "../../types.js";
 interface LandingHeroProps {
   onSignIn: () => void;
   signingIn: boolean;
+  /** Opens the workshop join window (guests with a facilitator's code). */
+  onJoinWorkshop?: () => void;
 }
 
 // Colours come from the real box types, so this preview always matches
@@ -15,7 +17,7 @@ const PIPELINE = [
   { icon: "🧭", label: "Next steps", color: BOX_TYPES.securityadvisor.color },
 ];
 
-export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
+export default function LandingHero({ onSignIn, signingIn, onJoinWorkshop }: LandingHeroProps) {
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="mx-auto max-w-6xl px-5 pt-16 pb-20 text-center md:pt-24">
@@ -53,6 +55,18 @@ export default function LandingHero({ onSignIn, signingIn }: LandingHeroProps) {
             See how it works
           </a>
         </div>
+        {onJoinWorkshop && (
+          <p className="mt-[18px] text-center text-sm text-[#a9bfd3]">
+            Have a workshop code?{" "}
+            <button
+              type="button"
+              onClick={onJoinWorkshop}
+              className="font-semibold text-[#7cc4ff] underline underline-offset-[3px] transition hover:text-white"
+            >
+              Join your workshop →
+            </button>
+          </p>
+        )}
 
         {/* Product mockup */}
         <div className="fade-in fade-in-delay-4 relative mx-auto mt-14 max-w-3xl">

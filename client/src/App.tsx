@@ -332,16 +332,9 @@ export default function App() {
   if (!user) {
     return (
       <div className="relative">
-        <LandingPage />
-        {/* Workshop guest join — no account needed, just a seat code. */}
-       {!showJoinModal && (
-  <button
-    onClick={() => setShowJoinModal(true)}
-    className="fixed top-20 right-6 z-40 rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-indigo-500 transition"
-  >
-    🎟️ Have a workshop code?
-  </button>
-)}
+        <LandingPage onJoinWorkshop={() => setShowJoinModal(true)} />
+        {/* Workshop guest join — no account needed, just a seat code.
+            Opened from the "Join your workshop" link in the hero. */}
         {showJoinModal && (
           <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-slate-200 p-6">

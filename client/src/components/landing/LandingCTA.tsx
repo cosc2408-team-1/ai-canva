@@ -19,7 +19,7 @@ export default function LandingCTA({ onSignIn, signingIn }: LandingCTAProps) {
           <button
             onClick={onSignIn}
             disabled={signingIn}
-            className="relative mt-8 rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-slate-900 shadow-xl transition hover:scale-105 disabled:opacity-60"
+            className="relative mt-8 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 px-8 py-3.5 text-base font-semibold text-white shadow-xl shadow-indigo-500/30 transition hover:scale-105 disabled:opacity-60"
           >
             {signingIn ? "Connecting…" : "Get started free"}
           </button>
