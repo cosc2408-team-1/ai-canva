@@ -1868,3 +1868,214 @@ select {
   z-index: 30 !important;
 }
 }
+/* =========================================================
+   SECUREFLOW CONTRAST FIXES
+   The theme above recolours light-theme TEXT classes to pale
+   colours, but several light BACKGROUNDS were never converted,
+   leaving pale text on white/pastel surfaces. These rules give
+   those surfaces dark equivalents and re-pair the text, so every
+   text/background pair meets WCAG AA (4.5:1 for normal text).
+   Keep this block last so it wins over the rules above.
+========================================================= */
+
+:root {
+  /* Primary blue dark enough for white text (5.2:1). */
+  --sf-blue-button: #0070c0;
+  --sf-blue-button-hover: #0080db;
+  /* Light accent for links/text on dark surfaces (7:1+). */
+  --sf-link: #5cc0ff;
+}
+
+/* ---------- White surfaces: dialogs, menus, badges, rows ---------- */
+
+.bg-white,
+.bg-white\/80,
+.bg-white\/70,
+.bg-white\/60 {
+  background-color: var(--sf-surface-2) !important;
+}
+
+.border-slate-300 {
+  border-color: var(--sf-border-light) !important;
+}
+
+/* Dark Tailwind text now sitting on dark surfaces */
+.text-slate-900,
+.text-slate-800,
+.text-gray-900,
+.text-gray-800 {
+  color: var(--sf-text) !important;
+}
+
+.text-slate-700 {
+  color: var(--sf-text-secondary) !important;
+}
+
+.text-slate-600 {
+  color: #b4c6d6 !important;
+}
+
+.text-slate-500 {
+  color: #9db2c6 !important;
+}
+
+.text-slate-400 {
+  color: #8ea5bb !important;
+}
+
+/* ---------- Status colours (banners, errors, clarification) ---------- */
+
+.bg-emerald-50, .bg-green-50 {
+  background-color: rgba(54, 211, 154, 0.12) !important;
+  border-color: rgba(54, 211, 154, 0.4) !important;
+}
+.bg-rose-50, .bg-red-50 {
+  background-color: rgba(255, 102, 117, 0.12) !important;
+  border-color: rgba(255, 102, 117, 0.4) !important;
+}
+.bg-amber-50, .bg-yellow-50 {
+  background-color: rgba(251, 191, 36, 0.12) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+}
+.bg-violet-50, .bg-violet-50\/60, .bg-purple-50 {
+  background-color: rgba(167, 139, 250, 0.14) !important;
+  border-color: rgba(167, 139, 250, 0.4) !important;
+}
+.bg-indigo-50, .bg-blue-50, .bg-sky-50 {
+  background-color: rgba(0, 153, 255, 0.12) !important;
+  border-color: rgba(0, 153, 255, 0.4) !important;
+}
+
+/* Text on those tints (and anywhere else these classes appear).
+   The "*" selectors beat ".box-node .font-semibold", which
+   otherwise forces pale text onto the banner headings. */
+.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-green-600, .text-green-700,
+.bg-emerald-50, .bg-emerald-50 *, .box-node .bg-emerald-50 .font-semibold {
+  color: #6ee7b7 !important;
+}
+.text-rose-600, .text-rose-700, .text-rose-800, .text-red-500, .text-red-600, .text-red-700,
+.bg-rose-50, .bg-rose-50 *, .bg-red-50, .bg-red-50 *, .box-node .bg-rose-50 .font-semibold {
+  color: #fda4af !important;
+}
+.text-amber-600, .text-amber-700, .text-amber-800,
+.bg-amber-50, .bg-amber-50 *, .box-node .bg-amber-50 .font-semibold {
+  color: #fcd34d !important;
+}
+.text-violet-700, .text-violet-800, .text-violet-900, .text-purple-700,
+.bg-violet-50, .bg-violet-50 *, .box-node .bg-violet-50 .font-semibold {
+  color: #c4b5fd !important;
+}
+.bg-violet-50\/60 .text-slate-500,
+.bg-violet-50\/60 .text-slate-600,
+.bg-violet-50\/60 .text-slate-800,
+.bg-violet-50\/60 .text-slate-900 {
+  color: var(--sf-text-secondary) !important;
+}
+.text-indigo-700, .text-indigo-800, .text-blue-700 {
+  color: #7cc4ff !important;
+}
+
+/* Inputs inside tinted panels stay dark with light text */
+.bg-violet-50\/60 textarea,
+.bg-violet-50\/60 input {
+  background-color: #061322 !important;
+  color: var(--sf-text) !important;
+}
+
+/* ---------- Primary buttons: white text needs a darker blue ---------- */
+
+.bg-indigo-600,
+.app-bar button.bg-indigo-600,
+.bg-blue-500 {
+  background-color: var(--sf-blue-button) !important;
+  border-color: var(--sf-blue-button) !important;
+}
+.bg-indigo-600:hover,
+.app-bar button.bg-indigo-600:hover,
+.hover\:bg-indigo-700:hover {
+  background-color: var(--sf-blue-button-hover) !important;
+}
+.bg-indigo-500 {
+  background-color: var(--sf-blue-button) !important;
+}
+
+/* Secondary buttons that used white backgrounds */
+button.bg-white,
+button.bg-slate-50 {
+  color: var(--sf-text-secondary) !important;
+  border-color: var(--sf-border-light) !important;
+}
+
+/* ---------- Links in AI output ---------- */
+
+.markdown-output a,
+.box-node a {
+  color: var(--sf-link) !important;
+}
+
+/* ---------- Label pills keep their chosen pastel; text stays dark ---------- */
+
+.label-pill {
+  color: #0b1729 !important;
+}
+
+/* ---------- Radios and checkboxes ---------- */
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: var(--sf-blue);
+}
+
+/* ---------- Remaining light tints ---------- */
+
+.bg-indigo-50\/50 {
+  background-color: rgba(0, 153, 255, 0.1) !important;
+}
+.bg-slate-50\/70,
+.bg-slate-50\/50 {
+  background-color: #061322 !important;
+}
+.bg-teal-50 {
+  background-color: rgba(45, 212, 191, 0.14) !important;
+}
+.text-teal-700,
+.text-teal-800 {
+  color: #5eead4 !important;
+}
+
+/* Muted text inside boxes (beats ".box-node .text-slate-400" above) */
+.box-node .text-slate-400,
+.box-node .text-slate-500 {
+  color: #8ea5bb !important;
+}
+
+/* Placeholders on dark inputs */
+input::placeholder,
+textarea::placeholder {
+  color: #8ea5bb !important;
+}
+.box-node input::placeholder,
+.box-node textarea::placeholder {
+  color: #8ea5bb !important;
+}
+
+/* Text inputs with no background class (dialogs) fall back to the
+   browser's grey under color-scheme: dark; give them the theme surface.
+   Textareas are deliberately excluded so sticky notes stay yellow. */
+input[type="text"]:not([class*="bg-"]),
+input[type="email"]:not([class*="bg-"]),
+input[type="url"]:not([class*="bg-"]),
+input:not([type]):not([class*="bg-"]) {
+  background-color: #061322 !important;
+  color: var(--sf-text) !important;
+}
+
+/* ---------- Minimap (desktop) ---------- */
+
+.react-flow__minimap {
+  background-color: var(--sf-surface) !important;
+  border: 1px solid var(--sf-border) !important;
+}
+.react-flow__minimap-mask {
+  fill: rgba(3, 11, 24, 0.65) !important;
+}
