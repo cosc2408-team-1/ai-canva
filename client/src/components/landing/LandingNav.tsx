@@ -1,3 +1,5 @@
+import secureflowLogo from "../../assets/secureflow-logo.png";
+
 interface LandingNavProps {
   onSignIn: () => void;
   signingIn: boolean;
@@ -10,15 +12,24 @@ const LINKS = [
   { href: "#for-teams", label: "For teams" },
 ];
 
-export default function LandingNav({ onSignIn, signingIn }: LandingNavProps) {
+export default function LandingNav({
+  onSignIn,
+  signingIn,
+}: LandingNavProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
-        <a href="#top" className="flex items-center gap-2.5">
-          <span className="text-2xl">🎨</span>
-          <span className="text-lg font-bold tracking-tight text-white">AI Canva</span>
+        
+        {/* SecureFlow Logo */}
+        <a href="#top" className="flex items-center">
+          <img
+            src={secureflowLogo}
+            alt="SecureFlow"
+            className="h-16 w-auto object-contain"
+          />
         </a>
 
+        {/* Navigation */}
         <nav className="hidden items-center gap-7 md:flex">
           {LINKS.map((l) => (
             <a
@@ -31,6 +42,7 @@ export default function LandingNav({ onSignIn, signingIn }: LandingNavProps) {
           ))}
         </nav>
 
+        {/* Actions */}
         <div className="flex items-center gap-2">
           <button
             onClick={onSignIn}
@@ -38,6 +50,7 @@ export default function LandingNav({ onSignIn, signingIn }: LandingNavProps) {
           >
             Sign in
           </button>
+
           <button
             onClick={onSignIn}
             disabled={signingIn}
