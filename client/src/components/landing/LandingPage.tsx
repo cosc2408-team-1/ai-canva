@@ -9,7 +9,7 @@ import LandingRoles from "./LandingRoles.js";
 import LandingCTA from "./LandingCTA.js";
 import LandingFooter from "./LandingFooter.js";
 
-export default function LandingPage() {
+export default function LandingPage({ onJoinWorkshop }: { onJoinWorkshop?: () => void } = {}) {
   const [signingIn, setSigningIn] = useState(false);
 
   const handleSignIn = async () => {
@@ -26,7 +26,7 @@ export default function LandingPage() {
     <div className="landing-bg min-h-full w-full overflow-y-auto">
       <LandingNav onSignIn={handleSignIn} signingIn={signingIn} />
       <main>
-        <LandingHero onSignIn={handleSignIn} signingIn={signingIn} />
+        <LandingHero onSignIn={handleSignIn} signingIn={signingIn} onJoinWorkshop={onJoinWorkshop} />
         <LandingHowItWorks />
         <LandingFeatures />
         <LandingBoxes />
