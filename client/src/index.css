@@ -2347,3 +2347,149 @@ html:has(.react-flow) body {
   left: 0 !important;
   right: auto !important;
 }
+
+/* =========================================================
+   CANVAS TIDY-UP
+   One accent colour, calmer status panels, readable inputs,
+   and canvas buttons that don't collide.
+========================================================= */
+
+/* ---------- Canvas buttons (top-left) ----------
+   Breathing room from the header and edge, one row, same height.
+   "Run Jennie's review" is the main demo action, so it leads in blue. */
+.react-flow__panel.top.left {
+  margin: 12px !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  max-width: calc(100% - 24px);
+}
+.react-flow__panel.top.left > div { gap: 8px !important; }
+.react-flow__panel.top.left > div:nth-child(2) { order: -1; }
+.react-flow__panel.top.left button {
+  min-height: 34px;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+}
+.react-flow__panel.top.left button[title^="Run Jennie"] {
+  background: var(--sf-blue-button) !important;
+  border-color: var(--sf-blue-button) !important;
+  color: #fff !important;
+}
+.react-flow__panel.top.left button[title^="Run Jennie"]:hover:not(:disabled) {
+  background: var(--sf-blue-button-hover) !important;
+}
+
+/* ---------- Guide button ----------
+   It shares the bottom-left corner with the zoom controls. The earlier
+   fix only applied to touch screens, so on a laptop with a mouse the
+   Guide covered the fit-view button. Phones keep their own placement. */
+@media (min-width: 641px) {
+  .help-anchor { left: 72px !important; }
+}
+
+/* ---------- Run buttons: one brand colour ----------
+   Each box type used its own colour for Run (orange, teal, purple...).
+   The box colour stays on the icon and minimap; actions are blue. */
+.box-node .box-footer > button:first-child {
+  background-color: var(--sf-blue-button) !important;
+  color: #fff !important;
+}
+.box-node .box-footer > button:first-child:hover:not(:disabled) {
+  background-color: var(--sf-blue-button-hover) !important;
+}
+
+/* ---------- Security status banner ----------
+   Keep the label on one line; the description wraps underneath. */
+section[aria-label="Security artifact review status"] > div:first-child { flex-wrap: wrap; }
+section[aria-label="Security artifact review status"] > div:first-child > span:nth-child(2) { white-space: nowrap; }
+
+/* "Needs clarification" = needs attention, so amber rather than purple. */
+section[aria-label="Security artifact review status"].bg-violet-50 {
+  background: rgba(251, 191, 36, 0.08) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+section[aria-label="Security artifact review status"].bg-violet-50,
+section[aria-label="Security artifact review status"].bg-violet-50 * {
+  color: #fcd34d !important;
+}
+
+/* ---------- Clarification questions panel ----------
+   Neutral navy panel with an amber edge instead of a purple slab. */
+[data-testid="security-clarification-panel"] {
+  background: #0c1d33 !important;
+  border: 1px solid var(--sf-border) !important;
+  border-left: 3px solid #f5b83d !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+}
+[data-testid="security-clarification-panel"] .text-violet-900,
+[data-testid="security-clarification-panel"] label {
+  color: var(--sf-text) !important;
+}
+[data-testid="security-clarification-panel"] .text-violet-800 {
+  color: var(--sf-text-secondary) !important;
+}
+
+/* Answer boxes: one step lighter than the panel (not darker), thin
+   border, blue focus ring. */
+[data-testid="security-clarification-panel"] textarea {
+  background: #132a47 !important;
+  border: 1px solid #2a4f78 !important;
+  border-radius: 8px !important;
+  color: var(--sf-text) !important;
+  padding: 8px 10px !important;
+}
+[data-testid="security-clarification-panel"] textarea::placeholder {
+  color: var(--sf-muted) !important;
+}
+[data-testid="security-clarification-panel"] textarea:focus {
+  border-color: #0099ff !important;
+  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.25) !important;
+}
+
+/* "I don't know" looks (and taps) like a button. */
+[data-testid="security-clarification-panel"] textarea + button {
+  min-height: 36px;
+  padding: 0 12px !important;
+  border: 1px solid var(--sf-border-light) !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: var(--sf-text-secondary) !important;
+  white-space: nowrap;
+}
+[data-testid="security-clarification-panel"] textarea + button:hover {
+  background: #10243a !important;
+  color: #fff !important;
+}
+
+/* ---------- Security box identity colour ----------
+   Blue is for actions and green/amber/red for status, so each security
+   box shows its own colour (the same one as its minimap square) as a
+   strip across the top and a tint behind its icon. */
+.react-flow__node-assetmapper .box-header,
+.react-flow__node-reqelicitor .box-header,
+.react-flow__node-nistgap .box-header,
+.react-flow__node-securityadvisor .box-header,
+.react-flow__node-threatModeler .box-header,
+.react-flow__node-riskScorer .box-header,
+.react-flow__node-irPlanner .box-header {
+  box-shadow: inset 0 4px 0 var(--box-color) !important;
+}
+.react-flow__node-assetmapper .box-icon,
+.react-flow__node-reqelicitor .box-icon,
+.react-flow__node-nistgap .box-icon,
+.react-flow__node-securityadvisor .box-icon,
+.react-flow__node-threatModeler .box-icon,
+.react-flow__node-riskScorer .box-icon,
+.react-flow__node-irPlanner .box-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--box-color) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--box-color) 40%, transparent);
+}

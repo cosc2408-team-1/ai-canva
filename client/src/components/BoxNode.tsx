@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect, lazy, Suspense } from "react";
+import { memo, useState, useRef, useEffect, lazy, Suspense, type CSSProperties } from "react";
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import ReactMarkdown from "react-markdown";
 import { useBoardStore } from "../store/boardStore.js";
@@ -571,7 +571,9 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
       />
       <div
         className={"box-node" + (selected ? " selected" : "")}
-        style={{ borderColor: meta.color }}
+        // --box-color lets the stylesheet show the box's own colour (the
+        // same one the minimap uses) without duplicating it in CSS.
+        style={{ borderColor: meta.color, "--box-color": meta.color } as CSSProperties}
       >
       {/* Target handle (input) — AI boxes only (not input/utility boxes) */}
       {!isInputBox && !isUtility && (
@@ -584,11 +586,11 @@ function BoxNode({ id, data, selected, type }: NodeProps) {
 
       {/* Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 rounded-t-[10px]"
+        className="box-header flex items-center justify-between px-3 py-2 rounded-t-[10px]"
         style={{ backgroundColor: meta.color + "20" }}
       >
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="text-base flex-shrink-0">{meta.icon}</span>
+          <span className="box-icon text-base flex-shrink-0">{meta.icon}</span>
           {isEditingName ? (
             <input
               autoFocus
