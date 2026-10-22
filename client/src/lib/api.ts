@@ -1,6 +1,8 @@
 import { resolveGenerateUrl } from "./apiTarget";
 
 const API_BASE = "/api";
+export const GENERATION_TIMEOUT_MS = 150_000;
+export const GENERATION_TIMEOUT_ERROR = "AI generation timed out or was interrupted. Previous output is preserved. Retry when ready.";
 
 export interface GenerateRequest {
   systemPrompt: string;
@@ -26,18 +28,31 @@ export interface GenerateResponse {
 export async function generate(
   req: GenerateRequest
 ): Promise<GenerateResponse> {
-  const res = await fetch(resolveGenerateUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(GENERATION_TIMEOUT_ERROR));
+      controller.abort();
+    }, GENERATION_TIMEOUT_MS);
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(err.error || `HTTP ${res.status}`);
+  try {
+    return await Promise.race([timeout, (async () => {
+      const res = await fetch(resolveGenerateUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return res.json() as Promise<GenerateResponse>;
+    })()]);
+  } finally {
+    clearTimeout(timer);
   }
-
-  return res.json();
 }
 
 export interface GenerateImageRequest {

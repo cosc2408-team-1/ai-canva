@@ -244,6 +244,39 @@ describe("NextStepGuidance and execution gate", () => {
     }
   });
 
+  it.each([
+    "GAP-001 through GAP-009",
+    "REQ-001 through REQ-013",
+    "EVID-001 through EVID-023",
+    "REQ-001: Human review remains untested.",
+    "EVID-001, EVID-023",
+    "GAP-001...GAP-009",
+  ])("rejects a non-atomic Advisor reference: %s", (reference) => {
+    const output = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: Human review is needed.\nhuman_review: [Review with the project team.]\nrelevant_upstream_references:\n  - ${JSON.stringify(reference)}`;
+    const result = validateSecurityArtifact({
+      boxType: "securityadvisor",
+      output,
+      upstreamArtifacts: { nistgap: { boxType: "nistgap", output: nistPackage() } },
+    });
+    expect(result.status).toBe("invalid");
+    expect(result.issues).toContainEqual(expect.objectContaining({
+      code: "broken_reference",
+      path: "relevant_upstream_references",
+    }));
+    expect(result.parsed?.relevant_upstream_references).toEqual([reference]);
+  });
+
+  it("accepts separate Advisor IDs while keeping explanatory prose outside references", () => {
+    const output = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: recommendation_ready\nguidance_id: NEXT-001\nrecommended_next_box: none\nrecommended_next_step: Review evidence\nreason: "REQ-001: human review remains untested; GAP-001 needs validation."\nhuman_review: [Review with the project team.]\nrelevant_upstream_references:\n  - GAP-001\n  - REQ-001\n  - EVID-001`;
+    const result = validateSecurityArtifact({
+      boxType: "securityadvisor",
+      output,
+      upstreamArtifacts: { nistgap: { boxType: "nistgap", output: nistPackage() } },
+    });
+    expect(result.status).toBe("valid");
+    expect(result.parsed?.relevant_upstream_references).toEqual(["GAP-001", "REQ-001", "EVID-001"]);
+  });
+
   it("accepts string, structured, and fallback interview questions but rejects unusable questions", () => {
     const base = `artifact_type: NextStepGuidance\nschema_version: "1.0"\nstatus: interview_required`;
     expect(validateSecurityArtifact({ boxType: "securityadvisor", output: `${base}\nfocused_questions: [What authentication method is used?]` }).status).toBe("clarification_required");

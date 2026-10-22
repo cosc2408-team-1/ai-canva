@@ -54,10 +54,10 @@ export function buildGenerateUrl(
 }
 
 /**
- * Runtime localStorage wins over the build-time Vite value.
+ * A build-time demo API base is authoritative for deployed demo builds.
  *
- * This is useful for Cloudflare Quick Tunnels because the hostname
- * can change whenever cloudflared is restarted.
+ * Runtime localStorage remains a fallback when no valid build-time target
+ * was supplied, for local/manual testing without end-user configuration.
  */
 export function resolveGenerateUrl(): string {
   let runtimeOverride = "";
@@ -79,6 +79,6 @@ export function resolveGenerateUrl(): string {
   );
 
   return buildGenerateUrl(
-    runtimeOverride || buildOverride
+    buildOverride || runtimeOverride
   );
 }

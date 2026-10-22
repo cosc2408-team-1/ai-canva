@@ -60,6 +60,11 @@ describe("NIST CSF Gap Checker box", () => {
     expect(box.defaultPrompt).toContain("clarification_required");
     expect(box.defaultSystemPrompt).toContain("not a compliance determination");
     expect(box.defaultSystemPrompt).toContain("Output valid YAML only");
+    for (const prompt of [box.defaultPrompt, box.defaultSystemPrompt]) {
+      expect(prompt).toContain('status must be exactly "complete" or "clarification_required"');
+      expect(prompt).toContain('Never use "preliminary"');
+      expect(prompt).toContain("does not mean controls are implemented or the system is compliant");
+    }
     for (const phrase of ["short structured function_coverage", "one concise sentence for each finding rationale", "Avoid repeating full upstream requirement text", "unchanged requirements_package"]) {
       expect(`${box.defaultPrompt}\n${box.defaultSystemPrompt}`).toContain(phrase);
     }
@@ -170,6 +175,19 @@ describe("Security Advisor box", () => {
       expect(defaultSystemPrompt).toContain(invalidId);
     }
     expect(defaultSystemPrompt).toMatch(/never emit human_review as a scalar string/i);
+  });
+
+  it("requires one bare upstream identifier per reference item in both prompts", () => {
+    const { defaultPrompt, defaultSystemPrompt } = BOX_TYPES.securityadvisor;
+    for (const prompt of [defaultPrompt, defaultSystemPrompt]) {
+      expect(prompt).toMatch(/relevant_upstream_references must be a YAML list of bare upstream ID strings/i);
+      expect(prompt).toMatch(/exactly one supplied AST-\*, EVID-\*, REQ-\* or GAP-\* identifier/i);
+      expect(prompt).toMatch(/never use ID ranges/i);
+      expect(prompt).toContain('"through"');
+      expect(prompt).toMatch(/ellipses, comma-separated IDs, labels or descriptions/i);
+      expect(prompt).toMatch(/put explanations in reason or human_review/i);
+      expect(prompt).toContain('relevant_upstream_references:\n  - "GAP-001"\n  - "REQ-001"');
+    }
   });
 });
 

@@ -11,7 +11,7 @@ import {
   type Connection,
 } from "@xyflow/react";
 import type { BoxData, BoxType, BoxStatus, NamedInput, AgentStep, ChatMessage, DeployInfo, FileChange, EditMeta, ArtifactVersion, SdlcEvent, SdlcStage, RepoMeta, ChecklistItem, SecurityArtifactBoxType, SecurityClarification } from "../types.js";
-import { BOX_TYPES, AGENT_CONTROLLER_SYSTEM_PROMPT, isSecurityArtifactBoxType } from "../types.js";
+import { BOX_TYPES, AGENT_CONTROLLER_SYSTEM_PROMPT, NIST_STATUS_OUTPUT_RULE, SECURITY_ADVISOR_REFERENCE_RULE, isSecurityArtifactBoxType } from "../types.js";
 import { buildCodeMapPrompt, resolveRepoRef } from "../lib/repo.js";
 import {
   buildEditPrompt,
@@ -44,7 +44,7 @@ import {
   upstreamBlockReason,
   upstreamStageContent,
 } from "../lib/sdlc.js";
-import { generate, generateImage, generateStitchUI, fetchRepoDigest, publishSite } from "../lib/api.js";
+import { generate, generateImage, generateStitchUI, fetchRepoDigest, publishSite, GENERATION_TIMEOUT_MS, GENERATION_TIMEOUT_ERROR } from "../lib/api.js";
 import { fillPromptTemplate, getBoxOutput } from "../lib/prompts.js";
 import { securityInputError } from "../lib/securityInputValidation.js";
 import {
@@ -72,6 +72,7 @@ import {
 } from "../lib/agent.js";
 import { buildDocumentsOutput } from "../lib/documents.js";
 import { buildCodeChangePrompt, extractCode, isCompletePrototype } from "../lib/code.js";
+import { securityWorkerSystemPrompt, securityWorkerUserPrompt } from "../lib/securityWorkerPrompts.js";
 import {
   deployBlockedReason,
   deployFilesFor,
@@ -1517,6 +1518,14 @@ export const useBoardStore = create<BoardState>()(
           : [];
         let bypassNote = "";
         if (securityBox) {
+          const unavailable = directSecurityUpstreams.find((source) => {
+            const status = state.boxData[source.sourceId]?.status;
+            return status === "running" || status === "error";
+          });
+          if (unavailable) {
+            get().setBoxStatus(id, "error", `${unavailable.title} is still running or its latest run failed. Wait for it to finish or rerun it before continuing.`);
+            return;
+          }
           const gate = securityUpstreamGate(boxType, directSecurityUpstreams);
           bypassNote = clarificationBypassPrompt(gate.bypassed.map((source) => source.title));
           // Old boards have no validation metadata. Persist an on-demand summary
@@ -1531,12 +1540,19 @@ export const useBoardStore = create<BoardState>()(
             get().setBoxStatus(id, "error", gate.message);
             return;
           }
-          // A rerun must not display validation (or an override) belonging to an older result.
-          get().updateBoxData(id, { securityArtifactValidation: undefined, securityClarificationOverride: undefined });
+          // Validation and trusted dates belong to the saved output, not the pending request.
+          get().updateBoxData(id, { securityClarificationOverride: undefined });
         }
 
-        // Set running state
-        get().setBoxStatus(id, "running");
+        const generationRun = securityBox
+          ? { id: crypto.randomUUID(), deadlineAt: Date.now() + GENERATION_TIMEOUT_MS }
+          : undefined;
+        const isCurrentRun = () => !generationRun || (
+          get().currentBoardId === state.currentBoardId
+          && get().boxData[id]?.generationRun?.id === generationRun.id
+          && get().boxData[id]?.status === "running"
+        );
+        get().updateBoxData(id, { status: "running", error: undefined, generationRun });
 
         try {
           if (boxType === "cartoon") {
@@ -1600,7 +1616,9 @@ export const useBoardStore = create<BoardState>()(
               systemPrompt: data.systemPrompt,
               userPrompt: filledPrompt,
               boxType,
+              runId: generationRun?.id,
             });
+            if (!isCurrentRun()) return;
 
             if (boxType === "slides") {
               // Parse the LLM's JSON output into a slide deck
@@ -1660,6 +1678,7 @@ export const useBoardStore = create<BoardState>()(
               get().updateBoxData(id, {
                 output: result.content,
                 status: "done",
+                generationRun: undefined,
                 sampleOutput: false,
                 error: undefined,
                 ...(securityArtifactValidation ? { securityArtifactValidation } : {}),
@@ -1667,7 +1686,7 @@ export const useBoardStore = create<BoardState>()(
             }
           }
         } catch (err: any) {
-          get().setBoxStatus(id, "error", err.message || "Generation failed");
+          if (isCurrentRun()) get().updateBoxData(id, { status: "error", error: err.message || "Generation failed", generationRun: undefined });
         }
       },
     }),
@@ -1683,6 +1702,39 @@ export const useBoardStore = create<BoardState>()(
     }
   )
 );
+
+// A persisted lease expires at the same deadline as the request. Future leases,
+// including another collaborator's run, are left intact.
+let generationRecoveryTimer: ReturnType<typeof setTimeout> | undefined;
+let recoveringGenerations = false;
+function scheduleGenerationRecovery() {
+  if (recoveringGenerations) return;
+  clearTimeout(generationRecoveryTimer);
+  recoveringGenerations = true;
+  let nextDeadline = Infinity;
+  try {
+    const now = Date.now();
+    for (const [id, data] of Object.entries(useBoardStore.getState().boxData)) {
+      if (data.status !== "running" || !data.generationRun) continue;
+      const deadline = data.generationRun.deadlineAt;
+      if (!Number.isFinite(deadline)) continue;
+      if (deadline <= now) {
+        useBoardStore.getState().updateBoxData(id, { status: "error", error: GENERATION_TIMEOUT_ERROR, generationRun: undefined });
+      } else {
+        nextDeadline = Math.min(nextDeadline, deadline);
+      }
+    }
+  } finally {
+    recoveringGenerations = false;
+  }
+  if (Number.isFinite(nextDeadline)) {
+    generationRecoveryTimer = setTimeout(scheduleGenerationRecovery, Math.max(1, nextDeadline - Date.now()));
+  }
+}
+useBoardStore.subscribe((state, previous) => {
+  if (state.boxData !== previous.boxData || state.currentBoardId !== previous.currentBoardId) scheduleGenerationRecovery();
+});
+queueMicrotask(scheduleGenerationRecovery);
 
 // ============================================================
 // Code Map box — read a repository, then write an orientation brief.
@@ -2082,16 +2134,23 @@ function actorName(): string {
  */
 async function generateTextForBox(
   id: string,
-  opts: { systemPrompt: string; userPrompt: string; boxType: BoxType }
+  opts: { systemPrompt: string; userPrompt: string; boxType: BoxType; runId?: string }
 ) {
+  // Existing boards retain copied prompts; enforce output contracts at request time.
+  const rule = opts.boxType === "securityadvisor" ? SECURITY_ADVISOR_REFERENCE_RULE
+    : opts.boxType === "nistgap" ? NIST_STATUS_OUTPUT_RULE : "";
+  const systemPrompt = rule && !opts.systemPrompt.includes(rule)
+    ? opts.systemPrompt + rule
+    : opts.systemPrompt;
   const result = await generate({
-    systemPrompt: opts.systemPrompt,
-    userPrompt: opts.userPrompt,
+    systemPrompt: securityWorkerSystemPrompt(opts.boxType, systemPrompt),
+    userPrompt: securityWorkerUserPrompt(opts.boxType, opts.userPrompt),
   });
 
   if (result.error) throw new Error(result.error);
 
   const store = useBoardStore.getState();
+  if (opts.runId && store.boxData[id]?.generationRun?.id !== opts.runId) throw new Error("This generation is no longer active.");
   if (result.usage) {
     store.updateBoxData(id, { tokens: result.usage });
     const user = useAuthStore.getState().user;

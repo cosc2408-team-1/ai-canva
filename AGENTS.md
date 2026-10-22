@@ -58,6 +58,28 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
 - **Single Zustand store** (`client/src/store/boardStore.ts`) owns the whole board: `nodes`/`edges`
   (React Flow graph), `boxData` (per-box content/prompts/status/output — kept separate from the
   graph objects so it serializes cleanly to Firestore), and board/collaboration metadata.
+- **Advisor reference output contract:** `SECURITY_ADVISOR_REFERENCE_RULE` in `types.ts` requires
+  one bare upstream ID per `relevant_upstream_references` list item. Ranges, combined IDs and
+  explanations belong outside reference items. Both default Advisor prompts include the rule;
+  `boardStore.generateTextForBox` also appends it once to legacy Advisor system prompts at
+  request time, without changing saved prompts or upstream outputs. Other workers and strict
+  reference validation remain unchanged. Existing boards need the updated frontend, not recreation.
+- **Security run recovery:** text requests have a 150-second deadline. Security boxes persist a
+  per-run ID/deadline; expired leases become errors, while unknown legacy runs and future
+  collaborator leases are not reset automatically. Late results cannot replace a newer run.
+  Reruns retain the previous output's validation and trusted assessment date until replacement.
+  Downstream security boxes wait when an upstream run is running or failed. NIST requests append
+  `NIST_STATUS_OUTPUT_RULE` once, including for legacy prompts; artifact status is `complete` or
+  `clarification_required`, not `preliminary`. No automatic retry or validator relaxation is used.
+- **Team 2 structured worker requests:** Threat Modeler, Risk Scorer and IR Planner share
+  `SECURITY_WORKER_YAML_RULE` for quoted string values and canonical YAML shapes.
+  `lib/securityWorkerPrompts.ts` adds each worker's current schema and evidence rules to
+  legacy system prompts at request time, without rewriting saved prompts or input text.
+  Current prompts are not duplicated. Strict validation and downstream blocking remain active;
+  malformed outputs stay visible and no automatic retry is added.
+  IR legacy user prompts also receive a final YAML contract after their old heading/list
+  instructions. Clarification answers remain user-reported evidence, not proof that deployment,
+  tests, logging or policy deadlines were independently verified; saved answers are not rewritten.
 - **Board security review export:** the Boards menu offers an editable DOCX download assembled in the
   browser from the current board's Idea text and saved outputs of the seven security artifact
   boxes. `client/src/lib/securityReview.ts` builds the ordered, testable review model;

@@ -114,7 +114,7 @@ otherwise to the relative Firebase `/api/generate` route.
 | Preview still calls Firebase `/api` | Confirm the Preview was deployed with `DEMO_AI_API_BASE_URL` set to the current tunnel root URL. Re-run the deploy script after a tunnel restart. |
 | CORS failure | Confirm the Network panel shows the tunnel host and an `OPTIONS` response of `204`; restart the local server/tunnel if needed. |
 | Tunnel changed after restart | Quick Tunnel hostnames are temporary. Re-run `DEMO_AI_API_BASE_URL="$TUNNEL_URL" bash scripts/deploy-demo-preview.sh` and share the new Preview URL. |
-| One browser needs a temporary override | In DevTools only, run `localStorage.setItem("ai-canva.demoAiApiBaseUrl", "https://YOUR-TUNNEL.trycloudflare.com"); location.reload();`. Remove it after diagnosis to restore the build-time route. |
+| Local/manual build has no build-time API base | For troubleshooting only, use `localStorage.setItem("ai-canva.demoAiApiBaseUrl", "https://YOUR-TUNNEL.trycloudflare.com"); location.reload();`. A valid build-time `VITE_AI_API_BASE_URL` takes precedence and cannot be overridden this way; change the build configuration and redeploy to change that route. |
 
 ## Security and Verified Baseline
 

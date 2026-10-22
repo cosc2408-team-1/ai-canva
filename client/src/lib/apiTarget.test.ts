@@ -42,17 +42,31 @@ describe("demo AI API target", () => {
     );
   });
 
-  it("gives the runtime localStorage override precedence over VITE_AI_API_BASE_URL", () => {
+  it("gives the build-time VITE_AI_API_BASE_URL precedence over a runtime override", () => {
     vi.stubEnv("VITE_AI_API_BASE_URL", "https://build-demo.trycloudflare.com");
-    stubLocalStorage("https://runtime-demo.trycloudflare.com");
+    stubLocalStorage("https://definitely-stale.example.invalid");
 
     expect(resolveGenerateUrl()).toBe(
-      "https://runtime-demo.trycloudflare.com/api/generate",
+      "https://build-demo.trycloudflare.com/api/generate",
     );
   });
 
-  it("falls back to VITE_AI_API_BASE_URL after a runtime override is removed", () => {
+  it("keeps the build-time target after a runtime override is removed", () => {
     vi.stubEnv("VITE_AI_API_BASE_URL", "https://build-demo.trycloudflare.com");
+    const values = stubLocalStorage("https://runtime-demo.trycloudflare.com");
+
+    expect(resolveGenerateUrl()).toBe(
+      "https://build-demo.trycloudflare.com/api/generate",
+    );
+
+    values.delete(DEMO_AI_API_BASE_STORAGE_KEY);
+    expect(resolveGenerateUrl()).toBe(
+      "https://build-demo.trycloudflare.com/api/generate",
+    );
+  });
+
+  it("uses a runtime override when no build-time API target exists", () => {
+    vi.stubEnv("VITE_AI_API_BASE_URL", "");
     const values = stubLocalStorage("https://runtime-demo.trycloudflare.com");
 
     expect(resolveGenerateUrl()).toBe(
@@ -60,9 +74,7 @@ describe("demo AI API target", () => {
     );
 
     values.delete(DEMO_AI_API_BASE_STORAGE_KEY);
-    expect(resolveGenerateUrl()).toBe(
-      "https://build-demo.trycloudflare.com/api/generate",
-    );
+    expect(resolveGenerateUrl()).toBe("/api/generate");
   });
 
   it("uses the safe fallback when a runtime or build-time override is invalid", () => {

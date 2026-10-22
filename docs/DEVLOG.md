@@ -29,6 +29,70 @@ current state).
 
 ---
 
+## 2026-10-22 — Prepare demo reliability fixes for PR publication
+
+- **Done:** Collected the existing routing, timeout/recovery and structured-security prompt fixes on `fix/security-demo-reliability` without changing provider code, schemas, strict validation or saved boards. Updated the Hosting workflow to read the public `VITE_AI_API_BASE_URL` Actions variable and check the configured VAL backend before deploying. The repository variable contains the existing working tunnel origin; no credentials or temporary hostname were added to source. Corrected the runbook's obsolete runtime-override advice.
+- **Verified:** `npm run verify` passed with server 69/69, client 662/662 and Functions 7/7; all three builds and `git diff --check` passed. The first sandboxed attempt was blocked by local socket permissions; the same suite passed with the required local-listener permission. Added-line/untracked-file credential-pattern checks and ignore checks passed. Eight isolated Hosting health-guard cases passed, including unhealthy status/provider, missing key configuration, malformed JSON, network/HTTP errors and invalid origins.
+- **Publication:** GitHub is the source of record for subsequent PR CI and merge/deployment results. Source publication does not export the Firestore board data, ignored environment files or backend API key.
+
+## 2026-10-22 — Save qualified IR clarification answers
+
+- **Done:** Filled the four currently empty IR Planner answers on Jennie's security Review #3 using its saved fictional project description and asset inventory. English drafts distinguish proposed access rules and approval roles from unverified deployment, testing, logging and institutional-policy claims. Existing clarification merge logic and its size limits were used; entries are attributed as user-authorized assistant-assisted drafts.
+- **Verified:** A field-masked, update-time-guarded write saved only IR `securityClarifications` and the board timestamp. A full-board digest confirmed every other field was preserved. No model call, rerun, code change or deployment was performed; IR retains its existing clarification_required result.
+
+## 2026-10-22 — Resolve IR legacy user-format conflicts
+
+- **Diagnosis:** After clarification answers were supplied, #3's IR result was prose and failed YAML parsing. Its saved legacy user prompt explicitly requires `##` headings, bold labels and bullet lists rather than the current IncidentResponsePlan schema. The stored prompts and answers were inspected without changing them.
+- **Done:** IR user requests now finish with the current YAML schema and output rules, overriding conflicting legacy display-format instructions. Added explicit provenance guidance: clarification answers do not independently prove deployment, passed tests, enabled logs or policy deadlines. Saved prompts, answers and other workers' user requests are unchanged; no validator relaxation, backend/model change or automatic retry was introduced.
+- **Verified:** Added 11 regressions for legacy IR requests with answers, current-contract idempotence, old-format-marker handling, evidence discipline and unrelated-worker isolation. Full tests passed: server 69/69, client 662/662, Functions 7/7; all three builds and `git diff --check` passed.
+- **Live verification:** Used the remaining authorized IR-only call on #3. GPT-6 Sol returned clarification_required in 15.3 seconds with zero validation issues, and the raw result and validation were saved. A digest confirmed every other box, all prompts and saved clarification answers were preserved. The remaining questions request actual access-rule/test evidence, assigned-tutor scope, logging configuration and authorized policy confirmation; no unsupported claim was converted into a verified fact.
+- **Released:** Hosting-only deployment completed with the same public URL and tunnel. Live JavaScript/CSS hashes match the tested local build, including the IR final-format and evidence rules. An isolated unsigned-in browser loaded the site without console errors; board verification used Firestore rather than that browser.
+- **In flight:** Changes remain uncommitted. No further model call is authorized by the exhausted two-call IR verification limit.
+
+## 2026-10-22 — Harden Threat Modeler, Risk Scorer and IR Planner
+
+- **Done:** Added a shared YAML output rule requiring quoted strings, native integer scores, canonical artifact status and preserved references. A focused request-time helper adds current schemas and evidence rules to legacy worker prompts without changing stored prompts, inputs or outputs. Only these three workers use the helper; the upper-four workflow, schemas, validator semantics, providers and model configuration are unchanged. No automatic retry or artifact rewriting was added.
+- **Verified:** Added 23 regressions covering defaults, legacy contracts, idempotence, untouched unrelated workers, parseable examples, strict colon rejection, the three-stage request path and invalid-upstream blocking. Full tests passed: server 69/69, client 651/651, Functions 7/7. All three builds passed, and `git diff --check` passed. The existing Vite chunk-size advisory remains non-fatal.
+- **Live verification:** With explicit authorization, ran only the three workers on Jennie's security Review #3 using existing upstream inputs and the current helper through the existing VAL generate route. Each needed one call: Threat Modeler returned Valid/complete in 12.1 seconds; Risk Scorer returned Valid/complete in 10.6 seconds; IR Planner returned clarification_required in 10.9 seconds with zero validation issues. Results were saved using field masks and update-time preconditions. A digest confirmed all other board fields, including all four upper boxes and saved prompts, remained unchanged.
+- **Released:** Hosting-only deployment completed at the unchanged public URL with the same tunnel target. Live JavaScript and CSS hashes match the tested local build. An isolated unsigned-in browser loaded the repaired entry bundle and dark SecureFlow UI with no console errors; signed-in board results were verified through Firestore, not through that isolated browser.
+- **In flight:** Source changes remain uncommitted. IR Planner needs human answers before its plan can be treated as complete; clarification is not a YAML failure.
+
+## 2026-10-22 — Recover Jennie's security Review #3
+
+- **Done:** Recovered only the abandoned legacy NIST running state using a field mask and update-time precondition; a digest confirmed all other fields were preserved. With explicit authorization, regenerated NIST from the saved upstream inputs through GPT-6 Sol. The result was Valid with `status: complete` in 34.4 seconds and was saved without rerunning Asset Mapper or Requirements Elicitor.
+- **Threat Modeler diagnosis:** Its saved prompts predated the ThreatModel YAML contract and requested no canonical artifact type. A run with those legacy prompts returned non-YAML output and failed strict validation. With separate explicit authorization, replaced only that node's prompts with the current built-in defaults and attempted one run. The request returned HTTP 502; no successful replacement output was available. The node is no longer running, and its previous output remains visible with invalid validation. Backend and tunnel health remain healthy.
+- **Authorized retry:** A separately authorized single Threat Modeler retry returned from GPT-6 Sol in 14 seconds without HTTP 502. It used the current canonical prompts and emitted `artifact_type`, but YAML parsing failed with `BLOCK_AS_IMPLICIT_KEY` at line 40, column 23. The raw response and invalid validation were saved; no further model call or manual artifact rewriting was performed. No NIST node remained running after this attempt.
+- **In flight:** Threat Modeler remains invalid and cannot provide usable downstream input. Security Advisor, Risk Scorer, IR Planner and all other nodes were not rerun. No implementation code, validator, provider, model setting or deployment changed in this repair.
+
+## 2026-10-22 — Bound security runs and verify Demo#1 recovery
+
+- **Done:** Added a 150-second text-request timeout and persisted security-run leases. Expired leases recover to an error without automatic retries; future collaborator leases and unknown legacy runs are left intact. Previous output, validation and trusted dates survive failed reruns, and late responses cannot replace newer results. Downstream security runs wait for usable upstream runs. NIST defaults and legacy requests receive canonical top-level status guidance; schemas and validator semantics are unchanged.
+- **Verified:** Full tests passed: server 69/69, client 628/628, Functions 7/7. Client, server and Functions builds passed; `git diff --check` passed. Existing non-fatal Vite chunk-size advisory remains.
+- **Live verification:** With explicit authorization, ran only NIST and Advisor on Demo#1 using its saved inputs through the existing backend and GPT-6 Sol. NIST returned `complete` and Valid in 38 seconds; Advisor returned `recommendation_ready` and Valid in 4.5 seconds. Both had zero validation issues. Results were saved using field masks and update-time preconditions. A digest confirmed all other board fields, including Asset Mapper, Elicitor, prompts and topology, remained unchanged.
+- **Released:** Hosting-only deployment completed at the existing public URL with the unchanged tunnel target. Backend, Functions, Firebase rules, model configuration and strict validation were not changed by this repair. Source changes remain uncommitted.
+- **Next steps:** Refresh the presentation browser and inspect the saved valid results without rerunning upstream stages.
+
+## 2026-10-22 — Recover the stalled Demo#1 NIST run
+
+- **Recovered:** The named Demo#1 board retained NIST `status: running` for more than five minutes. A field-masked Firestore patch changed only that node's run status/error and the board update timestamp, with an update-time concurrency precondition. A before/after digest confirmed that every other field, including saved outputs, prompts and validation results, was preserved. No AI stage was rerun.
+- **Diagnosis:** Local backend and public tunnel health passed. The saved NIST YAML parses but uses the unsupported top-level `status: preliminary`; its saved validation also lacks trusted assessment-date metadata. The output remains invalid and Advisor remains gated. The client fetch has no independent deadline, and persisted running states are restored without interruption recovery.
+- **Next steps:** Refresh the board to clear the abandoned browser request and show the recovered error state. A separate focused change is needed for canonical NIST status guidance and interrupted-run recovery; do not edit the YAML into a claimed valid assessment or rerun upstream stages unnecessarily.
+
+## 2026-10-22 — Fix Security Advisor reference serialization
+
+- **Done:** Added a shared Advisor prompt rule requiring one bare upstream ID per reference item. Default prompts include it; the request path appends it once for legacy Advisor prompts without changing stored prompts or upstream results. Validator semantics, schemas, providers and retry behaviour are unchanged.
+- **Verified:** Added 11 regressions covering prompt contracts, legacy-node requests, no duplicate rules, unchanged other-worker prompts, strict rejection of ranges/descriptions/combined IDs, and valid separate references. Full tests passed: server 69/69, client 619/619, Functions 7/7. All three builds passed. Three GPT-6 Sol calls using one fixed hand-authored NIST fixture produced two valid recommendations with separate IDs and one valid interview-required response; no reference errors occurred.
+- **Released:** Deployed Hosting only to the unchanged `https://ai-canva-e9dff.web.app/` URL with the existing tunnel target. Live HTML and entry JavaScript match the local build, including the new reference rule. The isolated browser loaded the dark SecureFlow UI without console errors; no signed-in board was accessed.
+- **In flight:** Changes are uncommitted. No authenticated Demo#1 run was performed by this session; the fixed request path is covered by store integration tests. Existing local API routing and model-documentation changes are preserved.
+- **Next steps:** Refresh the live frontend after the Hosting-only release, then rerun only Advisor on Demo#1. Keep the existing valid upstream outputs.
+
+## 2026-10-22 — Switch the local VAL demo to GPT-6 Sol
+
+- **Done:** Updated the ignored `server/.env` model override to `openai-gpt-6-sol` and restarted only the local backend, loading configuration from that file. The existing Cloudflare Tunnel and Firebase Hosting URL remain unchanged. Updated `docs/MODELS.md`; provider defaults, prompts, validators and saved boards are unchanged.
+- **Verified:** VAL listed the exact model ID. Local and public `/api/generate` returned HTTP 200 with `openai-gpt-6-sol`. One synthetic Asset Mapper run completed in 8.6 seconds with `clarification_required` and no validation issues. Server tests passed 69/69; `git diff --check` passed.
+- **In flight:** Documentation changes are uncommitted. The existing `apiTarget.ts` and `apiTarget.test.ts` working-tree changes are preserved. Backend, tunnel and keep-awake processes remain running.
+- **Next steps:** Confirm the signed-in presentation board in the regular browser before the demo. The smoke test used the API and did not modify a saved board.
+
 ## 2026-09-28 — Restore box icons and simplify export
 
 - **Done:** Restored the original icons on every sidebar box, removed numbered step badges and the workflow-help section, and kept only the Word (.docx) report export. Removed the PDF exporter and its two direct dependencies; the Word report layout is unchanged.
