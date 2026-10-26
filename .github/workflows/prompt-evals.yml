@@ -71,6 +71,26 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Tells a malformed secret apart from VAL refusing GitHub's network, without printing the key.
+      # From an allowed network, VAL answers no key with 403 {"detail":"Not authenticated"}
+      # and a wrong key with 401.
+      - name: Diagnose VAL access (key is never printed)
+        if: steps.key.outputs.available == 'true'
+        env:
+          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
+          EVAL_MODEL: ${{ vars.EVAL_MODEL || 'openai-gpt-5.6-terra' }}
+        run: |
+          url=https://val.rmit.edu.au/api/chat/completions
+          echo "Key length: ${#VAL_API_KEY}"
+          case "$VAL_API_KEY" in
+            *[[:space:]]*) echo "::warning::The key contains whitespace or a newline." ;;
+          esac
+          case "$VAL_API_KEY" in
+            \"*|\'*|Bearer*|bearer*|VAL_API_KEY=*) echo "::warning::The key starts with a quote, 'Bearer' or 'VAL_API_KEY='. Store only the key itself." ;;
+          esac
+          echo "Without a key: $(curl -s -m 30 -o /tmp/nokey.txt -w 'HTTP %{http_code}' -X POST "$url" -H 'Content-Type: application/json' -d '{}'), body: $(head -c 200 /tmp/nokey.txt)"
+          echo "With the key: $(curl -s -m 60 -o /dev/null -w 'HTTP %{http_code}' -X POST "$url" -H 'Content-Type: application/json' -H "Authorization: Bearer $VAL_API_KEY" -d "{\"model\":\"$EVAL_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK\"}]}")"
+
       - name: Evaluate the current prompts with VAL
         if: steps.key.outputs.available == 'true'
         env:
