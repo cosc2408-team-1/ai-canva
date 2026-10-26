@@ -29,22 +29,23 @@ current state).
 
 ---
 
-## 2026-10-26 — Prompt evals in CI (current app prompts only)
+## 2026-10-26 — Prompt evals: live app prompts, offline checks in CI
 
 - **Done:** `node evals/run.mjs --app` evaluates the security boxes' live prompts, read from
-  `client/src/types.ts` by `evals/app-prompts.mjs` (no copied prompt files). New workflow
-  `.github/workflows/prompt-evals.yml` runs it 3× on every PR and push to `main`, report only: GitHub
-  step summary + `prompt-eval-report` artifact; fails only when an output can't be scored. The user
-  message is each box's `defaultPrompt` (what a newly added box sends). Self-check gained `--app`
-  and step-summary tests. Removed the version comparison (`--all`/`--version`,
-  `evals/prompt-versions.yaml`); old runs in `.runs/` still render in the report.
-- **Baseline (main's prompts, 1 run, gpt-5.6-terra):** Elicitor 93.75, NIST 100, Advisor 98.75.
-  The Elicitor still sometimes writes lowercase "shall" (fails the `SHALL` field check), and the
+  `client/src/types.ts` by `evals/app-prompts.mjs` (no copied prompt files). The user message is each
+  box's `defaultPrompt` (what a newly added box sends). Failed cases now print their reason; a
+  `GITHUB_STEP_SUMMARY` table is written when set. Removed the version comparison
+  (`--all`/`--version`, `evals/prompt-versions.yaml`); old runs in `.runs/` still render.
+- **CI decision:** RMIT's Azure Application Gateway returns 403 to GitHub-hosted runners before any
+  key is checked (diagnosed in CI: a keyless request got the gateway's HTML 403, not VAL's
+  `Not authenticated` JSON; key length matched local). The user chose no self-hosted runner, so
+  `.github/workflows/prompt-evals.yml` runs only `node --test evals/self-check.mjs` and
+  `node evals/run.mjs --app --check`. VAL scoring is local: `node evals/run.mjs --app --repeats 3`.
+- **Baseline (main's prompts, 1 local run, gpt-5.6-terra):** Elicitor 93.75, NIST 100, Advisor
+  98.75. The Elicitor sometimes writes lowercase "shall" (fails the `SHALL` field check), and the
   judge penalises its `asvs_applicability` field although the system prompt allows ASVS references.
-- **In flight:** uncommitted on `feat/evals`, now rebased onto `origin/main` (user asked to test
-  locally before any git add).
-- **Next steps:** commit + push after review; confirm the `VAL_API_KEY` repo secret exists; open a
-  PR and check the summary/artifact render and that a second push cancels the first run.
+- **In flight:** on `feat/evals` (PR open); the switch to offline-only CI is uncommitted.
+- **Next steps:** commit + push; the `EVAL_VAL_API_KEY` repo secret is now unused and can be deleted.
 
 ## 2026-10-22 — Prepare demo reliability fixes for PR publication
 

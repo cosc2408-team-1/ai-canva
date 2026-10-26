@@ -1,40 +1,30 @@
 name: Prompt evals
 
-# Scores the security boxes' CURRENT prompts (read straight from client/src/types.ts)
-# against the fixed scenarios in evals/cases.yaml. VAL generates each output and judges it.
+# Offline checks only. They confirm the eval harness works and that the security boxes'
+# current prompts in client/src/types.ts still load and fit the eval cases.
 #
-# Report only: scores appear in the job summary and the report.html artifact, and never
-# fail the check. The job fails only if VAL errors or an output cannot be scored.
-# It is a separate workflow so a slow or unavailable VAL never blocks ci.yml.
+# No VAL calls run here: RMIT's Azure Application Gateway in front of VAL returns 403 to
+# GitHub-hosted runners before any key is checked. Score the prompts locally instead:
+#   node evals/run.mjs --app --repeats 3
 
 on:
   pull_request:
   push:
     branches:
       - main
-  workflow_dispatch:
-    inputs:
-      repeats:
-        description: "How many times to run every case (1-3)"
-        required: true
-        default: "3"
-        type: choice
-        options: ["1", "2", "3"]
 
 permissions:
   contents: read
 
-# A new push to the same PR cancels the older eval run instead of paying for it.
 concurrency:
   group: prompt-evals-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  evaluate:
-    name: Evaluate the current security prompts
+  check:
+    name: Check the eval harness and current prompts
     runs-on: ubuntu-latest
-    # Three repeats are 36 outputs / ~72 sequential VAL calls (about 15 minutes).
-    timeout-minutes: 45
+    timeout-minutes: 10
 
     steps:
       - name: Check out the repository
@@ -56,56 +46,3 @@ jobs:
 
       - name: Validate the current prompts and cases (no VAL calls)
         run: node evals/run.mjs --app --check
-
-      # EVAL_VAL_API_KEY keeps the eval key separate from the deploy key (VAL_API_KEY is also
-      # written into the production Functions config). Fork PRs receive neither secret.
-      - name: Check the VAL key is available
-        id: key
-        env:
-          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
-        run: |
-          if [ -z "$VAL_API_KEY" ]; then
-            echo "::notice::Neither EVAL_VAL_API_KEY nor VAL_API_KEY is available to this run, so the model evaluation was skipped."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Tells a malformed secret apart from VAL refusing GitHub's network, without printing the key.
-      # From an allowed network, VAL answers no key with 403 {"detail":"Not authenticated"}
-      # and a wrong key with 401.
-      - name: Diagnose VAL access (key is never printed)
-        if: steps.key.outputs.available == 'true'
-        env:
-          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
-          EVAL_MODEL: ${{ vars.EVAL_MODEL || 'openai-gpt-5.6-terra' }}
-        run: |
-          url=https://val.rmit.edu.au/api/chat/completions
-          echo "Key length: ${#VAL_API_KEY}"
-          case "$VAL_API_KEY" in
-            *[[:space:]]*) echo "::warning::The key contains whitespace or a newline." ;;
-          esac
-          case "$VAL_API_KEY" in
-            \"*|\'*|Bearer*|bearer*|VAL_API_KEY=*) echo "::warning::The key starts with a quote, 'Bearer' or 'VAL_API_KEY='. Store only the key itself." ;;
-          esac
-          echo "Without a key: $(curl -s -m 30 -o /tmp/nokey.txt -w 'HTTP %{http_code}' -X POST "$url" -H 'Content-Type: application/json' -d '{}'), body: $(head -c 200 /tmp/nokey.txt)"
-          echo "With the key: $(curl -s -m 60 -o /dev/null -w 'HTTP %{http_code}' -X POST "$url" -H 'Content-Type: application/json' -H "Authorization: Bearer $VAL_API_KEY" -d "{\"model\":\"$EVAL_MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with OK\"}]}")"
-
-      - name: Evaluate the current prompts with VAL
-        if: steps.key.outputs.available == 'true'
-        env:
-          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
-          EVAL_MODEL: ${{ vars.EVAL_MODEL || 'openai-gpt-5.6-terra' }}
-          EVAL_JUDGE_MODEL: ${{ vars.EVAL_JUDGE_MODEL || 'openai-gpt-5.6-terra' }}
-        run: node evals/run.mjs --app --repeats "${{ inputs.repeats || '3' }}"
-
-      - name: Upload the report
-        if: always() && steps.key.outputs.available == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: prompt-eval-report
-          path: |
-            evals/report.html
-            evals/.runs/
-          include-hidden-files: true
-          if-no-files-found: ignore

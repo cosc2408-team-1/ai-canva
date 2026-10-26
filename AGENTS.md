@@ -30,7 +30,7 @@ to box — from an Idea, through Research, to PRD / Slides / Code / UI Design / 
 | `server/` | Local Express dev backend (`/api/generate`, `/api/generate-image`, `/api/stitch-generate`, `/api/repo-digest`, `/api/health`). |
 | `functions/` | Same API as a Firebase Cloud Function (`onRequest`) for production. Also hosts `src/stitchJobs.ts` (the async Stitch Cloud Task worker). |
 | `scripts/deploy.sh` | One-command production deploy (build client, build Functions, deploy Hosting + Functions + rules). |
-| `evals/` | Standalone VAL prompt evaluations for the security boxes (`run.mjs`, cases, judge, HTML report); `--app` evaluates the live prompts and runs in CI. |
+| `evals/` | Standalone VAL prompt evaluations for the security boxes (`run.mjs`, cases, judge, HTML report); `--app` evaluates the live prompts (VAL runs are local; CI runs offline checks only). |
 | `docs/` | Guides: `OVERVIEW`, `ONBOARDING`, `ARCHITECTURE`, `BOX_TYPES`, `API`, `MODELS`, `DEPLOYMENT`, `OSS_READINESS`, plus `docs/course/` teaching materials. `docs/DEVLOG.md` is the session journal (read at session start, append after finishing work). |
 | `firebase.json`, `firestore.rules`, `storage.rules` | Firebase config and security rules. |
 | `dsh-plugins/` | Out-of-tree plugins for the DeepSeek Harness Web GUI (not part of the app). See "dsh GUI plugins" below. |
@@ -321,10 +321,11 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   fixed scenarios × 10 checks. `node evals/run.mjs --app` evaluates the prompts the app ships,
   reading `BOX_TYPES.*.defaultSystemPrompt`/`defaultPrompt` straight from `client/src/types.ts`
   (`evals/app-prompts.mjs`, Node ≥22.18 type stripping — so `types.ts` must stay import-free and
-  each of those templates must keep exactly one `{{inputs}}`). `.github/workflows/prompt-evals.yml`
-  runs it with 3 repeats on every PR and push to `main`, **report only** (summary + `prompt-eval-report`
-  artifact; fails only on unscored outputs), using the `EVAL_VAL_API_KEY` secret (falls back to `VAL_API_KEY`). Offline checks:
-  `node --test evals/self-check.mjs`. See `evals/README.md`.
+  each of those templates must keep exactly one `{{inputs}}`). **VAL calls run locally only**
+  (`node evals/run.mjs --app --repeats 3` before merging a prompt change): RMIT's Azure Application
+  Gateway returns 403 to GitHub-hosted runners before any key is checked, and the team chose no
+  self-hosted runner. `.github/workflows/prompt-evals.yml` runs only the offline checks on every PR
+  and push to `main` (`node --test evals/self-check.mjs` + `node evals/run.mjs --app --check`). See `evals/README.md`.
 - **E2E suite:** `client/e2e.mjs` (playwright-core + system Chrome) drives the **real dev app** on
   `localhost:5173` with the real backend. Part 1 (fake user via dev-only `window.__dsh` store hooks
   in `main.tsx`, `import.meta.env.DEV`-guarded, stripped from prod): landing → login → palette adds

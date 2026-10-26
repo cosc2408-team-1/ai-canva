@@ -8,11 +8,12 @@ This is a small starting suite, not a security audit or exhaustive benchmark.
 Each box is scored against its own job. Their scores are useful side by side,
 but the boxes are not interchangeable competitors.
 
-## Evaluate the prompts the app ships (also runs in CI)
+## Evaluate the prompts the app ships
 
 ```bash
 node evals/run.mjs --app --check   # Validate; no VAL calls
 node evals/run.mjs --app           # One run: 12 outputs, normally 24 VAL calls
+node evals/run.mjs --app --repeats 3   # Before merging a prompt change
 ```
 
 `--app` reads each box's `defaultSystemPrompt` and `defaultPrompt` straight from
@@ -22,15 +23,14 @@ the same way a connected box's output fills it in the app. The scenarios, checks
 and judge are the same as every other run. Boxes already on existing boards keep
 the template they were created with, so this measures what a newly added box sends.
 
-**CI:** `.github/workflows/prompt-evals.yml` runs `--app --repeats 3` on every pull
-request and every push to `main` (about 72 VAL calls; the Actions tab also has a
-manual run with 1–3 repeats). It uses the `EVAL_VAL_API_KEY` repository secret (falling back to `VAL_API_KEY`, which deploys also use) and optional `EVAL_MODEL` /
-`EVAL_JUDGE_MODEL` repository variables (default `openai-gpt-5.6-terra`). The job
-is **report only**: scores go to the job summary and a `prompt-eval-report`
-artifact (`report.html` + `.runs/`), and a low score never fails it. It fails only
-when VAL errors or an output cannot be scored. Fork PRs receive no secrets, so
-there the job runs the self-checks and skips the model calls. Locally, runs default
-to one repeat; three runs show variation but are still not a precise measurement.
+**Run it locally; CI does not call VAL.** RMIT's Azure Application Gateway in
+front of VAL returns 403 to GitHub-hosted runners before any key is checked, so
+`.github/workflows/prompt-evals.yml` runs only the offline checks on every pull
+request and push to `main`: `node --test evals/self-check.mjs` and
+`node evals/run.mjs --app --check`. Those confirm the harness works and that the
+current prompts still load and fit the cases. Run `--app --repeats 3` yourself
+before merging a prompt change. Runs default to one repeat; three show variation
+but are still not a precise measurement.
 
 ## Scratch prompts and repeats
 
@@ -79,9 +79,9 @@ node evals/report.mjs
 An ordinary run makes 24 VAL requests: one generation and one judgment for each
 of 12 outputs. An invalid judgment gets one retry. Calls are sequential; each has
 a two-minute timeout. Running sends the fictional case inputs and generated
-outputs to VAL. History and reporting stay on your computer. Apart from the
-`--app` CI workflow above, nothing runs in default tests, builds, pre-commit hooks,
-or the application.
+outputs to VAL. History and reporting stay on your computer. VAL calls never run in CI,
+default tests, builds, pre-commit hooks, or the application; CI runs only the
+offline checks.
 
 ## The three editable files
 
