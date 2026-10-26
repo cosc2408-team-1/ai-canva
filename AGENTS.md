@@ -323,7 +323,7 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   (`evals/app-prompts.mjs`, Node ≥22.18 type stripping — so `types.ts` must stay import-free and
   each of those templates must keep exactly one `{{inputs}}`). `.github/workflows/prompt-evals.yml`
   runs it with 3 repeats on every PR and push to `main`, **report only** (summary + `prompt-eval-report`
-  artifact; fails only on unscored outputs), using the `VAL_API_KEY` secret. Offline checks:
+  artifact; fails only on unscored outputs), using the `EVAL_VAL_API_KEY` secret (falls back to `VAL_API_KEY`). Offline checks:
   `node --test evals/self-check.mjs`. See `evals/README.md`.
 - **E2E suite:** `client/e2e.mjs` (playwright-core + system Chrome) drives the **real dev app** on
   `localhost:5173` with the real backend. Part 1 (fake user via dev-only `window.__dsh` store hooks

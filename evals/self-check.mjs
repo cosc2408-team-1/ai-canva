@@ -131,7 +131,9 @@ test('end-to-end runner saves history and a standalone report, and retains judge
     `);
     const execute = promisify(execFile);
     const args = ['--import', join(temp, 'mock.mjs'), join(temp, 'run.mjs')];
-    const options = {env: {...process.env, VAL_API_KEY: 'secret-test-key'}, timeout: 10000};
+    // Drop CI's summary file so mocked runs never appear in the real job summary.
+    const {GITHUB_STEP_SUMMARY: _ciSummary, ...parentEnv} = process.env;
+    const options = {env: {...parentEnv, VAL_API_KEY: 'secret-test-key'}, timeout: 10000};
     const summary = join(temp, 'summary.md');
     await execute(process.execPath, args, {...options, env: {...options.env, GITHUB_STEP_SUMMARY: summary}});
     const summaryText = await readFile(summary, 'utf8');

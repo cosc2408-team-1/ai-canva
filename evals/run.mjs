@@ -195,7 +195,8 @@ async function main() {
         const result = await evaluate(prompt, scenario, snapshot.judge, settings, apiKey);
         run.results.push(result);
         await save();
-        console.log(`  ${result.score === null ? 'Incomplete' : `${result.score}/100`} (${result.state})`);
+        // result.error holds only the sanitized messages from val.mjs, never response bodies or keys.
+        console.log(`  ${result.score === null ? 'Incomplete' : `${result.score}/100`} (${result.state})${result.error ? `: ${result.error}` : ''}`);
       }
     }
     run.scores = Object.fromEntries(BOX_IDS.map(id => [id, boxAverage(run.results, id, snapshot.scenarios.length)]));

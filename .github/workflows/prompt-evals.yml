@@ -57,14 +57,15 @@ jobs:
       - name: Validate the current prompts and cases (no VAL calls)
         run: node evals/run.mjs --app --check
 
-      # Pull requests from forks do not receive repository secrets.
+      # EVAL_VAL_API_KEY keeps the eval key separate from the deploy key (VAL_API_KEY is also
+      # written into the production Functions config). Fork PRs receive neither secret.
       - name: Check the VAL key is available
         id: key
         env:
-          VAL_API_KEY: ${{ secrets.VAL_API_KEY }}
+          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
         run: |
           if [ -z "$VAL_API_KEY" ]; then
-            echo "::notice::VAL_API_KEY is not available to this run, so the model evaluation was skipped."
+            echo "::notice::Neither EVAL_VAL_API_KEY nor VAL_API_KEY is available to this run, so the model evaluation was skipped."
             echo "available=false" >> "$GITHUB_OUTPUT"
           else
             echo "available=true" >> "$GITHUB_OUTPUT"
@@ -73,7 +74,7 @@ jobs:
       - name: Evaluate the current prompts with VAL
         if: steps.key.outputs.available == 'true'
         env:
-          VAL_API_KEY: ${{ secrets.VAL_API_KEY }}
+          VAL_API_KEY: ${{ secrets.EVAL_VAL_API_KEY || secrets.VAL_API_KEY }}
           EVAL_MODEL: ${{ vars.EVAL_MODEL || 'openai-gpt-5.6-terra' }}
           EVAL_JUDGE_MODEL: ${{ vars.EVAL_JUDGE_MODEL || 'openai-gpt-5.6-terra' }}
         run: node evals/run.mjs --app --repeats "${{ inputs.repeats || '3' }}"

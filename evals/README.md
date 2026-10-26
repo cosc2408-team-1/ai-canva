@@ -24,7 +24,7 @@ the template they were created with, so this measures what a newly added box sen
 
 **CI:** `.github/workflows/prompt-evals.yml` runs `--app --repeats 3` on every pull
 request and every push to `main` (about 72 VAL calls; the Actions tab also has a
-manual run with 1–3 repeats). It uses the `VAL_API_KEY` repository secret and optional `EVAL_MODEL` /
+manual run with 1–3 repeats). It uses the `EVAL_VAL_API_KEY` repository secret (falling back to `VAL_API_KEY`, which deploys also use) and optional `EVAL_MODEL` /
 `EVAL_JUDGE_MODEL` repository variables (default `openai-gpt-5.6-terra`). The job
 is **report only**: scores go to the job summary and a `prompt-eval-report`
 artifact (`report.html` + `.runs/`), and a low score never fails it. It fails only
