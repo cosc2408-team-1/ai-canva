@@ -1,0 +1,48 @@
+name: Prompt evals
+
+# Offline checks only. They confirm the eval harness works and that the security boxes'
+# current prompts in client/src/types.ts still load and fit the eval cases.
+#
+# No VAL calls run here: RMIT's Azure Application Gateway in front of VAL returns 403 to
+# GitHub-hosted runners before any key is checked. Score the prompts locally instead:
+#   node evals/run.mjs --app --repeats 3
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prompt-evals-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check the eval harness and current prompts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # Node 22.18+ is needed to load client/src/types.ts without a build step.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: evals/package-lock.json
+
+      - name: Install eval dependencies
+        run: npm ci --prefix evals --ignore-scripts
+
+      - name: Run the harness self-checks (no VAL calls)
+        run: node --test evals/self-check.mjs
+
+      - name: Validate the current prompts and cases (no VAL calls)
+        run: node evals/run.mjs --app --check

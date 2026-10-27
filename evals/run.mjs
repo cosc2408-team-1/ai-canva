@@ -1,7 +1,7 @@
-// Run all archived versions three times: node evals/run.mjs --all
-// Run the current scratch prompts once: node evals/run.mjs
+// Run the scratch prompts in prompts.yaml once: node evals/run.mjs
+// Run the prompts the app ships (client/src/types.ts) once: node evals/run.mjs --app
 // Check the input files without calling VAL: node evals/run.mjs --check
-import { readFile, mkdir, writeFile, rename } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, rename, appendFile } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -10,29 +10,28 @@ import { parse, stringify } from 'yaml';
 import { BOX_IDS, automaticChecks, readJudgeChecks, totalPoints, boxAverage } from './score.mjs';
 import { callVal, ENDPOINT } from './val.mjs';
 import { buildReport } from './report.mjs';
+import { loadAppPrompts } from './app-prompts.mjs';
 
 const directory = fileURLToPath(new URL('.', import.meta.url));
 const hash = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 
-async function loadInputs(selection) {
-  const file = selection ? 'prompt-versions.yaml' : 'prompts.yaml';
-  const promptFile = parse(await readFile(join(directory, file), 'utf8'));
-  let versions = selection ? promptFile.versions : [{id: 'current', prompts: promptFile.prompts}];
-  if (!Array.isArray(versions) || !versions.length || versions.some(v => typeof v.id !== 'string' || !v.id.trim()) || new Set(versions.map(v => v.id)).size !== versions.length) throw new Error('Versions need distinct nonempty IDs');
-  if (selection && selection !== 'all') {
-    versions = versions.filter(version => version.id === selection);
-    if (!versions.length) throw new Error(`Unknown version: ${selection}`);
+async function loadInputs(app) {
+  let promptFile, version;
+  if (app) {
+    // The live app prompts replace prompts.yaml; cases and judge are unchanged.
+    promptFile = {format_version: 1};
+    version = {id: 'app', description: 'Current app prompts', prompts: await loadAppPrompts()};
+  } else {
+    promptFile = parse(await readFile(join(directory, 'prompts.yaml'), 'utf8'));
+    version = {id: 'current', description: 'Scratch prompts (prompts.yaml)', prompts: promptFile.prompts};
   }
   const cases = parse(await readFile(join(directory, 'cases.yaml'), 'utf8'));
   const judge = parse(await readFile(join(directory, 'judge.yaml'), 'utf8'));
   if ([promptFile, cases, judge].some(file => file?.format_version !== 1)) throw new Error('All input files must have format_version: 1');
-  for (const version of versions) {
-    const prompts = version;
-    if (prompts.prompts?.length !== 3 || new Set(prompts.prompts.map(p => p.id)).size !== 3) throw new Error('Exactly three distinct prompts are required');
-    for (const prompt of prompts.prompts) {
-      if (!BOX_IDS.includes(prompt.id) || !prompt.label || typeof prompt.system !== 'string' || !prompt.system.trim() || typeof prompt.user_template !== 'string' || !prompt.user_template.includes('{{input}}')) throw new Error(`Invalid prompt: ${prompt.id}`);
-      if ((prompt.user_template.match(/{{input}}/g) ?? []).length !== 1 || /{{(?!input}})/.test(prompt.user_template)) throw new Error('Each template must have exactly one {{input}} and no other placeholders');
-    }
+  if (version.prompts?.length !== 3 || new Set(version.prompts.map(p => p.id)).size !== 3) throw new Error('Exactly three distinct prompts are required');
+  for (const prompt of version.prompts) {
+    if (!BOX_IDS.includes(prompt.id) || !prompt.label || typeof prompt.system !== 'string' || !prompt.system.trim() || typeof prompt.user_template !== 'string' || !prompt.user_template.includes('{{input}}')) throw new Error(`Invalid prompt: ${prompt.id}`);
+    if ((prompt.user_template.match(/{{input}}/g) ?? []).length !== 1 || /{{(?!input}})/.test(prompt.user_template)) throw new Error('Each template must have exactly one {{input}} and no other placeholders');
   }
   if (!cases.scenarios?.length || new Set(cases.scenarios.map(c => c.id)).size !== cases.scenarios.length) throw new Error('Cases need distinct scenario IDs');
   for (const scenario of cases.scenarios) {
@@ -47,7 +46,7 @@ async function loadInputs(selection) {
   for (const criterion of judge.criteria) for (const key of ['id', 'title', 'full', 'partial', 'fail']) if (!criterion[key]) throw new Error(`Judge criterion missing ${key}`);
   for (const id of BOX_IDS) if (!judge.roles?.[id]) throw new Error(`Judge missing role boundary: ${id}`);
   for (const id of BOX_IDS) if (!judge.contracts?.[id]) throw new Error(`Judge missing output contract: ${id}`);
-  return {versions, scenarios: cases.scenarios, judge};
+  return {version, scenarios: cases.scenarios, judge};
 }
 
 async function evaluate(prompt, scenario, judge, settings, apiKey) {
@@ -100,21 +99,49 @@ async function evaluate(prompt, scenario, judge, settings, apiKey) {
   return result;
 }
 
+// In GitHub Actions, append a Markdown summary of the run to the job page.
+// Scores are reported, never enforced; the exit code only reflects unscored outputs.
+function stepSummary(run) {
+  const cell = value => String(value).replaceAll('|', '\\|').replace(/\s+/g, ' ').trim();
+  const labels = Object.fromEntries(run.snapshot.prompts.map(p => [p.id, p.label]));
+  const lines = [
+    `### Prompt evals: ${run.versionDescription} (repeat ${run.repeat}/${run.repeats})`,
+    '',
+    `Model \`${run.settings.model}\`, judge \`${run.settings.judgeModel}\`.`,
+    '',
+    '| Box | Score / 100 |',
+    '| --- | --- |',
+    ...BOX_IDS.map(id => `| ${cell(labels[id] ?? id)} | ${run.scores[id] ?? 'incomplete'} |`),
+  ];
+  const lost = run.results.filter(result => result.score !== 100);
+  if (lost.length) {
+    lines.push('', '| Case | Score | Points lost |', '| --- | --- | --- |');
+    for (const result of lost) {
+      const reasons = result.state === 'scored'
+        ? result.checks.filter(check => check.points < 10).map(check => `${check.id} (${check.points}/10): ${check.reason}`).join('<br>')
+        : `${result.state}: ${result.error ?? 'judge returned no usable result'}`;
+      lines.push(`| ${cell(`${result.scenarioId} / ${labels[result.boxId] ?? result.boxId}`)} | ${result.score ?? '—'} | ${cell(reasons)} |`);
+    }
+  }
+  return lines.join('\n') + '\n\n';
+}
+
+async function writeStepSummary(run) {
+  if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, stepSummary(run));
+}
+
 async function main() {
   const args = process.argv.slice(2);
-  let selection, repeats;
+  let app = false, repeats = 1;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--check') continue;
-    if (args[i] === '--all' && !selection) selection = 'all';
-    else if (args[i] === '--version' && !selection && args[i + 1]) selection = args[++i];
+    if (args[i] === '--app') app = true;
     else if (args[i] === '--repeats' && args[i + 1]) repeats = Number(args[++i]);
-    else throw new Error('Usage: node evals/run.mjs [--all | --version ID] [--repeats N] [--check]');
+    else throw new Error('Usage: node evals/run.mjs [--app] [--repeats N] [--check]');
   }
-  repeats ??= selection ? 3 : 1;
   if (!Number.isSafeInteger(repeats) || repeats < 1 || repeats > 20) throw new Error('--repeats must be between 1 and 20');
-  const inputs = await loadInputs(selection);
-  const count = inputs.versions.length * repeats;
-  console.log(`${inputs.versions.length} version(s) × ${repeats} repeat(s) = ${count} runs, normally ${count * inputs.scenarios.length * 6} VAL calls.`);
+  const inputs = await loadInputs(app);
+  console.log(`${inputs.version.description}: ${repeats} run(s), normally ${repeats * inputs.scenarios.length * 6} VAL calls.`);
   if (process.argv.includes('--check')) {
     console.log(`Valid: 3 prompts, ${inputs.scenarios.length} scenarios, 10 checks per output. No VAL calls made.`);
     return;
@@ -127,8 +154,8 @@ async function main() {
   if (!apiKey) throw new Error('Set VAL_API_KEY in evals/.env or your shell. See evals/.env.example.');
   const settings = {
     endpoint: ENDPOINT,
-    model: process.env.EVAL_MODEL || localEnv.EVAL_MODEL || 'openai-gpt-4.1',
-    judgeModel: process.env.EVAL_JUDGE_MODEL || localEnv.EVAL_JUDGE_MODEL || 'openai-gpt-4.1',
+    model: process.env.EVAL_MODEL || localEnv.EVAL_MODEL || 'openai-gpt-5.6-terra',
+    judgeModel: process.env.EVAL_JUDGE_MODEL || localEnv.EVAL_JUDGE_MODEL || 'openai-gpt-5.6-terra',
     temperature: 0,
     timeoutMs: 120000,
     assessmentDate: '2026-09-26',
@@ -136,50 +163,50 @@ async function main() {
   const code = await Promise.all(['run.mjs', 'score.mjs', 'val.mjs'].map(name => readFile(join(directory, name), 'utf8')));
   const evaluatorHash = hash(code);
   const batchId = randomUUID();
-  // Repeat the full version sequence three times, rather than finishing one version first.
-  // Each version/repeat is its own saved run and the report refreshes after each one.
+  // Each repeat is its own saved run and the report refreshes after each one.
+  const version = inputs.version;
   for (let repeat = 1; repeat <= repeats; repeat++) {
-    for (const version of inputs.versions) {
-      const snapshot = {prompts: version.prompts, scenarios: inputs.scenarios, judge: inputs.judge};
-      console.log(`Version ${version.id}, repeat ${repeat}/${repeats}`);
-      const run = {
-        formatVersion: 1,
-        evaluatorVersion: 2,
-        batchId, versionId: version.id, versionDescription: version.description ?? version.id, repeat, repeats,
-        id: `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID().slice(0, 8)}`,
-        startedAt: new Date().toISOString(),
-        state: 'running',
-        settings, snapshot, evaluatorHash,
-        comparisonGroup: hash({scenarios: snapshot.scenarios, judge: snapshot.judge, settings, evaluatorHash}),
-        promptVersions: Object.fromEntries(snapshot.prompts.map(p => [p.id, hash({system: p.system, user_template: p.user_template})])),
-        results: [],
-        scores: {},
-      };
-      const history = join(directory, '.runs');
-      await mkdir(history, {recursive: true});
-      const path = join(history, `${run.id}.json`);
-      async function save() {
-        await writeFile(`${path}.tmp`, JSON.stringify(run, null, 2), {mode: 0o600});
-        await rename(`${path}.tmp`, path);
-      }
-      await save();
-      for (const scenario of snapshot.scenarios) {
-        for (const prompt of snapshot.prompts) {
-          console.log(`Evaluating ${scenario.id} / ${prompt.label} ...`);
-          const result = await evaluate(prompt, scenario, snapshot.judge, settings, apiKey);
-          run.results.push(result);
-          await save();
-          console.log(`  ${result.score === null ? 'Incomplete' : `${result.score}/100`} (${result.state})`);
-        }
-      }
-      run.scores = Object.fromEntries(BOX_IDS.map(id => [id, boxAverage(run.results, id, snapshot.scenarios.length)]));
-      run.state = run.results.some(result => result.score === null) ? 'incomplete' : 'complete';
-      run.completedAt = new Date().toISOString();
-      await save();
-      await buildReport(directory);
-      console.log('Saved history. Open evals/report.html in your browser.');
-      if (run.results.some(result => result.state !== 'scored')) process.exitCode = 1;
+    const snapshot = {prompts: version.prompts, scenarios: inputs.scenarios, judge: inputs.judge};
+    console.log(`${version.description}, repeat ${repeat}/${repeats}`);
+    const run = {
+      formatVersion: 1,
+      evaluatorVersion: 3,
+      batchId, versionId: version.id, versionDescription: version.description ?? version.id, repeat, repeats,
+      id: `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID().slice(0, 8)}`,
+      startedAt: new Date().toISOString(),
+      state: 'running',
+      settings, snapshot, evaluatorHash,
+      comparisonGroup: hash({scenarios: snapshot.scenarios, judge: snapshot.judge, settings, evaluatorHash}),
+      promptVersions: Object.fromEntries(snapshot.prompts.map(p => [p.id, hash({system: p.system, user_template: p.user_template})])),
+      results: [],
+      scores: {},
+    };
+    const history = join(directory, '.runs');
+    await mkdir(history, {recursive: true});
+    const path = join(history, `${run.id}.json`);
+    async function save() {
+      await writeFile(`${path}.tmp`, JSON.stringify(run, null, 2), {mode: 0o600});
+      await rename(`${path}.tmp`, path);
     }
+    await save();
+    for (const scenario of snapshot.scenarios) {
+      for (const prompt of snapshot.prompts) {
+        console.log(`Evaluating ${scenario.id} / ${prompt.label} ...`);
+        const result = await evaluate(prompt, scenario, snapshot.judge, settings, apiKey);
+        run.results.push(result);
+        await save();
+        // result.error holds only the sanitized messages from val.mjs, never response bodies or keys.
+        console.log(`  ${result.score === null ? 'Incomplete' : `${result.score}/100`} (${result.state})${result.error ? `: ${result.error}` : ''}`);
+      }
+    }
+    run.scores = Object.fromEntries(BOX_IDS.map(id => [id, boxAverage(run.results, id, snapshot.scenarios.length)]));
+    run.state = run.results.some(result => result.score === null) ? 'incomplete' : 'complete';
+    run.completedAt = new Date().toISOString();
+    await save();
+    await buildReport(directory);
+    await writeStepSummary(run);
+    console.log('Saved history. Open evals/report.html in your browser.');
+    if (run.results.some(result => result.state !== 'scored')) process.exitCode = 1;
   }
 }
 

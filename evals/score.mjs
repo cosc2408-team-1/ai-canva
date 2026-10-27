@@ -31,10 +31,14 @@ function requiredFields(boxId, artifact) {
       for (const key of ['shall_statement', 'cia_objectives', 'elicitation_basis', 'priority', 'confidence', 'acceptance_criteria', 'source_refs']) {
         if (!hasValue(requirement?.[key])) problems.push(`Requirement missing ${key}`);
       }
-      if (!/\bSHALL\b/.test(requirement?.shall_statement ?? '')) problems.push('Requirement must contain SHALL');
-      for (const key of ['cia_objectives', 'acceptance_criteria', 'source_refs']) {
+      // Match what the app accepts: any-case "shall", and acceptance_criteria as one string
+      // (as in the Jennie sample and the Word report) or a list.
+      if (!/\bshall\b/i.test(requirement?.shall_statement ?? '')) problems.push('Requirement must contain SHALL');
+      for (const key of ['cia_objectives', 'source_refs']) {
         if (!Array.isArray(requirement?.[key]) || !requirement[key].length) problems.push(`Requirement ${key} must be a nonempty list`);
       }
+      const criteria = requirement?.acceptance_criteria;
+      if (!(typeof criteria === 'string' ? criteria.trim() : Array.isArray(criteria) && criteria.length)) problems.push('Requirement acceptance_criteria must be a nonempty string or list');
     }
   }
   if (boxId === 'nistgap') {

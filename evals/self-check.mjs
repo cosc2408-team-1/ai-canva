@@ -12,6 +12,7 @@ import { parse, stringify } from 'yaml';
 import { automaticChecks, readJudgeChecks, totalPoints, boxAverage } from './score.mjs';
 import { callVal } from './val.mjs';
 import { embedHistory } from './report.mjs';
+import { loadAppPrompts } from './app-prompts.mjs';
 
 const directory = fileURLToPath(new URL('.', import.meta.url));
 const judge = parse(await readFile(join(directory, 'judge.yaml'), 'utf8'));
@@ -58,6 +59,20 @@ test('malformed YAML, wrong status, broken references and changed upstream value
   assert.equal(automaticChecks('nistgap', stringify(changed), {input: requirement, expected_status: ['complete']})[3].points, 0);
 });
 
+test('requirement fields accept what the app accepts and nothing looser', () => {
+  const testCase = {input: 'Owner requirement', expected_status: ['complete']};
+  const fieldsPoints = (shall, criteria) => {
+    const variant = structuredClone(requirement);
+    Object.assign(variant.requirements[0], {shall_statement: shall, acceptance_criteria: criteria});
+    return automaticChecks('reqelicitor', stringify(variant), testCase)[1].points;
+  };
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', 'Another user is denied.'), 10);
+  assert.equal(fieldsPoints('The API SHALL restrict cancellation to the creator.', ['Deny another user.']), 10);
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', '   '), 0);
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', []), 0);
+  assert.equal(fieldsPoints('The API will restrict cancellation to the creator.', 'Another user is denied.'), 0);
+});
+
 test('a malformed judge response cannot become a score', () => {
   for (const text of ['not JSON', '{"checks":[]}', JSON.stringify({checks: Array(6).fill(goodJudgment.checks[0])})]) {
     assert.throws(() => readJudgeChecks(text, judge.criteria));
@@ -92,10 +107,21 @@ test('embedded report data cannot escape its script element', () => {
   assert.equal(JSON.parse(json)[0].output, hostile);
 });
 
+test('--app reads the prompts the app ships, unchanged apart from the input placeholder', async () => {
+  const { BOX_TYPES } = await import('../client/src/types.ts');
+  const prompts = await loadAppPrompts();
+  assert.deepEqual(prompts.map(p => p.id), ['reqelicitor', 'nistgap', 'securityadvisor']);
+  for (const prompt of prompts) {
+    assert.equal(prompt.system, BOX_TYPES[prompt.id].defaultSystemPrompt);
+    assert.equal(prompt.user_template, BOX_TYPES[prompt.id].defaultPrompt.replace('{{inputs}}', '{{input}}'));
+    assert.equal(prompt.label, BOX_TYPES[prompt.id].label);
+  }
+});
+
 test('end-to-end runner saves history and a standalone report, and retains judge failures', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'ai-canva-eval-test-'));
   try {
-    for (const name of ['run.mjs', 'score.mjs', 'val.mjs', 'report.mjs', 'dashboard.html', 'judge.yaml']) await copyFile(join(directory, name), join(temp, name));
+    for (const name of ['run.mjs', 'score.mjs', 'val.mjs', 'report.mjs', 'app-prompts.mjs', 'dashboard.html', 'judge.yaml']) await copyFile(join(directory, name), join(temp, name));
     await symlink(join(directory, 'node_modules'), join(temp, 'node_modules'), 'dir');
     const prompts = Object.keys(fixtures).map(id => ({id, label: id, system: id, user_template: 'Input: {{input}}'}));
     const scenarios = [{id: 'fixed-case', description: 'Fixture', boxes: Object.fromEntries(Object.keys(fixtures).map(id => [id, {input: id === 'nistgap' ? requirement : 'Fixed input', expected_status: [fixtures[id].status], expectations: ['Expected outcome']}]))}];
@@ -119,8 +145,15 @@ test('end-to-end runner saves history and a standalone report, and retains judge
     `);
     const execute = promisify(execFile);
     const args = ['--import', join(temp, 'mock.mjs'), join(temp, 'run.mjs')];
-    const options = {env: {...process.env, VAL_API_KEY: 'secret-test-key'}, timeout: 10000};
-    await execute(process.execPath, args, options);
+    // Drop CI's summary file so mocked runs never appear in the real job summary.
+    const {GITHUB_STEP_SUMMARY: _ciSummary, ...parentEnv} = process.env;
+    const options = {env: {...parentEnv, VAL_API_KEY: 'secret-test-key'}, timeout: 10000};
+    const summary = join(temp, 'summary.md');
+    await execute(process.execPath, args, {...options, env: {...options.env, GITHUB_STEP_SUMMARY: summary}});
+    const summaryText = await readFile(summary, 'utf8');
+    assert.match(summaryText, /\| reqelicitor \| 100 \|/);
+    assert.ok(!summaryText.includes('Points lost'));
+    assert.ok(!summaryText.includes('secret-test-key'));
     let html = await readFile(join(temp, 'report.html'), 'utf8');
     let runs = JSON.parse(html.match(/id="run-data">(.*?)<\/script>/s)[1]);
     assert.equal(runs.length, 1);
@@ -140,21 +173,18 @@ test('end-to-end runner saves history and a standalone report, and retains judge
     assert.ok(runs[2].results.every(result => result.state === 'generation_error' && result.score === null));
     assert.ok(Object.values(runs[2].scores).every(score => score === null));
 
-    const editedPrompts = prompts.map(prompt => ({...prompt, user_template: 'Revised input: {{input}}'}));
-    await writeFile(join(temp, 'prompt-versions.yaml'), stringify({format_version: 1, versions: [
-      {id: 'v01', prompts}, {id: 'v02', prompts: editedPrompts},
-    ]}));
-    await execute(process.execPath, [...args, '--all'], options);
+    await execute(process.execPath, [...args, '--repeats', '2'], options);
     html = await readFile(join(temp, 'report.html'), 'utf8');
     runs = JSON.parse(html.match(/id="run-data">(.*?)<\/script>/s)[1]);
     const batch = runs.slice(3);
-    assert.equal(batch.length, 6);
+    assert.equal(batch.length, 2);
     assert.equal(new Set(batch.map(run => run.batchId)).size, 1);
     assert.equal(new Set(batch.map(run => run.comparisonGroup)).size, 1);
-    assert.equal(new Set(batch.map(run => run.promptVersions.reqelicitor)).size, 2);
-    assert.deepEqual(batch.map(run => [run.versionId, run.repeat]), [['v01', 1], ['v02', 1], ['v01', 2], ['v02', 2], ['v01', 3], ['v02', 3]]);
+    assert.deepEqual(batch.map(run => [run.versionId, run.repeat, run.repeats]), [['current', 1, 2], ['current', 2, 2]]);
     assert.ok(batch.every(run => Object.values(run.scores).every(score => score === 100)));
     assert.equal(await readFile(join(temp, 'prompts.yaml'), 'utf8'), stringify({format_version: 1, prompts}));
-    await assert.rejects(execute(process.execPath, [...args, '--version', 'does-not-exist', '--check'], options));
+    for (const removed of ['--all', '--version']) {
+      await assert.rejects(execute(process.execPath, [...args, removed, 'v01', '--check'], options));
+    }
   } finally { await rm(temp, {recursive: true, force: true}); }
 });

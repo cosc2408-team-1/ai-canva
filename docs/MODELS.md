@@ -9,7 +9,7 @@ has changed." If you change a model, **update the table and append to the change
 
 | Concern | Used by | Provider | Model | Override | Defined in |
 |---------|---------|----------|-------|----------|------------|
-| **Text generation (current live demo)** | Security Assessment workers and other text boxes | RMIT VAL through the local backend and Cloudflare Tunnel | `openai-gpt-6-sol` *(local demo override)* | `AI_PROVIDER=val`, `VAL_MODEL` | `server/.env` (ignored); `server/src/val.ts` |
+| **Text generation (current live demo)** | Security Assessment workers and other text boxes | RMIT VAL through the local backend and Cloudflare Tunnel | `openai-gpt-5.6-terra` *(local demo override)* | `AI_PROVIDER=val`, `VAL_MODEL` | `server/.env` (ignored); `server/src/val.ts` |
 | **Text generation (Ollama option)** | Research, Summarize, PRD, Dev Plan, Slides, Code, UI Design, Agent, Chatbot, custom boxes, agent run-box calls | Ollama (Cloud **or** local daemon), selected when `AI_PROVIDER` is unset or `ollama` | `deepseek-v4.1-flash` *(provider default)* | `OLLAMA_MODEL` | `server/src/ollama.ts` + `functions/src/ollama.ts` |
 | **UI screens** | Stitch UI box | Google Stitch (Gemini under the hood) | `GEMINI_3_FLASH` *(default)* | `STITCH_MODEL` — enum: `GEMINI_3_PRO` \| `GEMINI_3_FLASH` | `server/src/stitch.ts` + `functions/src/stitch.ts` |
 | **Image, image→image** | Cartoon Profile box (when an Image box is connected) | fal.ai | `fal-ai/qwen-image-edit` | none — hardcoded | `server/src/fal.ts` + `functions/src/fal.ts` |
@@ -23,7 +23,7 @@ The local demo override does not change the code defaults or the Firebase Functi
 ### RMIT VAL (current live demo)
 - **Endpoint:** `POST https://val.rmit.edu.au/api/chat/completions`.
 - **Configuration:** ignored `server/.env` uses `AI_PROVIDER=val`,
-  `VAL_MODEL=openai-gpt-6-sol` and `VAL_TIMEOUT_MS=120000`.
+  `VAL_MODEL=openai-gpt-5.6-terra` and `VAL_TIMEOUT_MS=120000`.
 - **Auth:** `VAL_API_KEY` remains backend-only. Never put it in client code or `VITE_*` variables.
 - **Routing:** Firebase Hosting serves the frontend; the configured Cloudflare Tunnel forwards
   generation to the local Express backend. Auth, Firestore and Storage remain on Firebase.
@@ -89,6 +89,13 @@ The local demo override does not change the code defaults or the Firebase Functi
 
 ## Change log
 
+- **2026-10-27** — Back to `openai-gpt-5.6-terra` for the demo (`VAL_MODEL` in the demo backend's
+  `server/.env`) and for the prompt evals' generator and judge (`evals/.env.example`,
+  `evals/run.mjs`, previously `openai-gpt-4.1`). On VAL, `openai-gpt-6-sol` sometimes replied with
+  `finish_reason: tool_calls` and no text (it called VAL's built-in `query_knowledge_files` tool,
+  which the request does not offer), and its NIST output omitted `report_id` in the missing-context
+  eval case. Terra returned text in the same test. If Sol is used again, send
+  `tool_choice: "none"` from `server/src/val.ts`, `functions/src/val.ts` and `evals/val.mjs` first.
 - **2026-10-22** — Updated the local VAL demo override from `openai-gpt-5.6-terra` to
   `openai-gpt-6-sol`. VAL's model-list endpoint returned this ID and a direct Chat Completions
   smoke test returned HTTP 200 with the same model field. Provider code defaults are unchanged.

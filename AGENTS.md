@@ -30,6 +30,7 @@ to box — from an Idea, through Research, to PRD / Slides / Code / UI Design / 
 | `server/` | Local Express dev backend (`/api/generate`, `/api/generate-image`, `/api/stitch-generate`, `/api/repo-digest`, `/api/health`). |
 | `functions/` | Same API as a Firebase Cloud Function (`onRequest`) for production. Also hosts `src/stitchJobs.ts` (the async Stitch Cloud Task worker). |
 | `scripts/deploy.sh` | One-command production deploy (build client, build Functions, deploy Hosting + Functions + rules). |
+| `evals/` | Standalone VAL prompt evaluations for the security boxes (`run.mjs`, cases, judge, HTML report); `--app` evaluates the live prompts (VAL runs are local; CI runs offline checks only). |
 | `docs/` | Guides: `OVERVIEW`, `ONBOARDING`, `ARCHITECTURE`, `BOX_TYPES`, `API`, `MODELS`, `DEPLOYMENT`, `OSS_READINESS`, plus `docs/course/` teaching materials. `docs/DEVLOG.md` is the session journal (read at session start, append after finishing work). |
 | `firebase.json`, `firestore.rules`, `storage.rules` | Firebase config and security rules. |
 | `dsh-plugins/` | Out-of-tree plugins for the DeepSeek Harness Web GUI (not part of the app). See "dsh GUI plugins" below. |
@@ -90,7 +91,9 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
   Assessment approach section. The report does not append raw YAML or turn
   each box into a bullet list. No AI call or server upload occurs
   during export. Unrun boxes and invalid or unchecked outputs are labelled rather than presented
-  as verified findings.
+  as verified findings. The narrative's `text()` reads only string fields, so a requirement's
+  `acceptance_criteria` (or `verification_method`) given as a YAML list drops out of the report;
+  do not change the Elicitor prompt to ask for lists without updating the narrative.
 - **Focused Add Box palette:** `Sidebar.tsx` offers 11 tools: Idea, Documents, the seven security
   workers, Note and Checklist. General coding/design, SDLC, image, companion and custom-box
   creation entries are no longer advertised. Old boards retain their original box types and
@@ -315,6 +318,17 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
 - **Functions tests** (`functions/src/app.test.ts`) use supertest against the exported app and mock
   external provider calls. They do not require the Firebase emulator or a real VAL key. Keep API
   logic in sync between `server` and `functions` and cover route behavior in both suites.
+- **Prompt evals** (`evals/`, standalone, not part of `npm test`): VAL generates and judges the
+  three security boxes' outputs (Requirements Elicitor, NIST Gap Checker, Security Advisor) on 4
+  fixed scenarios × 10 checks; generator and judge default to `openai-gpt-5.6-terra`, the demo
+  backend's `VAL_MODEL` (keep them matched). `node evals/run.mjs --app` evaluates the prompts the app ships,
+  reading `BOX_TYPES.*.defaultSystemPrompt`/`defaultPrompt` straight from `client/src/types.ts`
+  (`evals/app-prompts.mjs`, Node ≥22.18 type stripping — so `types.ts` must stay import-free and
+  each of those templates must keep exactly one `{{inputs}}`). **VAL calls run locally only**
+  (`node evals/run.mjs --app --repeats 3` before merging a prompt change): RMIT's Azure Application
+  Gateway returns 403 to GitHub-hosted runners before any key is checked, and the team chose no
+  self-hosted runner. `.github/workflows/prompt-evals.yml` runs only the offline checks on every PR
+  and push to `main` (`node --test evals/self-check.mjs` + `node evals/run.mjs --app --check`). See `evals/README.md`.
 - **E2E suite:** `client/e2e.mjs` (playwright-core + system Chrome) drives the **real dev app** on
   `localhost:5173` with the real backend. Part 1 (fake user via dev-only `window.__dsh` store hooks
   in `main.tsx`, `import.meta.env.DEV`-guarded, stripped from prod): landing → login → palette adds

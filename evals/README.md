@@ -8,65 +8,56 @@ This is a small starting suite, not a security audit or exhaustive benchmark.
 Each box is scored against its own job. Their scores are useful side by side,
 but the boxes are not interchangeable competitors.
 
-## Compare all versions, three times each
-
-**`prompt-versions.yaml`** is the single file containing all nine distinct saved
-prompt sets. Their original system and user text is preserved; repeated runs of
-identical sets were deduplicated. Each version contains all three boxes.
-
-| Version | Description |
-| --- | --- |
-| v01 | Full reference prompts |
-| v02 | Minimal task |
-| v03 | Role wording added |
-| v04 | Output structure |
-| v05 | Identifiers and traceability |
-| v06 | Useful content requirements |
-| v07 | Evidence discipline |
-| v08 | Uncertainty handling |
-| v09 | Untrusted input and assurances |
-
-From any folder, run:
+## Evaluate the prompts the app ships
 
 ```bash
-node /home/rayan/Documents/aicanva/ai-canva/evals/run.mjs --all
+node evals/run.mjs --app --check   # Validate; no VAL calls
+node evals/run.mjs --app           # One run: 12 outputs, normally 24 VAL calls
+node evals/run.mjs --app --repeats 3   # Before merging a prompt change
 ```
 
-Or, from the repository root:
+`--app` reads each box's `defaultSystemPrompt` and `defaultPrompt` straight from
+`client/src/types.ts` (`app-prompts.mjs`), so it always tests the current code and
+never a stale copy. `{{inputs}}` in the app template becomes the scenario input,
+the same way a connected box's output fills it in the app. The scenarios, checks
+and judge are the same as every other run. Boxes already on existing boards keep
+the template they were created with, so this measures what a newly added box sends.
 
-```bash
-node evals/run.mjs --all --check       # Validate and show call count; no VAL calls
-node evals/run.mjs --all               # All versions, three repeats each
-node evals/run.mjs --version v04       # Just v04, three repeats
-node evals/run.mjs --all --repeats 1   # Optional quick pass
-```
+**Run it locally; CI does not call VAL.** RMIT's Azure Application Gateway in
+front of VAL returns 403 to GitHub-hosted runners before any key is checked, so
+`.github/workflows/prompt-evals.yml` runs only the offline checks on every pull
+request and push to `main`: `node --test evals/self-check.mjs` and
+`node evals/run.mjs --app --check`. Those confirm the harness works and that the
+current prompts still load and fit the cases. Run `--app --repeats 3` yourself
+before merging a prompt change. Runs default to one repeat; three show variation
+but are still not a precise measurement.
 
-With the current cases, the full batch is **27 runs / 324 outputs / normally 648
-VAL calls**, plus any judge retries. Each repeat visits all versions in file order.
-Calls run sequentially and may take a long time. Every version/repeat saves its own
-history file and refreshes `report.html`. The report shows per-prompt averages,
-lowest–highest scores, usable run counts, and failed/unfinished attempts. Averages
-use only attempts with all cases successfully scored for that box; always inspect
-the excluded count as well. Three runs help expose variation but are not proof of
-statistical significance.
+## Scratch prompts and repeats
 
-To add a version, duplicate a version entry in `prompt-versions.yaml`, give it a
-new `id` and description, then edit its prompt text and stage labels. The runner
-loads this file once per batch; edits during a batch apply to the next invocation.
-The existing `prompts.yaml` remains an independent scratch file: running without
-`--all` or `--version` evaluates that file once (or use `--repeats 3`). Editing the
-scratch file does not automatically update the version archive.
+`node evals/run.mjs` (no `--app`) evaluates the experimental prompts in
+`prompts.yaml` instead of the app prompts. Add `--repeats N` (1–20) to either mode
+to run every case N times; each repeat saves its own history file and refreshes
+`report.html`, which shows per-prompt averages, lowest–highest scores, usable run
+counts, and failed/unfinished attempts. Averages use only attempts with all cases
+successfully scored for that box; always inspect the excluded count as well. Three
+runs help expose variation but are not proof of statistical significance.
 
-The corrected evaluator is **version 2**. It recognizes IDs after newlines and
-supplies the judge with the fixed output contract and trusted assessment date.
-It does not grade exact NIST identifier accuracy without an authoritative catalogue.
-Old runs remain unchanged under their original comparison group, marked evaluator
-1. New results form a separate group; do not interpret their difference from old
-scores as a prompt improvement. No automatic historical rescoring occurs.
+The current evaluator is **version 3**. Version 2 recognized IDs after newlines and
+supplied the judge with the fixed output contract and trusted assessment date.
+Version 3 tells the judge that the Elicitor's required `asvs_applicability` field is
+part of its contract, not scope expansion, and that empty ASVS identifiers are
+correct here (the app adds the permitted ASVS list at run time; the evals do not).
+Its required-fields check also matches what the app accepts: "shall" in any case, and
+`acceptance_criteria` as one string or a list (the Jennie sample and the Word report use
+a string). It does not grade exact NIST identifier accuracy without an authoritative catalogue.
+Old runs remain unchanged under their original comparison group, marked with their
+evaluator version. New results form a separate group; do not interpret their difference
+from old scores as a prompt improvement. No automatic historical rescoring occurs.
 
 ## First use
 
-Use Node 22 or newer. From the repository root:
+Use Node 22.18 or newer (`--app` loads `client/src/types.ts` with Node's built-in
+type stripping). From the repository root:
 
 ```bash
 npm ci --prefix evals --ignore-scripts
@@ -74,9 +65,10 @@ cp evals/.env.example evals/.env
 ```
 
 Edit `evals/.env` and set your `VAL_API_KEY`. The file is ignored by Git. You can
-also set the key in your shell. The runner never reads `server/.env`, production
-prompts, application APIs or Firebase. Both model settings default to
-`openai-gpt-4.1`; change `EVAL_MODEL` or `EVAL_JUDGE_MODEL` in `evals/.env` if needed.
+also set the key in your shell. The runner never reads `server/.env`, application
+APIs or Firebase; only `--app` reads the prompt text from `client/src/types.ts`. Both model settings default to
+`openai-gpt-5.6-terra`, matching the demo backend's `VAL_MODEL`; change `EVAL_MODEL` or
+`EVAL_JUDGE_MODEL` in `evals/.env` if the app's model changes.
 
 ```bash
 node evals/run.mjs --check   # Validate files; no model calls
@@ -93,8 +85,9 @@ node evals/report.mjs
 An ordinary run makes 24 VAL requests: one generation and one judgment for each
 of 12 outputs. An invalid judgment gets one retry. Calls are sequential; each has
 a two-minute timeout. Running sends the fictional case inputs and generated
-outputs to VAL. History and reporting stay on your computer. Nothing runs in CI,
-default tests, builds, pre-commit hooks, or the application.
+outputs to VAL. History and reporting stay on your computer. VAL calls never run in CI,
+default tests, builds, pre-commit hooks, or the application; CI runs only the
+offline checks.
 
 ## The three editable files
 
