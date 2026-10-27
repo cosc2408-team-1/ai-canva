@@ -29,6 +29,33 @@ current state).
 
 ---
 
+## 2026-10-27 — Demo and evals back on gpt-5.6-terra; evaluator 3
+
+- **Done:** Evaluator 3, evals and docs only — no app prompt change. The judge accepts the
+  Elicitor's required `asvs_applicability` field and empty ASVS IDs (the app adds the ASVS list
+  at run time; evals do not). `evals/score.mjs` accepts "shall" in any case and
+  `acceptance_criteria` as a string or a list, matching the app (Jennie sample, Word report);
+  `evals/self-check.mjs` locks this in (9/9).
+  Do not ask the Elicitor for a list: `securityReportNarrative.ts` `text()` reads strings only, so
+  list-shaped criteria would drop out of the Word report. Evals default to `openai-gpt-5.6-terra`
+  (was `gpt-4.1`); the user chose Terra for the demo backend too (`docs/MODELS.md`).
+- **Results (3 Terra runs, all 36 outputs scored; `docs/evidence/prompt-evals-2026-10-27/`):**
+  Elicitor 98.75 / 96.25 / 97.5, NIST 97.5 / 100 / 100, Advisor 98.75 / 96.25 / 95. Two fails
+  under the "any check 0" rule: NIST embedded-instructions run 1 omitted `report_id`; Elicitor
+  conflicting-evidence run 2 got grounding 0 for unsupported CIA impact ratings (the prompt asks
+  for a CIA classification per asset even when evidence is silent). The Advisor never asks for the
+  workflow stage in the missing-context case.
+- **Why not Sol:** `openai-gpt-6-sol` on VAL sometimes answered with `finish_reason: tool_calls`
+  and no text: it called VAL's built-in `query_knowledge_files` tool to look up ASVS IDs, though
+  the request offers no tools. `tool_choice: "none"` stopped it (3/3 in a direct test);
+  `server/src/val.ts` and `functions/src/val.ts` would return a 502 in that case. Sol's NIST
+  missing-context output also omitted `report_id`. Terra returned text in the same test.
+- **In flight:** committed on `feat/evals`; PR to `main` pending review.
+- **Next steps:** Jiong sets `VAL_MODEL=openai-gpt-5.6-terra` in the demo backend's `server/.env`
+  and restarts it; delete the unused `EVAL_VAL_API_KEY` repository secret. Possible follow-ups:
+  `tool_choice: "none"` in both backends and `evals/val.mjs`; ask the NIST prompt to always
+  include `report_id`; ask the Advisor to cover the workflow stage when it is unknown.
+
 ## 2026-10-26 — Prompt evals: live app prompts, offline checks in CI
 
 - **Done:** `node evals/run.mjs --app` evaluates the security boxes' live prompts, read from
@@ -44,8 +71,8 @@ current state).
 - **Baseline (main's prompts, 1 local run, gpt-5.6-terra):** Elicitor 93.75, NIST 100, Advisor
   98.75. The Elicitor sometimes writes lowercase "shall" (fails the `SHALL` field check), and the
   judge penalises its `asvs_applicability` field although the system prompt allows ASVS references.
-- **In flight:** on `feat/evals` (PR open); the switch to offline-only CI is uncommitted.
-- **Next steps:** commit + push; the `EVAL_VAL_API_KEY` repo secret is now unused and can be deleted.
+- **In flight:** — (committed and pushed on `feat/evals`).
+- **Next steps:** delete the unused `EVAL_VAL_API_KEY` repository secret.
 
 ## 2026-10-22 — Prepare demo reliability fixes for PR publication
 

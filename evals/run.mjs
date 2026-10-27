@@ -154,8 +154,8 @@ async function main() {
   if (!apiKey) throw new Error('Set VAL_API_KEY in evals/.env or your shell. See evals/.env.example.');
   const settings = {
     endpoint: ENDPOINT,
-    model: process.env.EVAL_MODEL || localEnv.EVAL_MODEL || 'openai-gpt-4.1',
-    judgeModel: process.env.EVAL_JUDGE_MODEL || localEnv.EVAL_JUDGE_MODEL || 'openai-gpt-4.1',
+    model: process.env.EVAL_MODEL || localEnv.EVAL_MODEL || 'openai-gpt-5.6-terra',
+    judgeModel: process.env.EVAL_JUDGE_MODEL || localEnv.EVAL_JUDGE_MODEL || 'openai-gpt-5.6-terra',
     temperature: 0,
     timeoutMs: 120000,
     assessmentDate: '2026-09-26',
@@ -170,7 +170,7 @@ async function main() {
     console.log(`${version.description}, repeat ${repeat}/${repeats}`);
     const run = {
       formatVersion: 1,
-      evaluatorVersion: 2,
+      evaluatorVersion: 3,
       batchId, versionId: version.id, versionDescription: version.description ?? version.id, repeat, repeats,
       id: `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID().slice(0, 8)}`,
       startedAt: new Date().toISOString(),

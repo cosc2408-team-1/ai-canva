@@ -42,12 +42,17 @@ counts, and failed/unfinished attempts. Averages use only attempts with all case
 successfully scored for that box; always inspect the excluded count as well. Three
 runs help expose variation but are not proof of statistical significance.
 
-The corrected evaluator is **version 2**. It recognizes IDs after newlines and
-supplies the judge with the fixed output contract and trusted assessment date.
-It does not grade exact NIST identifier accuracy without an authoritative catalogue.
-Old runs remain unchanged under their original comparison group, marked evaluator
-1. New results form a separate group; do not interpret their difference from old
-scores as a prompt improvement. No automatic historical rescoring occurs.
+The current evaluator is **version 3**. Version 2 recognized IDs after newlines and
+supplied the judge with the fixed output contract and trusted assessment date.
+Version 3 tells the judge that the Elicitor's required `asvs_applicability` field is
+part of its contract, not scope expansion, and that empty ASVS identifiers are
+correct here (the app adds the permitted ASVS list at run time; the evals do not).
+Its required-fields check also matches what the app accepts: "shall" in any case, and
+`acceptance_criteria` as one string or a list (the Jennie sample and the Word report use
+a string). It does not grade exact NIST identifier accuracy without an authoritative catalogue.
+Old runs remain unchanged under their original comparison group, marked with their
+evaluator version. New results form a separate group; do not interpret their difference
+from old scores as a prompt improvement. No automatic historical rescoring occurs.
 
 ## First use
 
@@ -62,7 +67,8 @@ cp evals/.env.example evals/.env
 Edit `evals/.env` and set your `VAL_API_KEY`. The file is ignored by Git. You can
 also set the key in your shell. The runner never reads `server/.env`, application
 APIs or Firebase; only `--app` reads the prompt text from `client/src/types.ts`. Both model settings default to
-`openai-gpt-4.1`; change `EVAL_MODEL` or `EVAL_JUDGE_MODEL` in `evals/.env` if needed.
+`openai-gpt-5.6-terra`, matching the demo backend's `VAL_MODEL`; change `EVAL_MODEL` or
+`EVAL_JUDGE_MODEL` in `evals/.env` if the app's model changes.
 
 ```bash
 node evals/run.mjs --check   # Validate files; no model calls

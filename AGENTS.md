@@ -91,7 +91,9 @@ npm run deploy         # = bash scripts/deploy.sh (production Firebase deploy)
   Assessment approach section. The report does not append raw YAML or turn
   each box into a bullet list. No AI call or server upload occurs
   during export. Unrun boxes and invalid or unchecked outputs are labelled rather than presented
-  as verified findings.
+  as verified findings. The narrative's `text()` reads only string fields, so a requirement's
+  `acceptance_criteria` (or `verification_method`) given as a YAML list drops out of the report;
+  do not change the Elicitor prompt to ask for lists without updating the narrative.
 - **Focused Add Box palette:** `Sidebar.tsx` offers 11 tools: Idea, Documents, the seven security
   workers, Note and Checklist. General coding/design, SDLC, image, companion and custom-box
   creation entries are no longer advertised. Old boards retain their original box types and
@@ -318,7 +320,8 @@ The app reports per-call LLM token usage and tracks cumulative usage per user an
   logic in sync between `server` and `functions` and cover route behavior in both suites.
 - **Prompt evals** (`evals/`, standalone, not part of `npm test`): VAL generates and judges the
   three security boxes' outputs (Requirements Elicitor, NIST Gap Checker, Security Advisor) on 4
-  fixed scenarios × 10 checks. `node evals/run.mjs --app` evaluates the prompts the app ships,
+  fixed scenarios × 10 checks; generator and judge default to `openai-gpt-5.6-terra`, the demo
+  backend's `VAL_MODEL` (keep them matched). `node evals/run.mjs --app` evaluates the prompts the app ships,
   reading `BOX_TYPES.*.defaultSystemPrompt`/`defaultPrompt` straight from `client/src/types.ts`
   (`evals/app-prompts.mjs`, Node ≥22.18 type stripping — so `types.ts` must stay import-free and
   each of those templates must keep exactly one `{{inputs}}`). **VAL calls run locally only**

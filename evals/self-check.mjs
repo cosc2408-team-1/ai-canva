@@ -59,6 +59,20 @@ test('malformed YAML, wrong status, broken references and changed upstream value
   assert.equal(automaticChecks('nistgap', stringify(changed), {input: requirement, expected_status: ['complete']})[3].points, 0);
 });
 
+test('requirement fields accept what the app accepts and nothing looser', () => {
+  const testCase = {input: 'Owner requirement', expected_status: ['complete']};
+  const fieldsPoints = (shall, criteria) => {
+    const variant = structuredClone(requirement);
+    Object.assign(variant.requirements[0], {shall_statement: shall, acceptance_criteria: criteria});
+    return automaticChecks('reqelicitor', stringify(variant), testCase)[1].points;
+  };
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', 'Another user is denied.'), 10);
+  assert.equal(fieldsPoints('The API SHALL restrict cancellation to the creator.', ['Deny another user.']), 10);
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', '   '), 0);
+  assert.equal(fieldsPoints('The API shall restrict cancellation to the creator.', []), 0);
+  assert.equal(fieldsPoints('The API will restrict cancellation to the creator.', 'Another user is denied.'), 0);
+});
+
 test('a malformed judge response cannot become a score', () => {
   for (const text of ['not JSON', '{"checks":[]}', JSON.stringify({checks: Array(6).fill(goodJudgment.checks[0])})]) {
     assert.throws(() => readJudgeChecks(text, judge.criteria));
